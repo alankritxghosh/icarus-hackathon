@@ -179,7 +179,7 @@ export function Workspace({
                     </div>
                     {reference && (
                       <div className="reference">
-                        <p className="eyebrow">MATCHED TO THIS PHOTO</p>
+                        <p className="eyebrow">STYLE TAKEN FROM THIS PHOTO</p>
                         <img src={reference.src} alt={reference.title} />
                         <small>{reference.credit}</small>
                       </div>
@@ -322,14 +322,14 @@ export function Workspace({
                     <div className="compare">
                       <figure>
                         <img src={reference.src} alt={`Reference: ${reference.title}`} />
-                        <figcaption>The photo you chose</figcaption>
+                        <figcaption>The photo (style reference only)</figcaption>
                       </figure>
                       <figure>
                         <img
                           src={picture.result.image}
                           alt={`The ${picture.view.toLowerCase()} as a photograph`}
                         />
-                        <figcaption>Icarus, {picture.view.toLowerCase()}</figcaption>
+                        <figcaption>Icarus's own office, {picture.view.toLowerCase()}</figcaption>
                       </figure>
                     </div>
                   ) : (

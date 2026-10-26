@@ -56,11 +56,11 @@ export function Home({ builds, notice, onBuild, onPhoto, onOpen }: Props) {
       )}
       <section className="photos">
         <p className="eyebrow">START FROM A PHOTO</p>
-        <h2>Match a real space</h2>
+        <h2>Take the style of a real space</h2>
         <p className="quiet">
-          Pick a photograph of a real coworking space, or add your own. Icarus reads its style and
-          contents and builds a similar office. It is a match in spirit: a photo gives no
-          dimensions, so sizes are assumed and said so.
+          Pick a photograph of a real coworking space, or add your own. Icarus reads its floors,
+          colours, ceiling and kinds of rooms, then designs a new office in that style. It does not
+          reproduce the photographed room: the layout and sizes are Icarus's own.
         </p>
         <div className="cards">
           {REFERENCES.map((r) => (
