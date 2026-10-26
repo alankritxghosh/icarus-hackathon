@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "zod": "4.6.7",
-    "@icarus/core": "workspace:*"
+    "@icarus/core": "workspace:*",
+    "@icarus/meta": "workspace:*"
   },
   "devDependencies": {
     "typescript": "7.0.2",

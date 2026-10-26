@@ -22,6 +22,8 @@ export interface RespondRequest<T = never> {
   tools?: { name: string; description: string; parameters: z.ZodType }[];
   previousResponseId?: string;
   maxOutputTokens?: number;
+  /** How much a reasoning model may think before answering. Sent only where the provider accepts it. */
+  reasoningEffort?: "minimal" | "low" | "medium" | "high";
 }
 
 export interface ToolCall {

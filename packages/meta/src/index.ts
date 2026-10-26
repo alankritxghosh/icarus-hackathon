@@ -21,7 +21,13 @@ export {
   OpenRouterImages,
   readImages,
 } from "./images";
-export { buildRespondBody, jsonSchema, readResponse, validateStructured } from "./responses";
+export {
+  buildRespondBody,
+  extractJson,
+  jsonSchema,
+  readResponse,
+  validateStructured,
+} from "./responses";
 export { parseSegmentation } from "./sam";
 export {
   type AnyTool,

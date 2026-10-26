@@ -1,4 +1,5 @@
-import { KIND_RULES, type RoomKind } from "../catalog";
+import { z } from "zod";
+import { KIND_RULES, ROOM_KINDS, type RoomKind } from "../catalog";
 import { reachable } from "../evidence";
 import type { FurnishReport } from "../furnish";
 import { exposureOnSide, facingSpan } from "../geometry";
@@ -7,33 +8,34 @@ import { ADJACENT_GAP_M } from "../layout/cost";
 import type { FloorPlan } from "../layout/types";
 import { expandRooms, type Program } from "../program";
 
-export type IssueCode =
-  | "room_small"
-  | "room_narrow"
-  | "room_oversized"
-  | "adjacency_missed"
-  | "apart_violated"
-  | "workspace_density"
-  | "seats_short"
-  | "daylight_missing"
-  | "unreachable"
-  | "crowded"
-  | "program_too_big"
-  | "reception_off_entrance";
-
-/** A measured shortfall, with the numbers, in a form both the repairer and a model can act on. */
-export interface Issue {
-  code: IssueCode;
+export const IssueSchema = z.object({
+  code: z.enum([
+    "room_small",
+    "room_narrow",
+    "room_oversized",
+    "adjacency_missed",
+    "apart_violated",
+    "workspace_density",
+    "seats_short",
+    "daylight_missing",
+    "unreachable",
+    "crowded",
+    "program_too_big",
+    "reception_off_entrance",
+  ]),
   /** `info` is reported but never counted against a plan: an oversized room is a donor, not a fault. */
-  severity: "fail" | "warn" | "info";
-  kinds: RoomKind[];
-  roomIds: string[];
-  measured: number;
-  target: number;
+  severity: z.enum(["fail", "warn", "info"]),
+  kinds: z.array(z.enum(ROOM_KINDS)).max(12),
+  roomIds: z.array(z.string().max(60)).max(40),
+  measured: z.number(),
+  target: z.number(),
   /** How far short, as a fraction of the target (0 when not applicable). */
-  shortfall: number;
-  message: string;
-}
+  shortfall: z.number(),
+  message: z.string().max(300),
+});
+/** A measured shortfall, with the numbers, in a form both the repairer and a model can act on. */
+export type Issue = z.infer<typeof IssueSchema>;
+export type IssueCode = Issue["code"];
 
 const round = (n: number) => Math.round(n * 100) / 100;
 

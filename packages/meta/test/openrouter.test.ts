@@ -170,3 +170,60 @@ describe("images", () => {
     await expect(new FakeImages().generate({ prompt: "x" })).rejects.toThrow(/unscripted/);
   });
 });
+
+describe("fetch is called as a bare function", () => {
+  it("never invokes the underlying fetch as a method of the transport, which Workers and browsers reject", async () => {
+    let receiver: unknown = "unset";
+    const strictFetch = function (this: unknown): Promise<Response> {
+      receiver = this;
+      return Promise.resolve(json({ id: "r", status: "completed", output: [] }));
+    };
+    const client = metaClientFromEnv(
+      { OPENROUTER_API_KEY: "sk-or-test" },
+      { fetch: strictFetch as never },
+    );
+    await client.respond({ input: "hello" });
+    expect(receiver === undefined || receiver === globalThis).toBe(true);
+  });
+});
+
+describe("reasoning effort", () => {
+  it("is sent to OpenRouter and never to the Meta API", async () => {
+    const reply = () =>
+      json({
+        id: "r",
+        status: "completed",
+        output: [
+          { type: "message", role: "assistant", content: [{ type: "output_text", text: "hi" }] },
+        ],
+      });
+    const viaOpenRouter = capture(reply());
+    await metaClientFromEnv({ OPENROUTER_API_KEY: KEY }, { fetch: viaOpenRouter.fetch }).respond({
+      input: "x",
+      reasoningEffort: "low",
+    });
+    expect(viaOpenRouter.seen[0]?.body.reasoning).toEqual({ effort: "low" });
+    const viaMeta = capture(reply());
+    await metaClientFromEnv({ MODEL_API_KEY: KEY }, { fetch: viaMeta.fetch }).respond({
+      input: "x",
+      reasoningEffort: "low",
+    });
+    expect(viaMeta.seen[0]?.body.reasoning).toBeUndefined();
+  });
+});
+
+describe("extractJson", () => {
+  it("takes the JSON object out of a fence or a sentence, and leaves clean JSON alone", async () => {
+    const { extractJson } = await import("../src/responses");
+    expect(extractJson('{"a":1}')).toBe('{"a":1}');
+    expect(extractJson('```json\n{"a":1}\n```')).toBe('{"a":1}');
+    expect(extractJson('Sure! Here you go: {"a":{"b":[1,2]}} Hope that helps.')).toBe(
+      '{"a":{"b":[1,2]}}',
+    );
+    expect(extractJson('{"note":"a } brace in a string","n":2} trailing')).toBe(
+      '{"note":"a } brace in a string","n":2}',
+    );
+    expect(extractJson('{"q":"he said \\"hi\\" {"}')).toBe('{"q":"he said \\"hi\\" {"}');
+    expect(extractJson("no json at all")).toBe("no json at all");
+  });
+});

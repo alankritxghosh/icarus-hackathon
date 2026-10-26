@@ -46,7 +46,13 @@ export class MetaClient implements MetaApi {
         "invalid_request",
         "OpenRouter keeps no conversation state: send the full history instead of previousResponseId",
       );
-    const body = buildRespondBody({ ...request, model: request.model ?? this.model });
+    // Only OpenRouter is known to accept a reasoning setting; the Meta API is not sent one.
+    const effort = this.provider === "openrouter" ? request.reasoningEffort : undefined;
+    const body = buildRespondBody({
+      ...request,
+      model: request.model ?? this.model,
+      reasoningEffort: effort,
+    });
     const result = readResponse(await this.transport.postJson("/responses", body));
     const parsed = request.schema ? validateStructured(result.text, request.schema) : undefined;
     return { ...result, parsed };

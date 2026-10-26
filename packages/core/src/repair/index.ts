@@ -1,4 +1,4 @@
-export { diagnose, type Issue, type IssueCode, issueCost } from "./diagnose";
+export { diagnose, type Issue, type IssueCode, IssueSchema, issueCost } from "./diagnose";
 export { type Evaluation, evaluateProgram } from "./evaluate";
 export { type Advisor, type RefineResult, type Round, refineDesign } from "./loop";
 export {

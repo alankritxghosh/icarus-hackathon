@@ -36,7 +36,9 @@ export class Transport {
     if (!options.apiKey.trim())
       throw new MetaError("auth", `${options.keyName ?? "MODEL_API_KEY"} is not set`);
     this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "");
-    this.doFetch = options.fetch ?? globalThis.fetch;
+    // Called as a bare function: Workers and browsers throw "Illegal invocation" if fetch is invoked as a method of another object.
+    const underlying = options.fetch ?? globalThis.fetch;
+    this.doFetch = (input, init) => underlying(input, init);
     this.maxRetries = options.maxRetries ?? 3;
     this.timeoutMs = options.timeoutMs ?? 120_000;
     this.sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));

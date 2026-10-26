@@ -34,6 +34,18 @@ export {
   type Shell,
 } from "./program";
 export {
+  type Merged,
+  mergeProposal,
+  PATCH_EXAMPLE,
+  PROPOSAL_EXAMPLE,
+  type Proposal,
+  ProposalSchema,
+  proposeInput,
+  proposeInstructions,
+  reviseInput,
+  reviseInstructions,
+} from "./propose/proposal";
+export {
   type Calibration,
   calibrateRoom,
   fitRoom,

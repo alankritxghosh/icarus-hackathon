@@ -17,6 +17,7 @@ export function buildRespondBody<T>(request: RespondRequest<T>): Record<string, 
   if (request.instructions) body.instructions = request.instructions;
   if (request.previousResponseId) body.previous_response_id = request.previousResponseId;
   if (request.maxOutputTokens) body.max_output_tokens = request.maxOutputTokens;
+  if (request.reasoningEffort) body.reasoning = { effort: request.reasoningEffort };
   if (request.schema)
     body.text = {
       format: {
@@ -101,6 +102,39 @@ export function readResponse(raw: unknown): Omit<RespondResult, "parsed"> {
   };
 }
 
+/**
+ * Pull one JSON value out of model text. Models asked for "JSON only" still sometimes add a code
+ * fence or a sentence around it; take the first balanced object and let the schema judge it.
+ */
+export function extractJson(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+    try {
+      JSON.parse(trimmed);
+      return trimmed;
+    } catch {
+      // fall through to the scan below
+    }
+  }
+  const start = trimmed.search(/[{[]/);
+  if (start < 0) return trimmed;
+  let depth = 0;
+  let inString = false;
+  for (let i = start; i < trimmed.length; i++) {
+    const c = trimmed[i];
+    if (inString) {
+      if (c === "\\") i++;
+      else if (c === '"') inString = false;
+    } else if (c === '"') inString = true;
+    else if (c === "{" || c === "[") depth++;
+    else if (c === "}" || c === "]") {
+      depth--;
+      if (depth === 0) return trimmed.slice(start, i + 1);
+    }
+  }
+  return trimmed;
+}
+
 /** Parse constrained output and validate it again here: decoding is guided, not a guarantee. */
 export function validateStructured<T>(
   text: string,
@@ -108,7 +142,7 @@ export function validateStructured<T>(
 ): T {
   let json: unknown;
   try {
-    json = JSON.parse(text);
+    json = JSON.parse(extractJson(text));
   } catch {
     throw new MetaError("invalid_response", `${schema.name}: model output was not JSON`);
   }
