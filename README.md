@@ -1,10 +1,10 @@
 # Icarus
 
-Describe or photograph a physical thing, and get a real, editable CAD model with every assumption on the table.
+Design a whole office from scratch, in words.
 
-Icarus turns words, a photo and your voice into a constrained parametric assembly, builds true B-Rep solids, exports STEP and GLB, checks its own output with independent readers, and lets you change the design by talking to it. It is built for the Meta Global AI Developer Hackathon (Indie developer track) on Muse Spark, SAM 3.1 and Muse Voice Transcribe.
+Tell Icarus about a company and show it a building shell. It plans the rooms and circulation, builds a complete walkable 3D office with furniture, lighting and materials, and then changes the design when you ask, by typing or speaking. It is built for the Meta Global AI Developer Hackathon (Indie developer track) on Muse Spark, SAM 3.1 and Muse Voice Transcribe.
 
-Engineering output is **concept geometry only**. Structural, thermal, propulsion, controls, manufacturing, flight and certification readiness all fail closed until independent, qualified evidence is attached. Icarus never says otherwise.
+Output is **concept design only**. It is not a building-code check, a structural design or a construction document, and Icarus says so wherever it matters. See [docs/DESIGN.md](docs/DESIGN.md) for exactly what it does and how.
 
 ## Provenance
 
@@ -16,4 +16,4 @@ Code in this repository was written with the help of an AI coding assistant (Cla
 
 ## Status
 
-Day 1 of the hackathon build. See [docs/HACKATHON.md](docs/HACKATHON.md) for the plan and the daily log.
+Early build. See [docs/HACKATHON.md](docs/HACKATHON.md) for the plan and the daily log.

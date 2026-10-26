@@ -4,24 +4,17 @@ Track: **Indie developer**. Theme: **Push the Frontier**. Kickoff Mon 26 Oct 202
 
 ## The product
 
-An engineer describes a mechanical thing in words, shows a photo, or speaks. Icarus returns a real parametric assembly (STEP and GLB) with every assumption and unknown visible, checks its own output, and changes the design when told to, rebuilding only what changed. Concept geometry only; readiness gates fail closed.
-
-## Pipeline
-
-1. **Understand** (Muse Spark 1.3): words and photo to a typed design spec through structured output.
-2. **Measure** (SAM 3.1 + Muse Spark grounding): segment the components in the photo, turn pixel proportions into dimensions against one known length, with stated uncertainty.
-3. **Solve** (deterministic, `packages/core`): place parts by explicit constraints; reject anything the solver cannot place.
-4. **Build** (CadQuery worker): B-Rep solids, STEP assembly, GLB.
-5. **Validate** (independent): re-read the STEP, compare volumes with analytic formulas, check interference and structure.
-6. **Revise** (Muse Voice Transcribe + Muse Spark tool calls): speech or text becomes validated parameter changes; the diff shows what changed and that the rest did not drift.
+Design a whole office from scratch, in words. See [DESIGN.md](DESIGN.md) for the demo test, the pipeline and the honesty rules.
 
 ## Schedule
 
-- 26 Oct: scaffold, Meta adapter with fake and contract tests.
-- 27 Oct to 28 Oct: design-spec schema, solver, constraint model.
-- 29 Oct: CAD worker and independent validation.
-- 30 Oct: photo path (grounding and SAM), revision by tool calls.
-- 31 Oct to 1 Nov: web app, voice, one reliable golden path, polish.
+- 26 Oct: fresh repo, Meta adapter with fake and contract tests, decision to focus on one thing (the whole-office design).
+- 27 Oct: program schema, room catalog, layout engine v1 with scoring.
+- 28 Oct: walls with real openings, floors, ceilings; first plan to 3D in the browser.
+- 29 Oct: furniture kits per room kind, lighting, materials; walkthrough camera.
+- 30 Oct: Muse Spark program extraction and typed edit commands with the tool loop; undo.
+- 31 Oct: evidence panel; render critique loop; plan drawing and GLB export.
+- 1 Nov: voice edits, polish, three sample offices, live API verification.
 - 2 Nov: freeze, three-minute video, README. 3 to 4 Nov: buffer and submit.
 
 ## Daily log
@@ -31,3 +24,9 @@ An engineer describes a mechanical thing in words, shows a photo, or speaks. Ica
 - Created this repository after kickoff. Workspace, license, provenance statement, project rules.
 - Wrote the Meta Model API adapter (`packages/meta`) from the public docs: bearer-authenticated transport with timeouts and retries (rate limits honour Retry-After), Responses API wrapper with schema-constrained output validated again on our side, a bounded tool-calling loop that validates arguments before anything runs, vision grounding (points and boxes on the 0 to 1000 grid), SAM 3.1 segmentation parsing, and a deterministic fake that applies the same validation as the real client.
 - 18 contract tests pass against the documented request and response shapes. Two live smoke tests exist and are skipped until `MODEL_API_KEY` is set, so **nothing here has yet been confirmed against the real API**.
+- Narrowed the whole project to one goal: design an entire office space from scratch. The CAD and STEP direction from the earlier prototype is dropped.
+- Built the core of the office designer (`packages/core`): the office program schema (headcount, shell, rooms, assumptions, with catalog rules of thumb that are labelled as assumptions), a canonical-frame transform so any entrance side reduces to one case, and a layout engine that tiles the shell exactly with rows of rooms, corridors and an entrance lobby, searched with seeded simulated annealing against a cost made of room size, aspect, depth, daylight, adjacency and entrance sequence.
+- Added an evidence module that measures the plan (areas, workspace per person, daylight exposure, adjacency wishes, reachability from the front door) from the same quantities the search optimises, and states that this is concept design, not a code check.
+- 42 core tests: invariants hold across seeds and all four entrance sides (every room once, exact tiling, doors on their walls and onto real circulation, reachable from the entrance, reproducible from a seed, better than the best of 300 random orderings).
+- Known weak spot, reported honestly: small rooms in a deep row are forced to their minimum width, so the demo lounge comes out about 1.8 times its target size. A stacked-room layout would fix it and is on the list.
+

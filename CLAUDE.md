@@ -10,14 +10,14 @@ This repository is a fresh build for the Meta Global AI Developer Hackathon, Ind
 
 ## Scope
 
-- One product: words, a photo and voice become a constrained parametric CAD assembly with real STEP and GLB export, independent validation, and revision by talking.
-- Meta models are load-bearing, not decoration: Muse Spark 1.3 (structured output, vision grounding, tool calls), SAM 3.1 (segmentation), Muse Voice Transcribe (speech). Every call goes through `packages/meta` with schema-validated responses and a deterministic fake for tests.
-- A model may only propose. The deterministic solver and validators in `packages/core` decide what is accepted.
-- Output is concept geometry. Readiness gates (structural, thermal, propulsion, controls, manufacturing, flight, certification) fail closed without independent, qualified evidence. Never imply otherwise in copy, fixtures or demos.
+- One product, one goal: design an entire office space from scratch (program, floor plan, walls with openings, furniture, lighting, materials), walk through it in 3D, and change it by typing or speaking. `docs/DESIGN.md` defines the demo test. Nothing else is in scope until that works.
+- Meta models are load-bearing, not decoration: Muse Spark 1.3 (program extraction with structured output, vision critique of renders, tool calls for edits), Muse Voice Transcribe (spoken edits), SAM 3.1 and grounding (reading an existing floor plan, if time allows). Every call goes through `packages/meta` with schema-validated responses and a deterministic fake for tests.
+- A model may only propose. The deterministic layout engine and validators in `packages/core` decide what is accepted, and they never draw geometry from model output unchecked.
+- This is concept design. Never imply building-code compliance, structural soundness or construction readiness in copy, fixtures or demos.
 
 ## Working rules
 
-- pnpm workspace: `packages/core`, `packages/meta`, `apps/server`, `apps/web`, `workers/cad`.
+- pnpm workspace: `packages/core` (program, layout, build, edits, evidence), `packages/meta`, `apps/server`, `apps/web`.
 - Run `pnpm verify` before committing a milestone. Commit small, coherent checkpoints with clear messages.
 - Never print, commit or expose secrets (`MODEL_API_KEY`). Names only in `.env.example`.
 - Do not push, make the repository public, deploy, or create paid resources without the author's explicit approval.
