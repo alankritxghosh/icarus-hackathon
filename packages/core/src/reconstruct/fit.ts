@@ -143,6 +143,13 @@ export interface RoomFit {
   /** Floor to ceiling, when a ceiling is clearly visible. */
   ceilingHeightM?: number;
   walls: Wall[];
+  /**
+   * The direction of the room's walls in the room frame, in radians: the angle of a wall normal in
+   * (x right, z forward), modulo a quarter turn. Zero means the room is square to the camera.
+   */
+  axisYawRad: number;
+  /** How far below the largest flat plane the real floor was found, from the bottoms of the walls (0 if it was not). */
+  liftedFloorM: number;
   /** The cloud in the room frame: x right, y up from the floor, z forward, origin under the camera. */
   world: Float32Array;
   floorInliers: number;
@@ -330,12 +337,106 @@ export function fitRoom(cloud: PointCloud, options: FitOptions = {}): RoomFit | 
     if (!duplicate) kept.push(wall);
   }
 
+  // Rooms are made of right angles. Find the direction most walls agree on (weighted by how much
+  // wall each one is) and keep only walls square to it; anything else is clutter or a fit error.
+  let sinSum = 0;
+  let cosSum = 0;
+  for (const wall of kept) {
+    const a = Math.atan2(wall.normal[1], wall.normal[0]);
+    sinSum += wall.points * Math.sin(4 * a);
+    cosSum += wall.points * Math.cos(4 * a);
+  }
+  const axisYawRad = kept.length ? Math.atan2(sinSum, cosSum) / 4 : 0;
+  const square = kept.filter((wall) => {
+    const a = Math.atan2(wall.normal[1], wall.normal[0]) - axisYawRad;
+    const off = Math.abs(
+      ((((a + Math.PI / 4) % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2)) - Math.PI / 4,
+    );
+    return off < (12 * Math.PI) / 180;
+  });
+
+  // Furniture can hide the real floor, so the largest flat plane may be a table top. Walls reach
+  // the real floor beside the furniture, so look at where visible walls end at the bottom.
+  let lift = 0;
+  const bottoms: number[] = [];
+  for (const wall of square) {
+    const tangent: [number, number] = [-wall.normal[1], wall.normal[0]];
+    const heights: number[] = [];
+    for (let i = 0; i < count; i++) {
+      const h = world[i * 3 + 1] as number;
+      if (h > (ceilingHeightM ?? 3) - 0.2 || h < -1.4) continue;
+      const x = world[i * 3] as number;
+      const z = world[i * 3 + 2] as number;
+      const across = wall.normal[0] * x + wall.normal[1] * z + wall.distanceM;
+      const range = Math.hypot(x, z);
+      if (Math.abs(across) > tol * 1.2 * Math.max(1, range / 4)) continue;
+      const along = x * tangent[0] + z * tangent[1];
+      if (along < wall.extentM[0] || along > wall.extentM[1]) continue;
+      heights.push(h);
+    }
+    if (heights.length < 150) continue;
+    heights.sort((a, b) => a - b);
+    const low = heights[Math.floor(heights.length * 0.03)] as number;
+    if (low < -0.25) bottoms.push(low);
+  }
+  if (bottoms.length) {
+    bottoms.sort((a, b) => a - b);
+    lift = -(bottoms[Math.floor((bottoms.length - 1) / 2)] as number);
+  }
+  if (lift > 0) {
+    for (let i = 0; i < count; i++) world[i * 3 + 1] = (world[i * 3 + 1] as number) + lift;
+  }
+
   return {
-    cameraHeightM,
-    ceilingHeightM,
-    walls: kept,
+    cameraHeightM: cameraHeightM + lift,
+    ceilingHeightM: ceilingHeightM === undefined ? undefined : ceilingHeightM + lift,
+    liftedFloorM: lift,
+    axisYawRad,
+    walls: square,
     world,
     floorInliers: best.inliers.length,
     floorShare: best.inliers.length / count,
+  };
+}
+
+export interface Calibration {
+  /** What every length was multiplied by. 1 means the model's own scale was kept. */
+  scale: number;
+  basis: "ceiling" | "none";
+  /** The ceiling height the scale was set from, an assumption and not a measurement. */
+  assumedCeilingM?: number;
+  /** A fair one-sided bound on the remaining scale error, as a fraction. */
+  uncertainty: number;
+}
+
+/**
+ * Monocular depth has a scale error of 10 to 30% that varies with the room (it shrinks small rooms
+ * most). A typical office ceiling is far less variable, so scale the room so its ceiling is
+ * `assumedCeilingM`. This is an assumption and is reported as one, with the error it can leave
+ * behind: real ceilings run from about 2.4 to 3.4 m, so the bound is about 15%.
+ */
+export function calibrateRoom(
+  fit: RoomFit,
+  assumedCeilingM = 2.8,
+): { fit: RoomFit; calibration: Calibration } {
+  if (!fit.ceilingHeightM || fit.ceilingHeightM < 1.2)
+    return { fit, calibration: { scale: 1, basis: "none", uncertainty: 0.25 } };
+  const scale = Math.min(1.4, Math.max(0.8, assumedCeilingM / fit.ceilingHeightM));
+  const world = new Float32Array(fit.world.length);
+  for (let i = 0; i < world.length; i++) world[i] = (fit.world[i] as number) * scale;
+  return {
+    calibration: { scale, basis: "ceiling", assumedCeilingM, uncertainty: 0.15 },
+    fit: {
+      ...fit,
+      cameraHeightM: fit.cameraHeightM * scale,
+      ceilingHeightM: fit.ceilingHeightM * scale,
+      liftedFloorM: fit.liftedFloorM * scale,
+      world,
+      walls: fit.walls.map((w) => ({
+        ...w,
+        distanceM: w.distanceM * scale,
+        extentM: [w.extentM[0] * scale, w.extentM[1] * scale],
+      })),
+    },
   };
 }

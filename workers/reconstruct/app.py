@@ -118,7 +118,20 @@ class Geometry:
 
 
 @app.local_entrypoint()
-def main(image: str, out: str = "geometry.json"):
+def main(image: str = "", out: str = "geometry.json", dir: str = "", out_dir: str = ""):
+    """One photo (`--image`) or every png/jpg in a folder (`--dir`, results into `--out-dir`)."""
+    import os
+
+    if dir:
+        names = sorted(n for n in os.listdir(dir) if n.lower().endswith((".png", ".jpg", ".jpeg")))
+        blobs = [open(os.path.join(dir, n), "rb").read() for n in names]
+        os.makedirs(out_dir or dir, exist_ok=True)
+        # One container handles them in turn, so the model loads once.
+        for name, result in zip(names, Geometry().estimate.map(blobs, order_outputs=True)):
+            with open(os.path.join(out_dir or dir, os.path.splitext(name)[0] + ".json"), "w") as f:
+                json.dump(result, f)
+            print(name, result["fov_x_deg"], result["seconds"])
+        return
     with open(image, "rb") as f:
         data = f.read()
     result = Geometry().estimate.remote(data)

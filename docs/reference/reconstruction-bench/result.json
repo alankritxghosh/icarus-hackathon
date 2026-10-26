@@ -1,0 +1,228 @@
+{
+  "views": 16,
+  "noFit": 2,
+  "falseWalls": 6,
+  "missedWalls": 7,
+  "overall": {
+    "n": 56,
+    "medianAbsErrPct": 12.4,
+    "medianSignedPct": -11.1
+  },
+  "camera": {
+    "n": 14,
+    "medianAbsErrPct": 15.4,
+    "medianSignedPct": -20.9
+  },
+  "ceiling": {
+    "n": 12,
+    "medianAbsErrPct": 13.1,
+    "medianSignedPct": -13.4
+  },
+  "wall": {
+    "n": 30,
+    "medianAbsErrPct": 11.1,
+    "medianSignedPct": -9.3
+  },
+  "ifScaledToATypical2p8mCeiling": {
+    "n": 55,
+    "medianAbsErrPct": 5.5,
+    "medianSignedPct": -3.4
+  },
+  "perView": [
+    {
+      "office": 0,
+      "view": "Entrance",
+      "fit": false,
+      "liftedFloorM": null,
+      "false": 0,
+      "measures": []
+    },
+    {
+      "office": 0,
+      "view": "Open workspace",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 1,
+      "measures": [
+        "camera height 1.35 vs 1.60 (-15%)",
+        "ceiling 2.63 vs 2.90 (-9%)",
+        "north wall 1.08 vs 1.20 (-10%)",
+        "south wall 7.65 vs 8.43 (-9%)",
+        "east wall 12.92 vs 16.80 (-23%)"
+      ]
+    },
+    {
+      "office": 0,
+      "view": "Reception",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.16 vs 1.60 (-28%)",
+        "ceiling 2.04 vs 2.90 (-30%)",
+        "west wall 2.28 vs 3.00 (-24%)"
+      ]
+    },
+    {
+      "office": 0,
+      "view": "Lounge",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.40 vs 1.60 (-12%)",
+        "ceiling 2.51 vs 2.90 (-13%)",
+        "north wall 9.04 vs 9.13 (-1%)",
+        "west wall 1.83 vs 2.00 (-9%)",
+        "east wall 1.77 vs 2.00 (-12%)"
+      ]
+    },
+    {
+      "office": 0,
+      "view": "Kitchen",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.48 vs 1.60 (-7%)",
+        "ceiling 2.77 vs 2.90 (-5%)",
+        "south wall 4.24 vs 4.27 (-1%)",
+        "west wall 1.45 vs 1.55 (-7%)"
+      ]
+    },
+    {
+      "office": 0,
+      "view": "Meeting room",
+      "fit": true,
+      "liftedFloorM": 0.46,
+      "false": 0,
+      "measures": [
+        "camera height 1.13 vs 1.60 (-29%)",
+        "ceiling 2.51 vs 2.90 (-14%)",
+        "south wall 4.84 vs 4.27 (13%)",
+        "west wall 1.41 vs 1.35 (5%)",
+        "east wall 1.56 vs 1.35 (15%)"
+      ]
+    },
+    {
+      "office": 1,
+      "view": "Entrance",
+      "fit": false,
+      "liftedFloorM": null,
+      "false": 0,
+      "measures": []
+    },
+    {
+      "office": 1,
+      "view": "Open workspace",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 2,
+      "measures": [
+        "camera height 1.46 vs 1.60 (-9%)",
+        "ceiling 2.52 vs 2.90 (-13%)",
+        "south wall 3.45 vs 3.99 (-13%)",
+        "east wall 4.62 vs 5.30 (-13%)"
+      ]
+    },
+    {
+      "office": 1,
+      "view": "Reception",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.17 vs 1.60 (-27%)",
+        "ceiling 2.15 vs 2.90 (-26%)",
+        "west wall 2.27 vs 3.00 (-24%)"
+      ]
+    },
+    {
+      "office": 1,
+      "view": "Kitchen",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.69 vs 1.60 (6%)",
+        "ceiling 2.15 vs 2.90 (-26%)",
+        "north wall 4.35 vs 2.71 (60%)",
+        "west wall 1.69 vs 1.50 (13%)",
+        "east wall 1.61 vs 1.50 (7%)"
+      ]
+    },
+    {
+      "office": 1,
+      "view": "Meeting room",
+      "fit": true,
+      "liftedFloorM": 0.32,
+      "false": 0,
+      "measures": [
+        "camera height 0.95 vs 1.60 (-41%)",
+        "north wall 2.95 vs 2.71 (9%)",
+        "west wall 1.36 vs 1.38 (-1%)",
+        "east wall 1.29 vs 1.38 (-7%)"
+      ]
+    },
+    {
+      "office": 2,
+      "view": "Entrance",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 3,
+      "measures": ["camera height 1.01 vs 1.60 (-37%)", "ceiling 2.75 vs 2.90 (-5%)"]
+    },
+    {
+      "office": 2,
+      "view": "Open workspace",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.43 vs 1.60 (-11%)",
+        "ceiling 2.71 vs 2.90 (-6%)",
+        "south wall 7.30 vs 8.10 (-10%)",
+        "east wall 7.37 vs 8.38 (-12%)"
+      ]
+    },
+    {
+      "office": 2,
+      "view": "Reception",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.27 vs 1.60 (-21%)",
+        "ceiling 2.09 vs 2.90 (-28%)",
+        "north wall 1.87 vs 2.36 (-21%)"
+      ]
+    },
+    {
+      "office": 2,
+      "view": "Kitchen",
+      "fit": true,
+      "liftedFloorM": 0,
+      "false": 0,
+      "measures": [
+        "camera height 1.53 vs 1.60 (-5%)",
+        "ceiling 2.75 vs 2.90 (-5%)",
+        "north wall 1.13 vs 1.22 (-7%)",
+        "south wall 1.09 vs 1.22 (-11%)",
+        "west wall 4.60 vs 4.47 (3%)"
+      ]
+    },
+    {
+      "office": 2,
+      "view": "Meeting room",
+      "fit": true,
+      "liftedFloorM": 0.35,
+      "false": 0,
+      "measures": [
+        "camera height 1.04 vs 1.60 (-35%)",
+        "north wall 1.12 vs 1.35 (-17%)",
+        "south wall 1.17 vs 1.35 (-14%)",
+        "east wall 4.95 vs 9.08 (-45%)"
+      ]
+    }
+  ]
+}

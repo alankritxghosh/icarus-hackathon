@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fitRoom, type PointCloud } from "../src";
+import { calibrateRoom, fitRoom, type PointCloud } from "../src";
 
 /** A seeded generator for the synthetic room. */
 function rand(seed: number) {
@@ -25,7 +25,15 @@ interface Room {
  */
 function box(
   room: Room,
-  opts: { pitchDeg?: number; rollDeg?: number; noise?: number; n?: number; clutter?: boolean } = {},
+  opts: {
+    pitchDeg?: number;
+    rollDeg?: number;
+    yawDeg?: number;
+    noise?: number;
+    n?: number;
+    clutter?: boolean;
+    diagonal?: boolean;
+  } = {},
 ): PointCloud {
   const r = rand(7);
   const n = opts.n ?? 30000;
@@ -48,9 +56,19 @@ function box(
       add(-room.left, v * room.height, 0.5 + u * (room.back - 0.5)); // left wall
     else if (k < 0.9)
       add(room.right, v * room.height, 0.5 + u * (room.back - 0.5)); // right wall
+    else if (opts.diagonal && k < 0.98)
+      add(1 + u * 3, 0.2 + v * 2.2, 3 + u * 3); // a vertical plane at 45 degrees
     else if (opts.clutter)
       add(-1 + u * 2, v * 0.75, 2 + (r() - 0.5) * 0.9); // a desk-height box
     else add(-room.left + u * (room.left + room.right), 0, 0.5 + v * (room.back - 0.5));
+  }
+  // Turn the whole room about the vertical, as when the camera is not square to the walls.
+  const yaw = ((opts.yawDeg ?? 0) * Math.PI) / 180;
+  for (let i = 0; i < pts.length; i += 3) {
+    const x = pts[i] as number;
+    const z = pts[i + 2] as number;
+    pts[i] = x * Math.cos(yaw) + z * Math.sin(yaw);
+    pts[i + 2] = -x * Math.sin(yaw) + z * Math.cos(yaw);
   }
   const pitch = ((opts.pitchDeg ?? 0) * Math.PI) / 180;
   const roll = ((opts.rollDeg ?? 0) * Math.PI) / 180;
@@ -140,5 +158,51 @@ describe("fitRoom on a synthetic room with known size", () => {
         height: 100,
       }),
     ).toBeUndefined();
+  });
+
+  it("finds the room's axes when the camera is not square to the walls, and rejects a diagonal", () => {
+    for (const yawDeg of [0, 20, -33]) {
+      const fit = fitRoom(box(ROOM, { yawDeg, diagonal: true }));
+      if (!fit) throw new Error(`no fit at ${yawDeg}`);
+      // The axis is defined modulo a quarter turn.
+      const expected = (-yawDeg * Math.PI) / 180;
+      const off = Math.abs(
+        ((((fit.axisYawRad - expected + Math.PI / 4) % (Math.PI / 2)) + Math.PI / 2) %
+          (Math.PI / 2)) -
+          Math.PI / 4,
+      );
+      expect(off, `yaw ${yawDeg}`).toBeLessThan((3 * Math.PI) / 180);
+      for (const wall of fit.walls) {
+        const a = Math.atan2(wall.normal[1], wall.normal[0]) - fit.axisYawRad;
+        const q = Math.abs(
+          ((((a + Math.PI / 4) % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2)) - Math.PI / 4,
+        );
+        expect(q, `a wall off the room's axes at yaw ${yawDeg}`).toBeLessThan((12 * Math.PI) / 180);
+      }
+      expect(fit.walls.length, `walls at yaw ${yawDeg}`).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("restores the scale of a room the depth model shrank, and says it assumed a ceiling height", () => {
+    // The same room as a depth model that compressed everything to 72%.
+    const cloud = box(ROOM);
+    const shrunk = { ...cloud, points: cloud.points.map((v) => v * 0.72) };
+    const fit = fitRoom(shrunk);
+    if (!fit) throw new Error("no fit");
+    expect(fit.ceilingHeightM).toBeLessThan(2.1);
+    const { fit: fixed, calibration } = calibrateRoom(fit, 2.8);
+    expect(calibration.basis).toBe("ceiling");
+    expect(calibration.assumedCeilingM).toBe(2.8);
+    expect(Math.abs((fixed.ceilingHeightM ?? 0) - 2.8)).toBeLessThan(0.05);
+    expect(Math.abs(fixed.cameraHeightM - 1.5)).toBeLessThan(0.15);
+    const back = fixed.walls.find((w) => w.side === "back");
+    expect(Math.abs((back?.distanceM ?? 0) - 7)).toBeLessThan(0.4);
+  });
+
+  it("leaves the scale alone when no ceiling is visible", () => {
+    const fit = fitRoom(box(ROOM));
+    if (!fit) throw new Error("no fit");
+    const { calibration } = calibrateRoom({ ...fit, ceilingHeightM: undefined });
+    expect(calibration).toMatchObject({ scale: 1, basis: "none" });
   });
 });

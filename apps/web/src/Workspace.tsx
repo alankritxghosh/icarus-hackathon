@@ -61,6 +61,9 @@ export function Workspace({
     if (!host.current) return;
     const v = new OfficeView(host.current);
     view.current = v;
+    // Development only: lets the reconstruction benchmark ask for a snapshot that does not depend on
+    // the page painting frames.
+    if (import.meta.env.DEV) Object.assign(window, { __icarusView: v });
     return () => {
       v.dispose();
       view.current = null;

@@ -1,0 +1,227 @@
+[
+  {
+    "office": 0,
+    "view": "Entrance",
+    "id": "view_entrance",
+    "camera": [0.9, 1.6, 8],
+    "target": [11, 1.15, 11.183318853171155],
+    "fovDeg": 72,
+    "ceilingM": 2.9,
+    "room": null
+  },
+  {
+    "office": 0,
+    "view": "Open workspace",
+    "id": "view_open_workspace_1",
+    "camera": [3.2, 1.6, 7.566637706342312],
+    "target": [18.8, 1.15, 14.8],
+    "fovDeg": 76,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 2,
+      "y": 6.366637706342312,
+      "w": 18,
+      "h": 9.633362293657688
+    }
+  },
+  {
+    "office": 0,
+    "view": "Reception",
+    "id": "view_reception_1",
+    "camera": [5, 1.6, 2.3833188531711555],
+    "target": [2, 1.15, 2.3833188531711555],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 2,
+      "y": 0,
+      "w": 3.5,
+      "h": 4.766637706342311
+    }
+  },
+  {
+    "office": 0,
+    "view": "Lounge",
+    "id": "view_lounge_1",
+    "camera": [22, 1.6, 15.5],
+    "target": [22, 1.15, 6.366637706342312],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 20,
+      "y": 6.366637706342312,
+      "w": 4,
+      "h": 9.633362293657688
+    }
+  },
+  {
+    "office": 0,
+    "view": "Kitchen",
+    "id": "view_kitchen_1",
+    "camera": [22.45, 1.6, 0.5],
+    "target": [22.45, 1.15, 4.766637706342311],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 20.9,
+      "y": 0,
+      "w": 3.1000000000000014,
+      "h": 4.766637706342311
+    }
+  },
+  {
+    "office": 0,
+    "view": "Meeting room",
+    "id": "view_meeting_room_2",
+    "camera": [6.85, 1.6, 0.5],
+    "target": [6.85, 1.15, 4.766637706342311],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 5.5,
+      "y": 0,
+      "w": 2.6999999999999993,
+      "h": 4.766637706342311
+    }
+  },
+  {
+    "office": 1,
+    "view": "Entrance",
+    "id": "view_entrance",
+    "camera": [0.9, 1.6, 5],
+    "target": [8.75, 1.15, 2.5926605504587155],
+    "fovDeg": 72,
+    "ceilingM": 2.9,
+    "room": null
+  },
+  {
+    "office": 1,
+    "view": "Open workspace",
+    "id": "view_open_workspace_1",
+    "camera": [6.7, 1.6, 1.2],
+    "target": [10.8, 1.15, 3.9853211009174307],
+    "fovDeg": 76,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 5.5,
+      "y": 0,
+      "w": 6.5,
+      "h": 5.185321100917431
+    }
+  },
+  {
+    "office": 1,
+    "view": "Reception",
+    "id": "view_reception_1",
+    "camera": [5, 1.6, 2.5926605504587155],
+    "target": [2, 1.15, 2.5926605504587155],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 2,
+      "y": 0,
+      "w": 3.5,
+      "h": 5.185321100917431
+    }
+  },
+  {
+    "office": 1,
+    "view": "Kitchen",
+    "id": "view_kitchen_1",
+    "camera": [5, 1.6, 9.5],
+    "target": [5, 1.15, 6.785321100917431],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 3.5,
+      "y": 6.785321100917431,
+      "w": 3,
+      "h": 3.2146788990825694
+    }
+  },
+  {
+    "office": 1,
+    "view": "Meeting room",
+    "id": "view_meeting_room_1",
+    "camera": [7.875, 1.6, 9.5],
+    "target": [7.875, 1.15, 6.785321100917431],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 6.5,
+      "y": 6.785321100917431,
+      "w": 2.75,
+      "h": 3.2146788990825694
+    }
+  },
+  {
+    "office": 2,
+    "view": "Entrance",
+    "id": "view_entrance",
+    "camera": [11, 1.6, 0.9],
+    "target": [10.645283018867925, 1.15, 9.350000000000001],
+    "fovDeg": 72,
+    "ceilingM": 2.9,
+    "room": null
+  },
+  {
+    "office": 2,
+    "view": "Open workspace",
+    "id": "view_open_workspace_1",
+    "camera": [7.056603773584906, 1.6, 5.9],
+    "target": [14.233962264150945, 1.15, 12.8],
+    "fovDeg": 76,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 5.856603773584906,
+      "y": 4.7,
+      "w": 9.577358490566038,
+      "h": 9.3
+    }
+  },
+  {
+    "office": 2,
+    "view": "Reception",
+    "id": "view_reception_1",
+    "camera": [19.516981132075472, 1.6, 4.357142857142858],
+    "target": [19.516981132075472, 1.15, 2],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 17.033962264150944,
+      "y": 2,
+      "w": 4.966037735849056,
+      "h": 2.8571428571428577
+    }
+  },
+  {
+    "office": 2,
+    "view": "Kitchen",
+    "id": "view_kitchen_1",
+    "camera": [21.5, 1.6, 9.346938775510205],
+    "target": [17.033962264150944, 1.15, 9.346938775510205],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 17.033962264150944,
+      "y": 8.122448979591837,
+      "w": 4.966037735849056,
+      "h": 2.4489795918367356
+    }
+  },
+  {
+    "office": 2,
+    "view": "Meeting room",
+    "id": "view_meeting_room_2",
+    "camera": [6.356603773584906, 1.6, 3.35],
+    "target": [15.433962264150944, 1.15, 3.35],
+    "fovDeg": 74,
+    "ceilingM": 2.9,
+    "room": {
+      "x": 5.856603773584906,
+      "y": 2,
+      "w": 9.577358490566038,
+      "h": 2.7
+    }
+  }
+]
