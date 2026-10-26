@@ -24,6 +24,13 @@ export {
   type RoomRequest,
   type Shell,
 } from "./program";
+export { fitRoom, type RoomFit, type Wall } from "./reconstruct/fit";
+export {
+  decodeGeometry,
+  type GeometryJson,
+  GeometrySchema,
+  type PointCloud,
+} from "./reconstruct/geometry";
 export {
   applyStyle,
   colourName,
