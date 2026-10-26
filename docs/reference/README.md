@@ -14,3 +14,9 @@ checked against that plan.
 around the model as a large room, so it reads as a photographed scale model. The fix is an eye-level
 interior camera, not a better prompt. This is generated and illustrative: it has not been checked
 against the plan.
+
+`make-it-real-eye-level.png` is the same pipeline from an eye-level viewpoint ("Open workspace"), run from the
+app's Make it real button through the Worker (flux-2-klein-4b, free tier, about 15 s). The reference snapshot
+was the live scene at 1024 x 576. It reads as an interior photograph and keeps the row layout, the door,
+the windows, the green chairs and the plants. It is generated and illustrative: details such as monitors,
+extra plants and the ceiling panel are the model's, and it has not been checked against the plan.

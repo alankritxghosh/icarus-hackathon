@@ -63,7 +63,14 @@ export interface Scene {
 export const MATERIALS: Record<string, MaterialDef> = {
   "wall.interior": { color: "#f1efe9", roughness: 0.9, metalness: 0, opacity: 1 },
   "wall.exterior": { color: "#d8d4cb", roughness: 0.85, metalness: 0, opacity: 1 },
-  ceiling: { color: "#faf9f6", roughness: 0.95, metalness: 0, opacity: 1 },
+  ceiling: {
+    color: "#faf9f6",
+    roughness: 0.95,
+    metalness: 0,
+    opacity: 1,
+    // Lit from within, so the underside reads white instead of grey when standing inside.
+    emissive: "#8a867e",
+  },
   glass: { color: "#a9cfe0", roughness: 0.05, metalness: 0, opacity: 0.28 },
   "door.wood": { color: "#a67c52", roughness: 0.6, metalness: 0, opacity: 1 },
   "frame.metal": { color: "#2b2f33", roughness: 0.45, metalness: 0.7, opacity: 1 },

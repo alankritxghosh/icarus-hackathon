@@ -16,3 +16,4 @@ export {
   type RoomRequest,
   type Shell,
 } from "./program";
+export { EYE_HEIGHT_M, type Viewpoint, viewpoints } from "./viewpoints";

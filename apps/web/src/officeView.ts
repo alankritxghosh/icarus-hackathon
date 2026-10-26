@@ -1,11 +1,14 @@
-import type { Scene } from "@icarus/core";
+import type { Scene, Viewpoint } from "@icarus/core";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { surface } from "./textures";
 
-export type ViewMode = "orbit" | "plan";
+export type ViewMode = "orbit" | "plan" | "eye";
+
+const SKY = new THREE.Color("#cfdfe8");
+const DARK = new THREE.Color("#0a0f0d");
 
 /**
  * Renders a core Scene with three.js. Rendering is on demand: it draws when the camera moves,
@@ -28,6 +31,11 @@ export class OfficeView {
   private readonly loader = new GLTFLoader();
   private readonly models = new Map<string, Promise<THREE.Object3D>>();
   private readonly observer: ResizeObserver;
+  /** Where the orbit camera was before standing inside, so leaving puts it back. */
+  private saved?: { position: THREE.Vector3; fov: number };
+  private look = { yaw: 0, pitch: 0 };
+  private drag?: { x: number; y: number };
+  private readonly keys = (e: KeyboardEvent) => this.onKey(e);
 
   constructor(private readonly host: HTMLElement) {
     this.renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -36,7 +44,7 @@ export class OfficeView {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     host.appendChild(this.renderer.domElement);
-    this.three.background = new THREE.Color("#0a0f0d");
+    this.three.background = DARK;
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.three.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     this.three.environmentIntensity = 0.55;
@@ -57,6 +65,29 @@ export class OfficeView {
     this.plan.screenSpacePanning = true;
     this.plan.addEventListener("change", () => this.requestRender());
     this.plan.enabled = false;
+
+    const el = this.renderer.domElement;
+    el.addEventListener("pointerdown", (e) => {
+      if (this.mode !== "eye") return;
+      this.drag = { x: e.clientX, y: e.clientY };
+      el.setPointerCapture(e.pointerId);
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (this.mode !== "eye" || !this.drag) return;
+      this.look.yaw += (e.clientX - this.drag.x) * 0.004;
+      this.look.pitch = Math.max(
+        -1.2,
+        Math.min(1.2, this.look.pitch + (e.clientY - this.drag.y) * 0.004),
+      );
+      this.drag = { x: e.clientX, y: e.clientY };
+      this.applyLook();
+    });
+    const release = () => {
+      this.drag = undefined;
+    };
+    el.addEventListener("pointerup", release);
+    el.addEventListener("pointercancel", release);
+    window.addEventListener("keydown", this.keys);
 
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(host);
@@ -117,7 +148,7 @@ export class OfficeView {
       const mesh = new THREE.Mesh(geometry, mat);
       mesh.position.set(...node.position);
       mesh.rotation.y = node.rotationY;
-      mesh.castShadow = node.type !== "floor" && node.type !== "window";
+      mesh.castShadow = node.type !== "floor" && node.type !== "window" && node.type !== "ceiling";
       mesh.receiveShadow = node.type !== "window";
       mesh.userData = { nodeId: node.id, type: node.type };
       this.content.add(mesh);
@@ -194,10 +225,64 @@ export class OfficeView {
   }
 
   setMode(mode: ViewMode) {
+    const wasEye = this.mode === "eye";
+    if (mode === "eye" && !wasEye)
+      this.saved = { position: this.perspective.position.clone(), fov: this.perspective.fov };
+    if (wasEye && mode !== "eye") this.leaveEye();
     this.mode = mode;
     this.orbit.enabled = mode === "orbit";
     this.plan.enabled = mode === "plan";
+    this.three.background = mode === "eye" ? SKY : DARK;
     this.applyCeiling();
+    this.requestRender();
+  }
+
+  /** Stand at a viewpoint: camera at eye height looking at its target. */
+  setViewpoint(view: Viewpoint) {
+    this.setMode("eye");
+    const [x, y, z] = view.position;
+    this.perspective.position.set(x, y, z);
+    this.perspective.fov = view.fovDeg;
+    this.perspective.updateProjectionMatrix();
+    const dx = view.target[0] - x;
+    const dy = view.target[1] - y;
+    const dz = view.target[2] - z;
+    this.look = { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) };
+    this.applyLook();
+  }
+
+  private applyLook() {
+    this.perspective.rotation.order = "YXZ";
+    this.perspective.rotation.set(this.look.pitch, this.look.yaw, 0);
+    this.requestRender();
+  }
+
+  private leaveEye() {
+    this.perspective.rotation.order = "XYZ";
+    if (this.saved) {
+      this.perspective.position.copy(this.saved.position);
+      this.perspective.fov = this.saved.fov;
+      this.perspective.updateProjectionMatrix();
+    }
+    this.orbit.update();
+  }
+
+  /** Walk with the arrow keys or WASD, staying inside the shell. */
+  private onKey(e: KeyboardEvent) {
+    if (this.mode !== "eye") return;
+    const target = e.target as HTMLElement | null;
+    if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+    const forward = { ArrowUp: 1, w: 1, W: 1, ArrowDown: -1, s: -1, S: -1 }[e.key];
+    const strafe = { ArrowRight: 1, d: 1, D: 1, ArrowLeft: -1, a: -1, A: -1 }[e.key];
+    if (forward === undefined && strafe === undefined) return;
+    e.preventDefault();
+    const step = 0.3;
+    const { yaw } = this.look;
+    const dx = -Math.sin(yaw) * (forward ?? 0) * step + Math.cos(yaw) * (strafe ?? 0) * step;
+    const dz = -Math.cos(yaw) * (forward ?? 0) * step - Math.sin(yaw) * (strafe ?? 0) * step;
+    const p = this.perspective.position;
+    p.x = Math.min(this.shell.w - 0.4, Math.max(0.4, p.x + dx));
+    p.z = Math.min(this.shell.h - 0.4, Math.max(0.4, p.z + dz));
     this.requestRender();
   }
 
@@ -213,7 +298,22 @@ export class OfficeView {
     return this.renderer.domElement.toDataURL("image/png");
   }
 
+  /** A JPEG of the current view at a fixed size, whatever the window is, for the repaint. */
+  snapshotAt(width: number, height: number, quality = 0.9): string {
+    const ratio = this.renderer.getPixelRatio();
+    this.renderer.setPixelRatio(1);
+    this.renderer.setSize(width, height, false);
+    this.perspective.aspect = width / height;
+    this.perspective.updateProjectionMatrix();
+    this.draw();
+    const url = this.renderer.domElement.toDataURL("image/jpeg", quality);
+    this.renderer.setPixelRatio(ratio);
+    this.resize();
+    return url;
+  }
+
   dispose() {
+    window.removeEventListener("keydown", this.keys);
     cancelAnimationFrame(this.frame);
     this.observer.disconnect();
     this.orbit.dispose();
@@ -226,7 +326,7 @@ export class OfficeView {
   private applyCeiling() {
     for (const child of this.content.children)
       if (child.userData.type === "ceiling")
-        child.visible = this.showCeiling && this.mode === "orbit";
+        child.visible = this.mode === "eye" || (this.showCeiling && this.mode === "orbit");
   }
 
   private frameCameras() {
@@ -270,7 +370,7 @@ export class OfficeView {
   }
 
   private draw() {
-    this.renderer.render(this.three, this.mode === "orbit" ? this.perspective : this.ortho);
+    this.renderer.render(this.three, this.mode === "plan" ? this.ortho : this.perspective);
   }
 
   private disposeContent() {

@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { type Viewpoint, viewpoints } from "@icarus/core";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Built } from "./design";
 import { STAGES } from "./design";
 import { EditPanel } from "./EditPanel";
 import { OfficeView, type ViewMode } from "./officeView";
 import { Prompt } from "./Prompt";
+import { type MadeReal, makeItReal, RenderError, renderPrompt } from "./render";
 
 interface Props {
   brief: string;
@@ -17,6 +19,13 @@ interface Props {
   onApplyEdit: (built: Built, program: Built["program"], seed: number) => void;
   onAnother: () => void;
 }
+
+type Picture =
+  | { state: "making"; view: string }
+  | { state: "done"; view: string; result: MadeReal; seed: number }
+  | { state: "error"; view: string; kind: RenderError["kind"]; message: string };
+
+const PICTURE_SIZE = { width: 1024, height: 576 };
 
 export function Workspace({
   brief,
@@ -35,7 +44,11 @@ export function Workspace({
   const [ceiling, setCeiling] = useState(false);
   const [editing, setEditing] = useState(false);
   const [showAssumptions, setShowAssumptions] = useState(false);
+  const [viewId, setViewId] = useState<string>();
+  const [picture, setPicture] = useState<Picture>();
   const building = stage !== undefined;
+
+  const views = useMemo(() => (built ? viewpoints(built.plan) : []), [built]);
 
   useEffect(() => {
     if (!host.current) return;
@@ -49,8 +62,48 @@ export function Workspace({
   useEffect(() => {
     if (built) view.current?.setScene(built.scene);
   }, [built]);
-  useEffect(() => view.current?.setMode(mode), [mode]);
+  useEffect(() => {
+    if (mode !== "eye") view.current?.setMode(mode);
+  }, [mode]);
   useEffect(() => view.current?.setCeiling(ceiling), [ceiling]);
+
+  // A new design means old viewpoints and pictures no longer describe it.
+  useEffect(() => {
+    if (!built) return;
+    setViewId(undefined);
+    setPicture(undefined);
+    setMode((m) => (m === "eye" ? "orbit" : m));
+  }, [built]);
+
+  const stand = (vp: Viewpoint) => {
+    setMode("eye");
+    setViewId(vp.id);
+    view.current?.setViewpoint(vp);
+  };
+
+  const makeReal = async (seed: number) => {
+    if (!built || views.length === 0) return;
+    // Pictures are taken from eye level: stand somewhere good first if we are not inside.
+    const current = mode === "eye" ? views.find((v) => v.id === viewId) : undefined;
+    const vp = current ?? views.find((v) => v.name === "Open workspace") ?? views[0];
+    if (!vp) return;
+    if (!current) stand(vp);
+    setPicture({ state: "making", view: vp.name });
+    try {
+      const shot = view.current?.snapshotAt(PICTURE_SIZE.width, PICTURE_SIZE.height);
+      if (!shot) throw new RenderError("failed", "The view could not be captured.");
+      const result = await makeItReal(shot, renderPrompt(built, vp.name), seed, PICTURE_SIZE);
+      setPicture({ state: "done", view: vp.name, result, seed });
+    } catch (error) {
+      const known = error instanceof RenderError;
+      setPicture({
+        state: "error",
+        view: vp.name,
+        kind: known ? error.kind : "failed",
+        message: known ? error.message : "The picture could not be made.",
+      });
+    }
+  };
 
   const problems = built?.evidence.filter((e) => e.status === "fail" || e.status === "warn") ?? [];
   const shown = built
@@ -97,6 +150,19 @@ export function Workspace({
                       {built.plan.rooms.length} rooms on {built.plan.shell.w} × {built.plan.shell.h}{" "}
                       m, planned in {built.plannedMs} ms.
                     </p>
+                    <div className="actions">
+                      <button
+                        type="button"
+                        className="primary"
+                        disabled={picture?.state === "making"}
+                        onClick={() => void makeReal(7)}
+                      >
+                        ✦ Make it real
+                      </button>
+                      <button type="button" onClick={() => setEditing(true)}>
+                        Edit
+                      </button>
+                    </div>
                     <div className="panel-card">
                       <p className="eyebrow">WHAT WAS MEASURED</p>
                       <ul className="evidence">
@@ -126,11 +192,8 @@ export function Workspace({
                       <button type="button" className="ghost" disabled={!canUndo} onClick={onUndo}>
                         ↶ Undo this change
                       </button>
-                      <button type="button" className="primary" onClick={onAnother}>
+                      <button type="button" onClick={onAnother}>
                         Another layout
-                      </button>
-                      <button type="button" onClick={() => setEditing(true)}>
-                        Edit
                       </button>
                     </div>
                   </>
@@ -156,13 +219,31 @@ export function Workspace({
         <section className="stage" aria-label="Your office">
           <div className="stage-head">
             <span className="eyebrow">{building ? "OFFICE / BUILDING" : "OFFICE / READY"}</span>
-            <small>Drag to orbit · Scroll to zoom</small>
+            <small>
+              {mode === "eye"
+                ? "Drag to look · Arrow keys or WASD to walk"
+                : "Drag to orbit · Scroll to zoom"}
+            </small>
           </div>
           <div className="canvas" ref={host} data-testid="canvas" />
           {building && (
             <div className="working" role="status">
               <span /> {STAGES[stage]}…
             </div>
+          )}
+          {!building && mode === "eye" && (
+            <fieldset className="views" aria-label="Where to stand">
+              {views.map((v) => (
+                <button
+                  key={v.id}
+                  type="button"
+                  aria-pressed={viewId === v.id}
+                  onClick={() => stand(v)}
+                >
+                  {v.name}
+                </button>
+              ))}
+            </fieldset>
           )}
           <div className="stage-controls">
             <button type="button" aria-pressed={mode === "plan"} onClick={() => setMode("plan")}>
@@ -171,10 +252,78 @@ export function Workspace({
             <button type="button" aria-pressed={mode === "orbit"} onClick={() => setMode("orbit")}>
               3D view
             </button>
-            <button type="button" aria-pressed={ceiling} onClick={() => setCeiling((c) => !c)}>
-              Ceiling
+            <button
+              type="button"
+              aria-pressed={mode === "eye"}
+              disabled={building || views.length === 0}
+              onClick={() => {
+                const first = views.find((v) => v.name === "Open workspace") ?? views[0];
+                if (first) stand(first);
+              }}
+            >
+              Walk in
             </button>
+            {mode === "orbit" && (
+              <button type="button" aria-pressed={ceiling} onClick={() => setCeiling((c) => !c)}>
+                Ceiling
+              </button>
+            )}
           </div>
+          {picture && (
+            <div className="picture" role="dialog" aria-label="Picture of your office">
+              {picture.state === "making" && (
+                <div className="picture-body">
+                  <div className="working inline" role="status">
+                    <span /> Making the {picture.view.toLowerCase()} real… about 15 seconds
+                  </div>
+                </div>
+              )}
+              {picture.state === "error" && (
+                <div className="picture-body">
+                  <p className="error" role="alert">
+                    {picture.message}
+                  </p>
+                  <div className="actions">
+                    {picture.kind !== "limit" && (
+                      <button type="button" className="primary" onClick={() => void makeReal(7)}>
+                        Try again
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setPicture(undefined)}>
+                      Back to 3D
+                    </button>
+                  </div>
+                </div>
+              )}
+              {picture.state === "done" && (
+                <div className="picture-body">
+                  <img
+                    src={picture.result.image}
+                    alt={`The ${picture.view.toLowerCase()} as a photograph`}
+                  />
+                  <p className="caption">
+                    {picture.view}. An illustrative picture: the layout comes from your plan, the
+                    finer details are invented by the model ({picture.result.model}).
+                  </p>
+                  <div className="actions">
+                    <a
+                      className="button"
+                      href={picture.result.image}
+                      download={`icarus-${picture.view.toLowerCase().replace(/\s+/g, "-")}.jpg`}
+                    >
+                      Download
+                    </a>
+                    <button type="button" onClick={() => void makeReal(picture.seed + 1)}>
+                      Try another look
+                    </button>
+                    <button type="button" onClick={() => setPicture(undefined)}>
+                      Back to 3D
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </div>
     </main>
