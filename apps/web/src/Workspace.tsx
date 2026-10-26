@@ -1,5 +1,6 @@
-import { type Viewpoint, viewpoints } from "@icarus/core";
+import { type Suggestion, type Viewpoint, viewpoints } from "@icarus/core";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { DesignTrace } from "./DesignTrace";
 import type { Built } from "./design";
 import { EditPanel } from "./EditPanel";
 import { OfficeView, type ViewMode } from "./officeView";
@@ -10,6 +11,9 @@ import { type MadeReal, makeItReal, RenderError, renderPrompt } from "./render";
 
 interface Props {
   brief: string;
+  /** Live lines from the repair loop while it runs. */
+  progress?: string[];
+  onApplySuggestion?: (suggestion: Suggestion) => void;
   /** Stage names for this kind of build, in order. */
   stages: readonly string[];
   /** The photograph this office was matched to, if any. */
@@ -34,6 +38,8 @@ const PICTURE_SIZE = { width: 1024, height: 576 };
 
 export function Workspace({
   brief,
+  progress,
+  onApplySuggestion,
   stages,
   reference,
   stage,
@@ -152,20 +158,29 @@ export function Workspace({
               <p className="eyebrow">{building ? "BUILD IN PROGRESS" : "BUILD COMPLETE"}</p>
               <h2 className="title">{brief.split(/[.!?]/)[0]}</h2>
               {building ? (
-                <ol className="steps" aria-live="polite">
-                  {stages.map((label, i) => (
-                    <li key={label} className={i < stage ? "done" : i === stage ? "now" : ""}>
-                      <span aria-hidden="true">{i < stage ? "✓" : i === stage ? "↳" : ""}</span>
-                      {label}
-                    </li>
-                  ))}
-                </ol>
+                <>
+                  <ol className="steps" aria-live="polite">
+                    {stages.map((label, i) => (
+                      <li key={label} className={i < stage ? "done" : i === stage ? "now" : ""}>
+                        <span aria-hidden="true">{i < stage ? "✓" : i === stage ? "↳" : ""}</span>
+                        {label}
+                      </li>
+                    ))}
+                  </ol>
+                  {progress && progress.length > 0 && (
+                    <ul className="progress" aria-live="polite">
+                      {progress.map((line) => (
+                        <li key={line}>{line}</li>
+                      ))}
+                    </ul>
+                  )}
+                </>
               ) : (
                 built && (
                   <>
                     <p className="summary">
                       {built.plan.rooms.length} rooms on {built.plan.shell.w} × {built.plan.shell.h}{" "}
-                      m, planned in {built.plannedMs} ms.
+                      m, designed in {(built.plannedMs / 1000).toFixed(1)} s.
                     </p>
                     <div className="actions">
                       <button
@@ -186,6 +201,9 @@ export function Workspace({
                         <img src={reference.src} alt={reference.title} />
                         <small>{reference.credit}</small>
                       </div>
+                    )}
+                    {built.trace && onApplySuggestion && (
+                      <DesignTrace trace={built.trace} onApply={onApplySuggestion} />
                     )}
                     <div className="panel-card">
                       <p className="eyebrow">WHAT WAS MEASURED</p>

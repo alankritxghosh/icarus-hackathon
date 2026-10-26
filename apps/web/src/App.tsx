@@ -1,14 +1,14 @@
+import { applySuggestion, type Round } from "@icarus/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type Built,
-  finish,
+  builtFromRefine,
   PHOTO_STAGES,
-  planDesign,
-  readDesign,
   readPhotoDesign,
   rebuild,
   STAGES,
 } from "./design";
+import { designFromBrief, refineProgram } from "./designLoop";
 import { Home } from "./Home";
 import { readPhoto } from "./photo";
 import type { Reference } from "./references";
@@ -26,6 +26,8 @@ interface Session {
   stages: readonly string[];
   /** The photograph this office was built to match, when it started from one. */
   reference?: Reference;
+  /** Live lines from the repair loop while it runs. */
+  progress?: string[];
 }
 
 type Source = { kind: "brief"; text: string } | { kind: "photo"; reference: Reference };
@@ -70,12 +72,35 @@ export function App() {
       const brief =
         source.kind === "brief" ? source.text : `An office like “${source.reference.title}”`;
       const stages = source.kind === "photo" ? PHOTO_STAGES : STAGES;
+      const progress: string[] = [];
       const show = (stage: number) =>
-        setSession({ id, brief, stage, history, built: previous?.built, stages, reference });
+        setSession({
+          id,
+          brief,
+          stage,
+          history,
+          built: previous?.built,
+          stages,
+          reference,
+          progress: [...progress],
+        });
+      const roundLine = (r: Round) => {
+        if (r.source === "start")
+          progress.push(`First plan: ${r.open} open issue${r.open === 1 ? "" : "s"}`);
+        else
+          progress.push(
+            `${r.accepted ? "Kept" : "Not kept"} (${r.source}): ${r.description} → ${r.open} open`,
+          );
+      };
+      const yieldToHost = () => new Promise<void>((r) => setTimeout(r, 0));
+      const started = performance.now();
       setNotice(undefined);
       show(0);
-      let read: ReturnType<typeof readDesign>;
+      await pause(250);
+
+      let outcome: Awaited<ReturnType<typeof designFromBrief>>;
       if (source.kind === "photo") {
+        let read: ReturnType<typeof readPhotoDesign>;
         try {
           const result = await readPhoto(source.reference.src);
           read = readPhotoDesign(result.read, result.measured);
@@ -85,24 +110,42 @@ export function App() {
           setNotice(error instanceof RenderError ? error.message : "The photo could not be read.");
           return;
         }
+        if (!alive()) return;
+        show(1);
+        outcome = await refineProgram(read.program, read.notes, {
+          yieldToHost,
+          onRound: (r) => {
+            roundLine(r);
+            if (alive()) show(1);
+          },
+        });
       } else {
-        await pause(380);
-        read = readDesign(source.text);
+        outcome = await designFromBrief(source.text, {
+          yieldToHost,
+          onStage: (label) => {
+            if (!alive()) return;
+            // Checking the proposal belongs to the same step as asking the model for it.
+            const index = label.startsWith("Checking")
+              ? 1
+              : STAGES.indexOf(label as (typeof STAGES)[number]);
+            show(Math.max(0, index));
+          },
+          onRound: (r) => {
+            roundLine(r);
+            if (alive()) show(2);
+          },
+        });
       }
       if (!alive()) return;
-      show(1);
-      await pause(380);
-      if (!alive()) return;
-      const t = performance.now();
-      const design = planDesign(read);
-      const ms = Math.round(performance.now() - t);
-      show(2);
-      await pause(380);
-      if (!alive()) return;
-      const built = finish(design, ms);
       show(3);
-      await pause(380);
+      await pause(200);
       if (!alive()) return;
+      const built = builtFromRefine(
+        outcome.refine,
+        outcome.notes,
+        outcome.trace,
+        Math.round(performance.now() - started),
+      );
       setSession({ id, brief, built, history, stages, reference });
       remember(id, brief, built);
     },
@@ -153,8 +196,14 @@ export function App() {
           stage={session.stage}
           stages={session.stages}
           reference={session.reference}
+          progress={session.progress}
           built={session.built}
           canUndo={session.history.length > 0}
+          onApplySuggestion={(suggestion) => {
+            if (!session.built) return;
+            const program = applySuggestion(session.built.program, suggestion);
+            change(session, rebuild(program, session.built.seed, session.built.notes));
+          }}
           onUndo={undo}
           onStop={stop}
           onBuild={(text) => void start({ kind: "brief", text }, session)}

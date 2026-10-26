@@ -246,3 +246,19 @@ describe("suggestions for what the loop cannot fix", () => {
         expect(s.change.count).toBeLessThan(4);
   }, 240_000);
 });
+
+describe("when a failure is left", () => {
+  it("tries more layouts of the same program, and keeps one only if it measures better", async () => {
+    const p = program("tight");
+    const r = await refineDesign(p, { layout: FAST, maxRounds: 1 });
+    const more = r.rounds.find((x) => /six more layouts/.test(x.description));
+    expect(more).toBeDefined();
+    expect(r.best.cost).toBeLessThanOrEqual(r.baseline.cost + 1e-9);
+    if (more && !more.accepted) expect(r.best.cost).toBeLessThanOrEqual(more.cost + 1e-9);
+  }, 240_000);
+
+  it("does not bother when nothing failed", async () => {
+    const r = await refineDesign(program("roomy"), { layout: FAST });
+    expect(r.rounds.some((x) => /six more layouts/.test(x.description))).toBe(false);
+  }, 120_000);
+});

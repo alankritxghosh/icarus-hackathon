@@ -827,3 +827,106 @@ fieldset.views {
     grid-template-columns: 1fr;
   }
 }
+
+/* Design trace and live progress */
+.progress {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.progress li {
+  padding-left: 10px;
+  border-left: 2px solid var(--line-bright);
+}
+.trace-lead {
+  margin: 8px 0 4px;
+  font-size: 13px;
+}
+.decisions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.decisions li {
+  font-size: 13px;
+  display: grid;
+  gap: 1px;
+}
+.decisions li span,
+.rounds small,
+.suggestion small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.kept {
+  font-size: 12px;
+  margin: 6px 0 0;
+}
+.rounds {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+.rounds li {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 6px;
+}
+.rounds .kept .mark {
+  color: var(--green);
+}
+.rounds .dropped {
+  opacity: 0.75;
+}
+.rounds .dropped .mark {
+  color: var(--amber);
+}
+.suggestions {
+  margin-top: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.suggestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+.suggestion button {
+  padding: 6px 12px;
+  border: 1px solid var(--green);
+  border-radius: 8px;
+  background: var(--green-soft);
+  color: var(--green-strong);
+  font-size: 12px;
+}
+
+.setaside {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  font-size: 12px;
+  color: var(--amber);
+  display: grid;
+  gap: 4px;
+}
+
+.decisions .unused {
+  opacity: 0.55;
+}
+.decisions .unused em {
+  color: var(--amber);
+  font-style: normal;
+  font-size: 11px;
+}

@@ -51,9 +51,12 @@ export async function refineDesign(
     seeds?: number[];
     layout?: LayoutOptions;
     onRound?: (round: Round) => void;
+    /** Called before each heavy planning step so a browser can repaint and show progress. */
+    yieldToHost?: () => Promise<void>;
   } = {},
 ): Promise<RefineResult> {
   const evalOptions = { seeds: options.seeds ?? [1, 2], layout: options.layout };
+  await options.yieldToHost?.();
   const baseline = evaluateProgram(program, evalOptions);
   let best = baseline;
   const rounds: Round[] = [
@@ -95,6 +98,7 @@ export async function refineDesign(
 
     let improved = false;
     for (const attempt of attempts) {
+      await options.yieldToHost?.();
       const candidate = evaluateProgram(applyPatch(best.program, attempt.patch), evalOptions);
       const refusedShell =
         attempt.patch.ops.some((o) => o.op === "grow_shell") && shellIsStated(best.program);
@@ -138,8 +142,31 @@ export async function refineDesign(
     }
     if (!improved) break;
   }
+  // A failure that no patch fixed may just be an unlucky arrangement: try more layouts of the same program.
+  if (best.issues.some((i) => i.severity === "fail")) {
+    await options.yieldToHost?.();
+    const more = evaluateProgram(best.program, {
+      seeds: [3, 4, 5, 6, 7, 8],
+      layout: options.layout,
+    });
+    const accepted = more.cost < best.cost - 0.01;
+    const entry: Round = {
+      round: rounds.length,
+      source: "rules",
+      description: "tried six more layouts of the same program (different search seeds)",
+      reason: "A failure was left, and it can depend on how the rooms happened to be arranged.",
+      accepted,
+      cost: more.cost,
+      open: actionable(more.issues).length,
+    };
+    rounds.push(entry);
+    options.onRound?.(entry);
+    if (accepted) best = more;
+  }
+
   // A shell that was only assumed can simply be sized properly: try enlargements and keep the best.
   if (!shellIsStated(best.program) && actionable(best.issues).length >= 3) {
+    await options.yieldToHost?.();
     const grown = fitShell(best.program, { seeds: evalOptions.seeds });
     const accepted = !!grown && grown.evaluation.cost < best.cost - 0.01;
     if (grown) {
@@ -157,5 +184,6 @@ export async function refineDesign(
       if (accepted) best = grown.evaluation;
     }
   }
+  await options.yieldToHost?.();
   return { best, baseline, rounds, suggestions: suggestFixes(best.program, best.issues, best) };
 }

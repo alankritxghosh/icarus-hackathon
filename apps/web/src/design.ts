@@ -1,4 +1,5 @@
 import {
+  type Evaluation,
   type EvidenceItem,
   type FloorPlan,
   type FurnishReport,
@@ -10,9 +11,11 @@ import {
   type PhotoRead,
   type Program,
   programFromPhoto,
+  type RefineResult,
   readBrief,
   type Scene,
 } from "@icarus/core";
+import type { ModelTrace } from "./designLoop";
 
 export interface Design {
   program: Program;
@@ -22,25 +25,37 @@ export interface Design {
   notes: string[];
 }
 
+/** How a design came about: what the model decided, what the checks found, what was repaired. */
+export interface DesignTrace extends ModelTrace {
+  rounds: RefineResult["rounds"];
+  suggestions: RefineResult["suggestions"];
+  startOpen: number;
+  endOpen: number;
+  startCost: number;
+  endCost: number;
+}
+
 export interface Built extends Design {
   scene: Scene;
   evidence: EvidenceItem[];
   report: FurnishReport;
   plannedMs: number;
+  /** Present when the design went through the propose-and-repair loop. */
+  trace?: DesignTrace;
 }
 
 /** The stages shown while building. Each one does real work, in order. */
 export const STAGES = [
   "Reading the brief",
-  "Planning the rooms and circulation",
+  "Asking the model what this office needs",
+  "Planning, checking and repairing",
   "Building walls, furnishing and lighting",
-  "Measuring the plan",
 ] as const;
 
 /** The stages shown when the office starts from a photograph. */
 export const PHOTO_STAGES = [
   "Reading the photo",
-  "Planning the rooms and circulation",
+  "Planning, checking and repairing",
   "Building walls, furnishing and lighting",
   "Measuring the plan",
 ] as const;
@@ -74,4 +89,35 @@ export function rebuild(program: Program, seed: number, notes: string[]): Built 
   const t = performance.now();
   const design = planDesign({ program, seed, notes });
   return finish(design, Math.round(performance.now() - t));
+}
+
+const openCount = (e: Evaluation) => e.issues.filter((i) => i.severity !== "info").length;
+
+/** A finished design from the loop's best evaluation: nothing is planned or furnished twice. */
+export function builtFromRefine(
+  refine: RefineResult,
+  notes: string[],
+  trace: ModelTrace,
+  plannedMs: number,
+): Built {
+  const { plan, program, seed, furnished } = refine.best;
+  return {
+    program,
+    plan,
+    seed,
+    notes,
+    scene: furnished.scene,
+    report: furnished.report,
+    evidence: [...measurePlan(plan, program), ...furnishingEvidence(furnished.report)],
+    plannedMs,
+    trace: {
+      ...trace,
+      rounds: refine.rounds,
+      suggestions: refine.suggestions,
+      startOpen: openCount(refine.baseline),
+      endOpen: openCount(refine.best),
+      startCost: refine.baseline.cost,
+      endCost: refine.best.cost,
+    },
+  };
 }
