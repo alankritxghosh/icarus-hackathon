@@ -30,7 +30,7 @@ export class OfficeView {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     host.appendChild(this.renderer.domElement);
-    this.three.background = new THREE.Color("#eceff2");
+    this.three.background = new THREE.Color("#0a0f0d");
     this.three.add(this.content);
     this.three.add(new THREE.HemisphereLight(0xffffff, 0xb9bec4, 1.0));
     this.three.add(this.sun, this.sun.target);
@@ -103,7 +103,7 @@ export class OfficeView {
     }
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(400, 400),
-      new THREE.MeshStandardMaterial({ color: "#dfe3e7", roughness: 1 }),
+      new THREE.MeshStandardMaterial({ color: "#121a16", roughness: 1 }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.06;

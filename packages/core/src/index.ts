@@ -1,3 +1,4 @@
+export { type ReadBrief, readBrief } from "./brief";
 export * from "./build";
 export { AREA_RULES, KIND_RULES, OPPOSITE, ROOM_KINDS, type RoomKind } from "./catalog";
 export { type EvidenceItem, measurePlan, reachable } from "./evidence";

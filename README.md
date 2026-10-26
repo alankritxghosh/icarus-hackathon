@@ -10,7 +10,7 @@ Output is **concept design only**. It is not a building-code check, a structural
 
 This repository was created on **26 October 2026, after the hackathon kickoff (12:00 PM EDT)**, and every line of code in it was written during the hackathon. The Git history is unedited, so `git log` shows exactly what was built and when.
 
-The idea is not new to this repository: the author explored a similar product in an earlier private prototype before the hackathon. That prototype is **not part of this repository**, no code or tests were copied from it, and nothing in it used a Meta model. What carried over is the problem framing and the lessons learned, not the code.
+The idea is not new to this repository: the author explored a similar product in an earlier private prototype before the hackathon. That prototype is **not part of this repository**, no code or tests were copied from it, and nothing in it used a Meta model. What carried over is the problem framing, the lessons learned and the approved visual design (dark graphite and green, sidebar, one prompt, Home to Building to Built flow), not the code: every component here was written from scratch during the hackathon.
 
 Code in this repository was written with the help of an AI coding assistant (Claude Code) under the author's direction.
 
