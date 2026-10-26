@@ -57,5 +57,5 @@ Every result line shows what was measured: how far the room moved, which other r
 - The edit set is small on purpose. "Make the kitchen bigger", "add a meeting room" and colour changes are not here yet.
 - "Within the east part" is a rule of thumb (outer 40%), not a precise position, and no exact coordinates can be asked for.
 - Swaps are row-level: they exchange rooms' places in the row structure, so the rooms keep their own sizes and the neighbours shift to fit.
-- The model path is only exercised through a scripted fake in tests; it has not been run live against a free model yet.
+- The model path ran live once (Llama 3.3 70B through Workers AI): given "put the break area on the right-hand side" it did not map "break area" to the lounge and said it cannot add rooms, so nothing changed. Safe, but a model that knows room synonyms better is wanted.
 - Room labels were added to the floor plan so a request can be checked by eye; they are only shown in the plan view.

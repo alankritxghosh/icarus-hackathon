@@ -81,7 +81,7 @@ export function EditBox({ locked, onSubmit, onUnlock }: Props) {
           ))}
           {last.by === "model" && (
             <li className="quiet">
-              The model read this request; the plan was changed by the same checked operations.
+              The model read this request. Any change was made by the same checked operations.
             </li>
           )}
         </ul>
