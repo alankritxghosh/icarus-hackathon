@@ -34,7 +34,9 @@ describe("POST /api/render", () => {
     );
     expect(res.status).toBe(200);
     expect(calls[0]?.model).toBe(EDIT_MODEL);
-    const { multipart } = calls[0]?.input as {
+    const first = calls[0];
+    if (!first) throw new Error("the model was not called");
+    const { multipart } = first.input as {
       multipart: { body: ReadableStream; contentType: string };
     };
     expect(multipart.contentType).toMatch(/^multipart\/form-data; boundary=/);
