@@ -11,9 +11,11 @@ import {
 } from "@icarus/core";
 import { type MetaApi, MetaError, metaClientFromEnv } from "@icarus/meta";
 import { z } from "zod";
+import type { AiBinding } from "./render";
+import { FallbackMeta, WORKERS_AI_MODEL, WorkersAiMeta } from "./workersAi";
 
 /** Where the model comes from, kept behind an interface so tests use a scripted fake. */
-export type ModelSource = () => { api: MetaApi; model: string } | undefined;
+export type ModelSource = () => { api: MetaApi; model: () => string } | undefined;
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -31,12 +33,19 @@ export function modelFromEnv(env: Record<string, unknown>): ModelSource {
     const strings = Object.fromEntries(
       Object.entries(env).filter(([, v]) => typeof v === "string"),
     ) as Record<string, string>;
-    if (!strings.OPENROUTER_API_KEY?.trim() && !strings.MODEL_API_KEY?.trim()) return undefined;
+    const ai = (env.AI as AiBinding | undefined)?.run ? (env.AI as AiBinding) : undefined;
+    const workers = ai ? { api: new WorkersAiMeta(ai), model: WORKERS_AI_MODEL } : undefined;
+    const hasKey = !!(strings.OPENROUTER_API_KEY?.trim() || strings.MODEL_API_KEY?.trim());
+    if (!hasKey) return workers ? { api: workers.api, model: () => workers.model } : undefined;
     const withModel = strings.OPENROUTER_API_KEY?.trim()
       ? { ...strings, ICARUS_MODEL: strings.ICARUS_MODEL || DESIGN_DEV_MODEL }
       : strings;
-    const client = metaClientFromEnv(withModel, { timeoutMs: 60_000, maxRetries: 1 });
-    return { api: client, model: client.model };
+    const client = metaClientFromEnv(withModel, { timeoutMs: 60_000, maxRetries: 2 });
+    const primary = { api: client as MetaApi, model: client.model };
+    if (!workers) return { api: primary.api, model: () => primary.model };
+    // A second free route, tried when the first is busy, down or out of allowance.
+    const both = new FallbackMeta(primary, workers);
+    return { api: both, model: () => both.lastModel };
   };
 }
 
@@ -115,7 +124,7 @@ export async function handlePropose(request: Request, source: ModelSource): Prom
         reasoningEffort: "low",
       }),
     );
-    return json({ proposal: result.parsed, model: model.model });
+    return json({ proposal: result.parsed, model: model.model() });
   } catch (error) {
     return failure(error);
   }
@@ -137,7 +146,7 @@ export async function handleRevise(request: Request, source: ModelSource): Promi
         reasoningEffort: "low",
       }),
     );
-    return json({ patch: result.parsed, model: model.model });
+    return json({ patch: result.parsed, model: model.model() });
   } catch (error) {
     return failure(error);
   }

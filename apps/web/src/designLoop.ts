@@ -155,26 +155,39 @@ export async function designFromBrief(
       const seeds = [1, 2];
       const rulesOnly = evaluateProgram(read.program, { seeds });
       const withModel = evaluateProgram(merged.program, { seeds });
-      let chosen = merged.program;
+      // Each model-derived variant is measured, never assumed: keep the most model-influenced one that
+      // is not worse than the rules alone, and fall back step by step.
+      const tolerance = 0.5;
       const added = merged.program.rooms
         .filter((r) => !read.program.rooms.some((o) => o.kind === r.kind))
         .map((r) => r.kind);
-      if (withModel.cost > rulesOnly.cost + 0.5) {
+      const names = (kinds: string[]) => kinds.map((k) => k.replace(/_/g, " ")).join(", ");
+      let chosen = merged.program;
+      if (withModel.cost > rulesOnly.cost + tolerance) {
         const trimmedProgram = {
           ...merged.program,
           rooms: merged.program.rooms.filter((r) => !added.includes(r.kind)),
         };
+        const wishesOnly = { ...read.program, preferences: merged.program.preferences };
         const trimmed = added.length ? evaluateProgram(trimmedProgram, { seeds }) : undefined;
-        if (trimmed && trimmed.cost <= rulesOnly.cost + 0.5) {
+        if (trimmed && trimmed.cost <= rulesOnly.cost + tolerance) {
           chosen = trimmedProgram;
           trace.vetoed.push(
-            `Not added: ${added.map((k) => k.replace(/_/g, " ")).join(", ")}. The plan measured worse with ${added.length === 1 ? "it" : "them"} (score ${withModel.cost.toFixed(1)} against ${trimmed.cost.toFixed(1)}).`,
+            `Not added: ${names(added)}. The plan measured worse with ${added.length === 1 ? "it" : "them"} (score ${withModel.cost.toFixed(1)} against ${trimmed.cost.toFixed(1)}).`,
           );
         } else {
-          chosen = { ...read.program, preferences: merged.program.preferences };
-          trace.vetoed.push(
-            `Set aside the model's room changes: the plan measured worse with them (score ${withModel.cost.toFixed(1)} against ${rulesOnly.cost.toFixed(1)}). Its neighbour wishes were kept.`,
-          );
+          const wishes = evaluateProgram(wishesOnly, { seeds });
+          if (wishes.cost <= rulesOnly.cost + tolerance) {
+            chosen = wishesOnly;
+            trace.vetoed.push(
+              `Set aside the model's room changes: the plan measured worse with them (score ${withModel.cost.toFixed(1)} against ${rulesOnly.cost.toFixed(1)}). Its neighbour wishes measured fine and were kept.`,
+            );
+          } else {
+            chosen = read.program;
+            trace.vetoed.push(
+              `Set aside everything the model proposed for the layout: each variant measured worse than the rules alone (score ${rulesOnly.cost.toFixed(1)}). Its reasons are shown but were not used.`,
+            );
+          }
         }
       }
       program = chosen;
@@ -182,9 +195,11 @@ export async function designFromBrief(
       const droppedKinds = added.filter((k) => !chosen.rooms.some((r) => r.kind === k));
       const decisions = merged.decisions.map((d) => ({
         ...d,
-        used: !droppedKinds.some((k) =>
-          `${d.topic} ${d.choice}`.toLowerCase().includes(k.replace(/_/g, " ")),
-        ),
+        used:
+          chosen !== read.program &&
+          !droppedKinds.some((k) =>
+            `${d.topic} ${d.choice}`.toLowerCase().includes(k.replace(/_/g, " ")),
+          ),
       }));
       notes = [
         ...read.notes,

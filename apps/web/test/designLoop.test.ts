@@ -147,3 +147,41 @@ describe("decisions about rooms that were set aside", () => {
     }
   }, 180_000);
 });
+
+describe("every model-derived variant is measured against the rules alone", () => {
+  const BRIEFS = [
+    "A 35-person design studio. Open studio, three meeting rooms, two phone booths, a kitchen and lounge, reception, storage and server closet, restrooms. 24 m by 16 m shell, windows on south and east walls, entrance on the west.",
+    "A 25-person team with two meeting rooms, kitchen, lounge, reception. 26 m by 16 m shell, windows on the north and south walls, entrance on the west.",
+    "A 30-person firm with three meeting rooms, kitchen, lounge, reception, storage. 24 m by 15 m shell, windows on the west wall, entrance on the east.",
+  ];
+  // Hostile on purpose: wishes that pull the plan apart, plus extra rooms and distorted areas.
+  const hostile = {
+    addRooms: ["private_office", "server_room", "storage"],
+    preferences: {
+      adjacent: [
+        { a: "reception", b: "server_room", weight: 3 },
+        { a: "kitchen", b: "reception", weight: 3 },
+      ],
+      apart: [
+        { a: "kitchen", b: "lounge", weight: 3 },
+        { a: "open_workspace", b: "kitchen", weight: 3 },
+      ],
+      areaScale: { open_workspace: 0.6, lounge: 1.6, reception: 1.6 },
+    },
+    decisions: [{ topic: "layout", choice: "unusual", reason: "a hostile test proposal" }],
+  };
+
+  it("never starts from a plan worse than the rules alone, whatever the model proposes", async () => {
+    const { evaluateProgram, readBrief } = await import("@icarus/core");
+    for (const brief of BRIEFS) {
+      const net = fakeFetch((path) =>
+        path.endsWith("/propose") ? ok({ proposal: hostile, model: "m" }) : fail(502, "none"),
+      );
+      const out = await designFromBrief(brief, { fetcher: net.fetcher });
+      const rulesOnly = evaluateProgram(readBrief(brief).program, { seeds: [1, 2] });
+      expect(out.refine.baseline.cost, brief.slice(0, 30)).toBeLessThanOrEqual(
+        rulesOnly.cost + 0.5 + 1e-9,
+      );
+    }
+  }, 600_000);
+});

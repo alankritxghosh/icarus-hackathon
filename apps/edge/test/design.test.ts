@@ -14,7 +14,7 @@ const post = (path: string, body: unknown) =>
   new Request(`https://x${path}`, { method: "POST", body: JSON.stringify(body) });
 const source =
   (fake: FakeMeta): ModelSource =>
-  () => ({ api: fake, model: "fake-model" });
+  () => ({ api: fake, model: () => "fake-model" });
 
 const GOOD_PROPOSAL = {
   meetingRooms: 2,
@@ -127,18 +127,21 @@ describe("modelFromEnv", () => {
       OPENROUTER_API_KEY: "sk-or-secret",
       ICARUS_MODEL: "meta/muse-spark-1.3",
     })();
-    expect(found?.model).toBe("meta/muse-spark-1.3");
-    expect(JSON.stringify({ model: found?.model })).not.toContain("secret");
+    expect(found?.model()).toBe("meta/muse-spark-1.3");
+    expect(JSON.stringify({ model: found?.model() })).not.toContain("secret");
   });
 });
 
 describe("the default design model", () => {
   it("is the tested free model for OpenRouter, overridable, and not forced on the Meta API", () => {
-    expect(modelFromEnv({ OPENROUTER_API_KEY: "sk-or-x" })()?.model).toBe(DESIGN_DEV_MODEL);
+    expect(modelFromEnv({ OPENROUTER_API_KEY: "sk-or-x" })()?.model()).toBe(DESIGN_DEV_MODEL);
     expect(
-      modelFromEnv({ OPENROUTER_API_KEY: "sk-or-x", ICARUS_MODEL: "meta/muse-spark-1.3" })()?.model,
+      modelFromEnv({
+        OPENROUTER_API_KEY: "sk-or-x",
+        ICARUS_MODEL: "meta/muse-spark-1.3",
+      })()?.model(),
     ).toBe("meta/muse-spark-1.3");
-    expect(modelFromEnv({ MODEL_API_KEY: "key" })()?.model).toBe("muse-spark-1.3");
+    expect(modelFromEnv({ MODEL_API_KEY: "key" })()?.model()).toBe("muse-spark-1.3");
   });
 });
 

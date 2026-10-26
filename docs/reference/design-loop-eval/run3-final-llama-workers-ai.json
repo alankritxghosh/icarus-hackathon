@@ -1,0 +1,462 @@
+[
+  {
+    "name": "demo studio",
+    "shellStated": true,
+    "A": {
+      "cost": 11.722845380364916,
+      "open": 2,
+      "fails": 0,
+      "seats": "35/35",
+      "shell": "24x16"
+    },
+    "B": {
+      "cost": 11.450116732000543,
+      "open": 2,
+      "fails": 0,
+      "seats": "35/35",
+      "shell": "24x16",
+      "suggestions": 0,
+      "ms": 3929
+    },
+    "C": {
+      "cost": 11.459536096156747,
+      "open": 2,
+      "fails": 0,
+      "seats": "35/35",
+      "shell": "24x16",
+      "suggestions": 0,
+      "proposal": "model",
+      "vetoed": 1,
+      "decisions": 5,
+      "revisions": {
+        "asked": 2,
+        "valid": 2,
+        "used": 1
+      },
+      "ms": 29594
+    },
+    "totalMs": 34853
+  },
+  {
+    "name": "startup 12 (tight)",
+    "shellStated": true,
+    "A": {
+      "cost": 85.58137194668514,
+      "open": 9,
+      "fails": 2,
+      "seats": "5/12",
+      "shell": "14x10"
+    },
+    "B": {
+      "cost": 82.20275886611728,
+      "open": 9,
+      "fails": 2,
+      "seats": "5/12",
+      "shell": "14x10",
+      "suggestions": 0,
+      "ms": 2345
+    },
+    "C": {
+      "cost": 72.51909190084663,
+      "open": 11,
+      "fails": 1,
+      "seats": "12/12",
+      "shell": "14x10",
+      "suggestions": 0,
+      "proposal": "model",
+      "vetoed": 1,
+      "decisions": 3,
+      "revisions": {
+        "asked": 2,
+        "valid": 2,
+        "used": 1
+      },
+      "ms": 21733
+    },
+    "totalMs": 24548
+  },
+  {
+    "name": "consultancy offices",
+    "shellStated": true,
+    "A": {
+      "cost": 110.39188187132713,
+      "open": 15,
+      "fails": 1,
+      "seats": "14/14",
+      "shell": "22x14"
+    },
+    "B": {
+      "cost": 110.39188187132713,
+      "open": 15,
+      "fails": 1,
+      "seats": "14/14",
+      "shell": "22x14",
+      "suggestions": 2,
+      "ms": 12745
+    },
+    "C": {
+      "cost": 110.39188187132713,
+      "open": 15,
+      "fails": 1,
+      "seats": "14/14",
+      "shell": "22x14",
+      "suggestions": 2,
+      "proposal": "rules",
+      "note": "the model service is not reachable; planned with the rules alone.",
+      "vetoed": 0,
+      "decisions": 0,
+      "revisions": {
+        "asked": 0,
+        "valid": 0,
+        "used": 0
+      },
+      "ms": 12666
+    },
+    "totalMs": 26629
+  },
+  {
+    "name": "agency 40 (tight)",
+    "shellStated": true,
+    "A": {
+      "cost": 88.83440981087091,
+      "open": 12,
+      "fails": 2,
+      "seats": "40/40",
+      "shell": "22x14"
+    },
+    "B": {
+      "cost": 88.83440981087091,
+      "open": 12,
+      "fails": 2,
+      "seats": "40/40",
+      "shell": "22x14",
+      "suggestions": 1,
+      "ms": 15850
+    },
+    "C": {
+      "cost": 88.83440981087091,
+      "open": 12,
+      "fails": 2,
+      "seats": "40/40",
+      "shell": "22x14",
+      "suggestions": 1,
+      "proposal": "model",
+      "vetoed": 1,
+      "decisions": 3,
+      "revisions": {
+        "asked": 1,
+        "valid": 1,
+        "used": 0
+      },
+      "ms": 37511
+    },
+    "totalMs": 54641
+  },
+  {
+    "name": "east entrance",
+    "shellStated": true,
+    "A": {
+      "cost": 15.228908138890095,
+      "open": 2,
+      "fails": 0,
+      "seats": "30/30",
+      "shell": "24x15"
+    },
+    "B": {
+      "cost": 0.26700530837477865,
+      "open": 0,
+      "fails": 0,
+      "seats": "30/30",
+      "shell": "24x15",
+      "suggestions": 0,
+      "ms": 2343
+    },
+    "C": {
+      "cost": 0.26700530837477865,
+      "open": 0,
+      "fails": 0,
+      "seats": "30/30",
+      "shell": "24x15",
+      "suggestions": 0,
+      "proposal": "rules",
+      "note": "the model service is not reachable; planned with the rules alone.",
+      "vetoed": 0,
+      "decisions": 0,
+      "revisions": {
+        "asked": 0,
+        "valid": 0,
+        "used": 0
+      },
+      "ms": 2340
+    },
+    "totalMs": 5785
+  },
+  {
+    "name": "roomy 25",
+    "shellStated": true,
+    "A": {
+      "cost": 0.34522286073117486,
+      "open": 0,
+      "fails": 0,
+      "seats": "25/25",
+      "shell": "26x16"
+    },
+    "B": {
+      "cost": 0.34522286073117486,
+      "open": 0,
+      "fails": 0,
+      "seats": "25/25",
+      "shell": "26x16",
+      "suggestions": 0,
+      "ms": 811
+    },
+    "C": {
+      "cost": 0.34522286073117486,
+      "open": 0,
+      "fails": 0,
+      "seats": "25/25",
+      "shell": "26x16",
+      "suggestions": 0,
+      "proposal": "model",
+      "vetoed": 1,
+      "decisions": 3,
+      "revisions": {
+        "asked": 0,
+        "valid": 0,
+        "used": 0
+      },
+      "ms": 11467
+    },
+    "totalMs": 13090
+  },
+  {
+    "name": "law firm (no shell)",
+    "shellStated": false,
+    "A": {
+      "cost": 75.50812836209572,
+      "open": 11,
+      "fails": 1,
+      "seats": "17/18",
+      "shell": "16x10.5"
+    },
+    "B": {
+      "cost": 0.042069342503763,
+      "open": 0,
+      "fails": 0,
+      "seats": "18/18",
+      "shell": "19.5x13",
+      "suggestions": 0,
+      "ms": 6919
+    },
+    "C": {
+      "cost": 0.042069342503763,
+      "open": 0,
+      "fails": 0,
+      "seats": "18/18",
+      "shell": "19.5x13",
+      "suggestions": 0,
+      "proposal": "model",
+      "vetoed": 1,
+      "decisions": 5,
+      "revisions": {
+        "asked": 1,
+        "valid": 1,
+        "used": 0
+      },
+      "ms": 28294
+    },
+    "totalMs": 36012
+  },
+  {
+    "name": "software 50",
+    "shellStated": true,
+    "A": {
+      "cost": 8.392584097519597,
+      "open": 2,
+      "fails": 0,
+      "seats": "50/50",
+      "shell": "30x18"
+    },
+    "B": {
+      "cost": 8.392584097519597,
+      "open": 2,
+      "fails": 0,
+      "seats": "50/50",
+      "shell": "30x18",
+      "suggestions": 0,
+      "ms": 3015
+    },
+    "C": {
+      "cost": 8.392584097519597,
+      "open": 2,
+      "fails": 0,
+      "seats": "50/50",
+      "shell": "30x18",
+      "suggestions": 0,
+      "proposal": "rules",
+      "note": "the model's answer did not match what Icarus needs; planned with the rules alone.",
+      "vetoed": 0,
+      "decisions": 0,
+      "revisions": {
+        "asked": 1,
+        "valid": 1,
+        "used": 0
+      },
+      "ms": 23033
+    },
+    "totalMs": 27542
+  },
+  {
+    "name": "small studio (no shell)",
+    "shellStated": false,
+    "A": {
+      "cost": 189.9103419111433,
+      "open": 15,
+      "fails": 4,
+      "seats": "1/8",
+      "shell": "10.5x7"
+    },
+    "B": {
+      "cost": 0.05618163461049072,
+      "open": 0,
+      "fails": 0,
+      "seats": "8/8",
+      "shell": "14.5x10",
+      "suggestions": 0,
+      "ms": 2576
+    },
+    "C": {
+      "cost": 0.05618163461049072,
+      "open": 0,
+      "fails": 0,
+      "seats": "8/8",
+      "shell": "14.5x10",
+      "suggestions": 0,
+      "proposal": "model",
+      "vetoed": 1,
+      "decisions": 3,
+      "revisions": {
+        "asked": 2,
+        "valid": 2,
+        "used": 0
+      },
+      "ms": 24464
+    },
+    "totalMs": 27295
+  },
+  {
+    "name": "call centre 60",
+    "shellStated": true,
+    "A": {
+      "cost": 0.10286531471198203,
+      "open": 0,
+      "fails": 0,
+      "seats": "60/60",
+      "shell": "34x20"
+    },
+    "B": {
+      "cost": 0.10286531471198203,
+      "open": 0,
+      "fails": 0,
+      "seats": "60/60",
+      "shell": "34x20",
+      "suggestions": 0,
+      "ms": 953
+    },
+    "C": {
+      "cost": 0.10286531471198203,
+      "open": 0,
+      "fails": 0,
+      "seats": "60/60",
+      "shell": "34x20",
+      "suggestions": 0,
+      "proposal": "rules",
+      "note": "the model's answer did not match what Icarus needs; planned with the rules alone.",
+      "vetoed": 0,
+      "decisions": 0,
+      "revisions": {
+        "asked": 0,
+        "valid": 0,
+        "used": 0
+      },
+      "ms": 13301
+    },
+    "totalMs": 15209
+  },
+  {
+    "name": "agency 22 north",
+    "shellStated": true,
+    "A": {
+      "cost": 69.16715934558565,
+      "open": 9,
+      "fails": 1,
+      "seats": "22/22",
+      "shell": "20x14"
+    },
+    "B": {
+      "cost": 69.16715934558565,
+      "open": 9,
+      "fails": 1,
+      "seats": "22/22",
+      "shell": "20x14",
+      "suggestions": 0,
+      "ms": 4443
+    },
+    "C": {
+      "cost": 69.16715934558565,
+      "open": 9,
+      "fails": 1,
+      "seats": "22/22",
+      "shell": "20x14",
+      "suggestions": 0,
+      "proposal": "model",
+      "vetoed": 1,
+      "decisions": 3,
+      "revisions": {
+        "asked": 1,
+        "valid": 1,
+        "used": 0
+      },
+      "ms": 31331
+    },
+    "totalMs": 36884
+  },
+  {
+    "name": "all-glass 30",
+    "shellStated": true,
+    "A": {
+      "cost": 0.08075538957338277,
+      "open": 0,
+      "fails": 0,
+      "seats": "30/30",
+      "shell": "28x15"
+    },
+    "B": {
+      "cost": 0.08075538957338277,
+      "open": 0,
+      "fails": 0,
+      "seats": "30/30",
+      "shell": "28x15",
+      "suggestions": 0,
+      "ms": 965
+    },
+    "C": {
+      "cost": 0.24471817050904715,
+      "open": 0,
+      "fails": 0,
+      "seats": "30/30",
+      "shell": "28x15",
+      "suggestions": 0,
+      "proposal": "model",
+      "vetoed": 0,
+      "decisions": 5,
+      "revisions": {
+        "asked": 0,
+        "valid": 0,
+        "used": 0
+      },
+      "ms": 11225
+    },
+    "totalMs": 13165
+  }
+]
