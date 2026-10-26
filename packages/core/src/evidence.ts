@@ -33,8 +33,11 @@ export function reachable(plan: FloorPlan): Set<string> {
   const seen = new Set<string>(["lobby"]);
   const queue = ["lobby"];
   while (queue.length) {
-    for (const next of edges.get(queue.shift() as string) ?? [])
-      if (!seen.has(next)) seen.add(next), queue.push(next);
+    for (const next of edges.get(queue.shift() as string) ?? []) {
+      if (seen.has(next)) continue;
+      seen.add(next);
+      queue.push(next);
+    }
   }
   return seen;
 }
