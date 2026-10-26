@@ -193,3 +193,22 @@ export function downlight(ceilingM: number): Item {
     ],
   };
 }
+
+/** A modern three-seat sofa in green fabric on an oak plinth, facing +z. */
+export function sofa(width: number): Item {
+  const d = 0.9;
+  return {
+    name: "sofa",
+    w: width,
+    d,
+    front: 0.8,
+    parts: [
+      box("plinth", [width - 0.1, 0.1, d - 0.1], [0, 0.05, 0], "oak.dark"),
+      box("base", [width, 0.3, d], [0, 0.25, 0], "fabric.green"),
+      box("seat cushion", [width - 0.34, 0.13, d - 0.25], [0, 0.465, 0.07], "fabric.green"),
+      box("back", [width, 0.5, 0.2], [0, 0.65, -d / 2 + 0.1], "fabric.green"),
+      box("left arm", [0.16, 0.6, d], [-width / 2 + 0.08, 0.4, 0], "fabric.green"),
+      box("right arm", [0.16, 0.6, d], [width / 2 - 0.08, 0.4, 0], "fabric.green"),
+    ],
+  };
+}

@@ -43,6 +43,8 @@ export interface SceneNode {
 
 export interface MaterialDef {
   color: string;
+  /** A procedural surface the viewer draws: board planks or woven carpet. */
+  texture?: "planks" | "carpet";
   roughness: number;
   metalness: number;
   opacity: number;
@@ -65,6 +67,21 @@ export const MATERIALS: Record<string, MaterialDef> = {
   glass: { color: "#a9cfe0", roughness: 0.05, metalness: 0, opacity: 0.28 },
   "door.wood": { color: "#a67c52", roughness: 0.6, metalness: 0, opacity: 1 },
   "frame.metal": { color: "#2b2f33", roughness: 0.45, metalness: 0.7, opacity: 1 },
+  "floor.oak": { color: "#c79d6a", texture: "planks", roughness: 0.55, metalness: 0, opacity: 1 },
+  "floor.oak.light": {
+    color: "#d9bd92",
+    texture: "planks",
+    roughness: 0.55,
+    metalness: 0,
+    opacity: 1,
+  },
+  "floor.carpet.green": {
+    color: "#6d8c76",
+    texture: "carpet",
+    roughness: 1,
+    metalness: 0,
+    opacity: 1,
+  },
   "floor.carpet": { color: "#7f8b96", roughness: 1, metalness: 0, opacity: 1 },
   "floor.carpet.warm": { color: "#9a8a7c", roughness: 1, metalness: 0, opacity: 1 },
   "floor.tile": { color: "#d6d8d6", roughness: 0.4, metalness: 0, opacity: 1 },
@@ -88,17 +105,17 @@ export const MATERIALS: Record<string, MaterialDef> = {
     opacity: 1,
     emissive: "#ffe2a8",
   },
-  "floor.corridor": { color: "#bdbab2", roughness: 0.75, metalness: 0, opacity: 1 },
+  "floor.corridor": { color: "#cdbfa7", roughness: 0.7, metalness: 0, opacity: 1 },
 };
 
 /** Floor finish by room kind. A concept palette, easy to change later. */
 export const FLOOR_BY_KIND: Record<RoomKind, string> = {
-  open_workspace: "floor.carpet",
-  meeting_room: "floor.carpet.warm",
-  private_office: "floor.carpet.warm",
+  open_workspace: "floor.oak",
+  meeting_room: "floor.carpet.green",
+  private_office: "floor.carpet.green",
   kitchen: "floor.tile",
-  lounge: "floor.wood",
-  reception: "floor.wood.light",
+  lounge: "floor.oak.light",
+  reception: "floor.oak.light",
   storage: "floor.concrete",
   server_room: "floor.concrete",
   restroom: "floor.tile",

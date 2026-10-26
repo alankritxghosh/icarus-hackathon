@@ -201,7 +201,10 @@ describe("buildShell", () => {
   it("uses a floor finish that matches the room", () => {
     expect(must(scene.nodes.find((n) => n.id === "floor.restroom.1")).material).toBe("floor.tile");
     expect(must(scene.nodes.find((n) => n.id === "floor.open_workspace.1")).material).toBe(
-      "floor.carpet",
+      "floor.oak",
+    );
+    expect(must(scene.nodes.find((n) => n.id === "floor.meeting_room.1")).material).toBe(
+      "floor.carpet.green",
     );
   });
 

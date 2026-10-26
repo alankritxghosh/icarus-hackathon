@@ -14,6 +14,7 @@ import {
   receptionDesk,
   screen,
   serverRack,
+  sofa,
   table,
   taskChair,
 } from "./parts";
@@ -52,30 +53,40 @@ const asset = (key: keyof typeof ASSETS, name: string, hangs = false, reserve = 
 const DESK_WIDTHS = [1.6, 1.4, 1.2];
 const CHAIR_OFFSET = 0.45;
 
-/** Back-to-back desk pairs in rows along the long axis, with a task chair at each desk. */
-function placeDesks(space: Space, wanted: number): number {
+/** Half the depth of a desk pair: desk 0.75 each, chairs reaching 0.73 beyond the fronts. */
+const PAIR_DEPTH = 0.75;
+const CHAIR_REACH = 0.73;
+const MODULE_PITCH = 3.3;
+
+/**
+ * Lay desk pairs for a chosen desk width, module count and desks per row, centred in the room, on
+ * `space`. Returns how many seats were placed. Rows are spread over the free depth, not left in a corner.
+ */
+function layDesks(
+  space: Space,
+  width: number,
+  modules: number,
+  perRow: number,
+  wanted: number,
+  commit: boolean,
+): number {
   const f = frame(space.rect);
   const chair = taskChair();
-  let chosen = DESK_WIDTHS[DESK_WIDTHS.length - 1] ?? 1.2;
-  for (const width of DESK_WIDTHS) {
-    const perRow = Math.floor((f.U - 1.2 + 0.1) / (width + 0.1));
-    const modules = Math.floor((f.V - 1.63 - 0.88) / 3.3) + 1;
-    const capacity = Math.max(0, perRow) * 2 * Math.max(0, modules);
-    chosen = width;
-    if (capacity >= wanted) break;
-  }
-  const deskItem: Item = { ...desk(chosen), front: 0.9 };
+  const deskItem: Item = { ...desk(width), front: 0.9 };
+  const block = (modules - 1) * MODULE_PITCH + PAIR_DEPTH + 2 * CHAIR_REACH;
+  const free = Math.max(0, f.V - block);
+  const extra = modules > 1 ? Math.min(free / (modules + 1), 1.2) : 0;
+  const lead = (free - extra * (modules - 1)) / 2;
+  const rowWidth = perRow * width + (perRow - 1) * 0.1;
+  const u0 = (f.U - rowWidth) / 2 + width / 2;
   let placed = 0;
-  for (let k = 0; placed < wanted; k++) {
-    const vA = 0.88 + k * 3.3;
-    if (vA > f.V - 1.63 + 1e-6) break;
-    const before = placed;
-    for (let i = 0; placed < wanted; i++) {
-      const u = 0.6 + chosen / 2 + i * (chosen + 0.1);
-      if (u + chosen / 2 > f.U - 0.6 + 1e-6) break;
+  for (let k = 0; k < modules && placed < wanted; k++) {
+    const vA = lead + CHAIR_REACH + k * (MODULE_PITCH + extra);
+    for (let i = 0; i < perRow && placed < wanted; i++) {
+      const u = u0 + i * (width + 0.1);
       for (const [v, rot] of [
         [vA, f.faceNegV],
-        [vA + 0.75, f.faceV],
+        [vA + PAIR_DEPTH, f.faceV],
       ] as const) {
         if (placed >= wanted) break;
         const [cx, cz] = f.xz(u, v);
@@ -85,13 +96,36 @@ function placeDesks(space: Space, wanted: number): number {
         placed++;
       }
     }
-    if (placed > before) {
-      const [lx, lz] = f.xz(f.U / 2, vA + 0.375);
-      const length = Math.min(f.U - 1.2, 6);
-      space.force(linearLight(length, space.ceilingM), lx, lz, f.faceV);
+    if (commit) {
+      const [lx, lz] = f.xz(f.U / 2, vA + PAIR_DEPTH / 2);
+      space.force(linearLight(Math.min(f.U - 1.2, rowWidth), space.ceilingM), lx, lz, f.faceV);
     }
   }
   return placed;
+}
+
+/** The fewest rows of the widest desks that seat everyone, found by trying them on a copy first. */
+function placeDesks(space: Space, wanted: number): number {
+  const f = frame(space.rect);
+  const maxModules = Math.max(
+    0,
+    Math.floor((f.V - 2 * CHAIR_REACH - PAIR_DEPTH) / MODULE_PITCH) + 1,
+  );
+  let fallback: { width: number; modules: number; perRow: number; placed: number } | undefined;
+  for (const width of DESK_WIDTHS) {
+    const maxPerRow = Math.floor((f.U - 1.2 + 0.1) / (width + 0.1));
+    for (let modules = 1; modules <= maxModules; modules++) {
+      const base = Math.min(maxPerRow, Math.ceil(wanted / (2 * modules)));
+      // A slot beside the door can be blocked, so try a spare desk or two per row.
+      for (let perRow = base; perRow <= Math.min(maxPerRow, base + 2); perRow++) {
+        const placed = layDesks(space.trial(), width, modules, perRow, wanted, false);
+        if (placed >= wanted) return layDesks(space, width, modules, perRow, wanted, true);
+        if (!fallback || placed > fallback.placed) fallback = { width, modules, perRow, placed };
+      }
+    }
+  }
+  if (!fallback || fallback.placed === 0) return 0;
+  return layDesks(space, fallback.width, fallback.modules, fallback.perRow, wanted, true);
 }
 
 function plants(space: Space, count: number) {
@@ -102,7 +136,7 @@ function plants(space: Space, count: number) {
     [r.x + 0.6, r.y + r.h - 0.6],
     [r.x + r.w - 0.6, r.y + r.h - 0.6],
   ];
-  const kinds = [asset("tree", "tree"), asset("plantTall", "plant"), asset("plantLow", "plant")];
+  const kinds = [asset("plantTall", "plant"), asset("plantLow", "plant")];
   let placed = 0;
   for (const [i, [cx, cz]] of corners.entries()) {
     if (placed >= count) break;
@@ -192,12 +226,12 @@ function kitchen(space: Space) {
 
 function lounge(space: Space) {
   const f = frame(space.rect);
-  const sofa = asset("sofaLarge", "sofa");
-  const sofaMedium = asset("sofaMedium", "sofa");
+  const sofaLarge = sofa(2.4);
+  const sofaMedium = sofa(1.8);
   let seated = false;
   for (const side of wallsByLength(space, space.room.door.side)) {
     const length = space.wallLength(side);
-    for (const piece of [sofa, sofaMedium]) {
+    for (const piece of [sofaLarge, sofaMedium]) {
       if (length < piece.w + 0.6) continue;
       const p = space.againstWall(piece, side, length / 2);
       if (space.place(piece, p.cx, p.cz, p.rotY)) {
@@ -210,7 +244,7 @@ function lounge(space: Space) {
   const [cx, cz] = f.xz(f.U / 2, f.V / 2);
   const coffee = asset("coffeeTable", "coffee table");
   space.place(coffee, cx, cz, 0);
-  space.place(asset("loungeChair", "lounge chair"), ...f.xz(f.U * 0.2, f.V * 0.72), f.faceNegV);
+  space.place(asset("armchair", "armchair"), ...f.xz(f.U * 0.2, f.V * 0.72), f.faceNegV);
   space.force(asset("pendant", "pendant", true), cx, cz, 0);
   plants(space, 3);
 }
@@ -221,12 +255,12 @@ function reception(space: Space) {
   const d = receptionDesk(Math.min(1.8, length - 0.6));
   const p = space.againstWall(d, wall, length / 2);
   space.place(d, p.cx, p.cz, p.rotY);
-  const sofa = asset("sofaSmall", "waiting sofa");
+  const waiting = sofa(1.6);
   for (const side of (["north", "south", "east", "west"] as Side[]).filter(
     (s) => s !== wall && s !== space.room.door.side,
   )) {
-    const q = space.againstWall(sofa, side, space.wallLength(side) * 0.5);
-    if (space.place(sofa, q.cx, q.cz, q.rotY)) break;
+    const q = space.againstWall(waiting, side, space.wallLength(side) * 0.5);
+    if (space.place(waiting, q.cx, q.cz, q.rotY)) break;
   }
   plants(space, 2);
   const f = frame(space.rect);

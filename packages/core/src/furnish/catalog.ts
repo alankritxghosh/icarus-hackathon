@@ -8,27 +8,29 @@ export interface AssetSpec {
   w: number;
   h: number;
   d: number;
+  /** Turn applied to the model so its front faces +z and its long side runs along x. */
+  yaw?: number;
 }
 
-const spec = (id: string, w: number, h: number, d: number): AssetSpec => ({ id, w, h, d });
+const spec = (id: string, w: number, h: number, d: number, yaw = 0): AssetSpec => ({
+  id,
+  w,
+  h,
+  d,
+  yaw,
+});
 
+/** Bounds include every node transform in the glTF; two Poly Haven plants were left out because each file holds several plants in a row. */
 export const ASSETS = {
-  sofaSmall: spec("Sofa_01", 1.57, 0.8, 0.66),
-  sofaMedium: spec("sofa_02", 1.81, 0.71, 0.82),
-  sofaLarge: spec("sofa_03", 2.73, 1.12, 0.93),
   armchair: spec("modern_arm_chair_01", 0.82, 1.02, 0.99),
-  loungeChair: spec("mid_century_lounge_chair", 1.01, 1.17, 1.19),
   coffeeTable: spec("modern_coffee_table_02", 1.2, 0.37, 1.2),
-  coffeeTableLong: spec("modern_coffee_table_01", 0.6, 0.39, 1.2),
   diningChair: spec("dining_chair_02", 0.43, 0.97, 0.58),
-  cabinet: spec("modern_wooden_cabinet", 2.44, 0.68, 0.68),
-  shelves: spec("wooden_display_shelves_01", 0.37, 1.56, 1.08),
-  plantTall: spec("potted_plant_01", 0.59, 1.34, 0.63),
-  plantLow: spec("potted_plant_02", 0.73, 0.63, 0.76),
-  tree: spec("pachira_aquatica_01", 1.11, 1.9, 1.0),
-  barStool: spec("bar_chair_round_01", 0.49, 0.75, 0.48),
+  cabinet: spec("modern_wooden_cabinet", 2.44, 0.68, 0.52),
+  shelves: spec("wooden_display_shelves_01", 1.08, 1.56, 0.37, -Math.PI / 2),
+  plantTall: spec("potted_plant_01", 0.59, 1.35, 0.63),
+  plantLow: spec("potted_plant_02", 0.7, 0.84, 0.66),
+  barStool: spec("bar_chair_round_01", 0.48, 0.75, 0.49),
   pendant: spec("modern_ceiling_lamp_01", 0.43, 0.95, 0.43),
-  deskLamp: spec("desk_lamp_arm_01", 0.2, 0.89, 0.61),
 } as const satisfies Record<string, AssetSpec>;
 
 export type AssetKey = keyof typeof ASSETS;

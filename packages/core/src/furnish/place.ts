@@ -72,6 +72,14 @@ export class Space {
     this.taken.push(doorClearance(room));
   }
 
+  /** A copy with the same room and the same reserved space, for trying a layout before committing it. */
+  trial(): Space {
+    const copy = new Space(this.room, this.ceilingM);
+    copy.taken.length = 0;
+    copy.taken.push(...this.taken);
+    return copy;
+  }
+
   get rect(): Rect {
     return this.room.rect;
   }
@@ -126,7 +134,7 @@ export class Space {
         roomKind: this.room.kind,
         geometry: { kind: "asset", id: spec.id, size: [spec.w, spec.h, spec.d] },
         position: [cx, item.asset.hangs ? this.ceilingM - spec.h : 0, cz],
-        rotationY: rotY,
+        rotationY: rotY + (spec.yaw ?? 0),
         material: "oak",
         tags: ["furniture", item.name],
       });

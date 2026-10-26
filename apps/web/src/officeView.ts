@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { surface } from "./textures";
 
 export type ViewMode = "orbit" | "plan";
 
@@ -107,7 +108,13 @@ export class OfficeView {
               node.geometry.height,
               24,
             );
-      const mesh = new THREE.Mesh(geometry, material(node.material));
+      const def = scene.materials[node.material];
+      let mat = material(node.material);
+      if (def?.texture && node.geometry.kind === "box") {
+        mat = mat.clone();
+        mat.map = surface(def.texture, node.geometry.size[0], node.geometry.size[2]);
+      }
+      const mesh = new THREE.Mesh(geometry, mat);
       mesh.position.set(...node.position);
       mesh.rotation.y = node.rotationY;
       mesh.castShadow = node.type !== "floor" && node.type !== "window";
@@ -226,7 +233,7 @@ export class OfficeView {
     const { w, h } = this.shell;
     const centre = new THREE.Vector3(w / 2, 0, h / 2);
     const reach = Math.max(w, h);
-    this.perspective.position.set(w * 0.5, reach * 0.95, h + reach * 0.85);
+    this.perspective.position.set(w * 0.5, reach * 0.78, h + reach * 0.62);
     this.orbit.target.copy(centre);
     this.orbit.update();
     this.ortho.position.set(centre.x, 60, centre.z);

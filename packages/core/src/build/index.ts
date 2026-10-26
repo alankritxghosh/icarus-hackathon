@@ -33,7 +33,7 @@ export function buildShell(plan: FloorPlan): Scene {
       geometry: { kind: "box", size: [c.rect.w, 0.05, c.rect.h] },
       position: [c.rect.x + c.rect.w / 2, -0.025, c.rect.y + c.rect.h / 2],
       rotationY: 0,
-      material: c.kind === "lobby" ? "floor.wood.light" : "floor.corridor",
+      material: c.kind === "lobby" ? "floor.oak.light" : "floor.corridor",
       tags: ["floor", "circulation"],
     });
   }

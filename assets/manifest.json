@@ -2,25 +2,14 @@
   "source": "Poly Haven (https://polyhaven.com), CC0 1.0",
   "resolution": "1k",
   "models": [
-    "Sofa_01",
-    "sofa_02",
-    "sofa_03",
     "modern_arm_chair_01",
-    "mid_century_lounge_chair",
-    "modern_coffee_table_01",
     "modern_coffee_table_02",
-    "dining_table",
     "dining_chair_02",
-    "metal_office_desk",
     "modern_wooden_cabinet",
     "wooden_display_shelves_01",
     "potted_plant_01",
     "potted_plant_02",
-    "pachira_aquatica_01",
-    "calathea_orbifolia_01",
-    "modern_ceiling_lamp_01",
-    "desk_lamp_arm_01",
     "bar_chair_round_01",
-    "metal_stool_01"
+    "modern_ceiling_lamp_01"
   ]
 }
