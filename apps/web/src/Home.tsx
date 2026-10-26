@@ -1,5 +1,6 @@
 import { PlanThumb } from "./PlanThumb";
 import { Prompt } from "./Prompt";
+import { REFERENCES, type Reference } from "./references";
 import { ago, type SavedBuild } from "./store";
 
 export const DEMO_BRIEF =
@@ -21,11 +22,14 @@ const STARTS = [
 
 interface Props {
   builds: SavedBuild[];
+  /** A problem from the last attempt, shown plainly. */
+  notice?: string;
   onBuild: (brief: string) => void;
+  onPhoto: (reference: Reference) => void;
   onOpen: (id: string) => void;
 }
 
-export function Home({ builds, onBuild, onOpen }: Props) {
+export function Home({ builds, notice, onBuild, onPhoto, onOpen }: Props) {
   return (
     <main className="home">
       <div className="glow" aria-hidden="true" />
@@ -45,6 +49,48 @@ export function Home({ builds, onBuild, onOpen }: Props) {
           </button>
         ))}
       </div>
+      {notice && (
+        <p className="notice" role="alert">
+          {notice}
+        </p>
+      )}
+      <section className="photos">
+        <p className="eyebrow">START FROM A PHOTO</p>
+        <h2>Match a real space</h2>
+        <p className="quiet">
+          Pick a photograph of a real coworking space, or add your own. Icarus reads its style and
+          contents and builds a similar office. It is a match in spirit: a photo gives no
+          dimensions, so sizes are assumed and said so.
+        </p>
+        <div className="cards">
+          {REFERENCES.map((r) => (
+            <button key={r.id} type="button" className="card" onClick={() => onPhoto(r)}>
+              <img src={r.src} alt={r.title} loading="lazy" />
+              <span className="card-title">{r.title}</span>
+              <span className="card-when">{r.credit}</span>
+            </button>
+          ))}
+          <label className="card upload">
+            <span className="card-title">Use your own photo</span>
+            <span className="card-when">Stays in your browser except for the reading</span>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                onPhoto({
+                  id: "upload",
+                  src: URL.createObjectURL(file),
+                  title: file.name.replace(/\.[^.]+$/, "").slice(0, 40) || "Your photo",
+                  credit: "Your photo, used only here",
+                });
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+      </section>
       <section className="library">
         <p className="eyebrow">YOUR DESIGNS</p>
         <h2>Your builds</h2>

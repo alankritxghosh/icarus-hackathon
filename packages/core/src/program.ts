@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AREA_RULES, KIND_RULES, ROOM_KINDS, type RoomKind } from "./catalog";
+import { StyleSchema } from "./style";
 
 export const SideSchema = z.enum(["north", "south", "east", "west"]);
 
@@ -36,6 +37,8 @@ export const ProgramSchema = z.object({
   /** Free pods placed inside the open workspace, not planned as rooms. */
   phoneBooths: z.int().min(0).max(12).default(0),
   assumptions: z.array(AssumptionSchema).default([]),
+  /** How it looks. The default is the house style: warm oak and green. */
+  style: StyleSchema.default(() => StyleSchema.parse({})),
 });
 
 export type Program = z.infer<typeof ProgramSchema>;

@@ -85,4 +85,30 @@ describe("POST /api/render", () => {
     const res = await handleRender(post({ prompt: "a bright office" }), { AI: fakeAi({}).ai });
     expect(res.status).toBe(502);
   });
+
+  it("sends a style reference as the second input image, and refuses a bad one", async () => {
+    const { ai, calls } = fakeAi({ image: "CCCC" });
+    const ok = await handleRender(
+      post({ prompt: "photograph this office", reference: PNG, styleReference: PNG }),
+      { AI: ai },
+    );
+    expect(ok.status).toBe(200);
+    const first = calls[0];
+    if (!first) throw new Error("the model was not called");
+    const { multipart } = first.input as {
+      multipart: { body: ReadableStream; contentType: string };
+    };
+    const form = await new Response(multipart.body, {
+      headers: { "content-type": multipart.contentType },
+    }).formData();
+    expect(form.get("input_image_0")).toBeInstanceOf(Blob);
+    expect(form.get("input_image_1")).toBeInstanceOf(Blob);
+
+    const bad = await handleRender(
+      post({ prompt: "photograph this office", reference: PNG, styleReference: "https://x/y.png" }),
+      { AI: ai },
+    );
+    expect(bad.status).toBe(400);
+    expect(calls).toHaveLength(1);
+  });
 });

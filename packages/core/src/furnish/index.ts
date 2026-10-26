@@ -2,6 +2,7 @@ import { buildShell, type Scene } from "../build";
 import type { Rect } from "../geometry";
 import type { FloorPlan } from "../layout/types";
 import { expandRooms, type Program } from "../program";
+import { applyStyle } from "../style";
 import { type FurnishReport, furnishRoom } from "./kits";
 
 export { ASSETS, type AssetKey, type AssetSpec } from "./catalog";
@@ -21,6 +22,7 @@ export interface Furnished {
 /** The shell plus furniture and lighting in every room. Deterministic for a plan. */
 export function furnish(plan: FloorPlan, program: Program): Furnished {
   const scene = buildShell(plan);
+  scene.materials = applyStyle(program.style);
   const report: FurnishReport = {
     seatsWanted: 0,
     seatsPlaced: 0,

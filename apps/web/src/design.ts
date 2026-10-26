@@ -5,8 +5,11 @@ import {
   furnish,
   furnishingEvidence,
   layoutOffice,
+  type MeasuredColours,
   measurePlan,
+  type PhotoRead,
   type Program,
+  programFromPhoto,
   readBrief,
   type Scene,
 } from "@icarus/core";
@@ -33,6 +36,19 @@ export const STAGES = [
   "Building walls, furnishing and lighting",
   "Measuring the plan",
 ] as const;
+
+/** The stages shown when the office starts from a photograph. */
+export const PHOTO_STAGES = [
+  "Reading the photo",
+  "Planning the rooms and circulation",
+  "Building walls, furnishing and lighting",
+  "Measuring the plan",
+] as const;
+
+export function readPhotoDesign(read: PhotoRead, measured: MeasuredColours, seed = 1) {
+  const { program, notes } = programFromPhoto(read, measured);
+  return { program, notes, seed };
+}
 
 export function readDesign(brief: string, seed = 1): Pick<Design, "program" | "notes" | "seed"> {
   const { program, notes } = readBrief(brief);

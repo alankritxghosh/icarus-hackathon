@@ -1,14 +1,19 @@
 import { type Viewpoint, viewpoints } from "@icarus/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Built } from "./design";
-import { STAGES } from "./design";
 import { EditPanel } from "./EditPanel";
 import { OfficeView, type ViewMode } from "./officeView";
 import { Prompt } from "./Prompt";
+import { downscale } from "./photo";
+import type { Reference } from "./references";
 import { type MadeReal, makeItReal, RenderError, renderPrompt } from "./render";
 
 interface Props {
   brief: string;
+  /** Stage names for this kind of build, in order. */
+  stages: readonly string[];
+  /** The photograph this office was matched to, if any. */
+  reference?: Reference;
   /** Index of the stage being worked on while building; undefined once built. */
   stage?: number;
   built?: Built;
@@ -29,6 +34,8 @@ const PICTURE_SIZE = { width: 1024, height: 576 };
 
 export function Workspace({
   brief,
+  stages,
+  reference,
   stage,
   built,
   canUndo,
@@ -92,7 +99,14 @@ export function Workspace({
     try {
       const shot = view.current?.snapshotAt(PICTURE_SIZE.width, PICTURE_SIZE.height);
       if (!shot) throw new RenderError("failed", "The view could not be captured.");
-      const result = await makeItReal(shot, renderPrompt(built, vp.name), seed, PICTURE_SIZE);
+      const styleImage = reference ? await downscale(reference.src, 768) : undefined;
+      const result = await makeItReal(
+        shot,
+        renderPrompt(built, vp.name, Boolean(reference)),
+        seed,
+        PICTURE_SIZE,
+        styleImage,
+      );
       setPicture({ state: "done", view: vp.name, result, seed });
     } catch (error) {
       const known = error instanceof RenderError;
@@ -136,7 +150,7 @@ export function Workspace({
               <h2 className="title">{brief.split(/[.!?]/)[0]}</h2>
               {building ? (
                 <ol className="steps" aria-live="polite">
-                  {STAGES.map((label, i) => (
+                  {stages.map((label, i) => (
                     <li key={label} className={i < stage ? "done" : i === stage ? "now" : ""}>
                       <span aria-hidden="true">{i < stage ? "✓" : i === stage ? "↳" : ""}</span>
                       {label}
@@ -163,6 +177,13 @@ export function Workspace({
                         Edit
                       </button>
                     </div>
+                    {reference && (
+                      <div className="reference">
+                        <p className="eyebrow">MATCHED TO THIS PHOTO</p>
+                        <img src={reference.src} alt={reference.title} />
+                        <small>{reference.credit}</small>
+                      </div>
+                    )}
                     <div className="panel-card">
                       <p className="eyebrow">WHAT WAS MEASURED</p>
                       <ul className="evidence">
@@ -228,7 +249,7 @@ export function Workspace({
           <div className="canvas" ref={host} data-testid="canvas" />
           {building && (
             <div className="working" role="status">
-              <span /> {STAGES[stage]}…
+              <span /> {stages[stage]}…
             </div>
           )}
           {!building && mode === "eye" && (
@@ -297,10 +318,26 @@ export function Workspace({
               )}
               {picture.state === "done" && (
                 <div className="picture-body">
-                  <img
-                    src={picture.result.image}
-                    alt={`The ${picture.view.toLowerCase()} as a photograph`}
-                  />
+                  {reference ? (
+                    <div className="compare">
+                      <figure>
+                        <img src={reference.src} alt={`Reference: ${reference.title}`} />
+                        <figcaption>The photo you chose</figcaption>
+                      </figure>
+                      <figure>
+                        <img
+                          src={picture.result.image}
+                          alt={`The ${picture.view.toLowerCase()} as a photograph`}
+                        />
+                        <figcaption>Icarus, {picture.view.toLowerCase()}</figcaption>
+                      </figure>
+                    </div>
+                  ) : (
+                    <img
+                      src={picture.result.image}
+                      alt={`The ${picture.view.toLowerCase()} as a photograph`}
+                    />
+                  )}
                   <p className="caption">
                     {picture.view}. An illustrative picture: the layout comes from your plan, the
                     finer details are invented by the model ({picture.result.model}).

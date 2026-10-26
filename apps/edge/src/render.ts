@@ -21,6 +21,8 @@ const Body = z.object({
   prompt: z.string().min(8).max(1500),
   /** A data URL of the snapshot to repaint. */
   reference: z.string().optional(),
+  /** A data URL of a photo whose look the result should follow. Only used with `reference`. */
+  styleReference: z.string().optional(),
   /** Multiples of 16, as the model requires. */
   width: z.int().min(256).max(1024).multipleOf(16).default(1024),
   height: z.int().min(256).max(1024).multipleOf(16).default(576),
@@ -54,7 +56,7 @@ export async function handleRender(request: Request, env: Env): Promise<Response
       },
       400,
     );
-  const { prompt, reference, width, height, seed } = parsed.data;
+  const { prompt, reference, styleReference, width, height, seed } = parsed.data;
 
   try {
     let result: unknown;
@@ -69,6 +71,15 @@ export async function handleRender(request: Request, env: Env): Promise<Response
       const form = new FormData();
       form.append("prompt", prompt);
       form.append("input_image_0", new Blob([bytes], { type: match[1] }), "reference");
+      if (styleReference) {
+        const style = DATA_URL.exec(styleReference);
+        if (!style?.[1] || !style[2])
+          return json({ error: "styleReference must be a png, jpeg or webp data URL" }, 400);
+        const styleBytes = Uint8Array.from(atob(style[2]), (c) => c.charCodeAt(0));
+        if (styleBytes.length > MAX_REFERENCE_BYTES)
+          return json({ error: "style reference image is too large" }, 413);
+        form.append("input_image_1", new Blob([styleBytes], { type: style[1] }), "style");
+      }
       form.append("width", String(width));
       form.append("height", String(height));
       if (seed !== undefined) form.append("seed", String(seed));

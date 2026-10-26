@@ -745,3 +745,85 @@ fieldset.views {
   border: 0;
   min-width: 0;
 }
+
+/* Start from a photo */
+.photos {
+  max-width: 960px;
+  margin: 56px auto 0;
+  text-align: left;
+}
+.photos h2 {
+  margin: 2px 0 6px;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+.photos .quiet {
+  max-width: 620px;
+  margin: 0 0 14px;
+}
+.card img {
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  object-fit: cover;
+  border-radius: 8px;
+  background: var(--surface);
+}
+.card.upload {
+  align-content: center;
+  justify-items: start;
+  cursor: pointer;
+  min-height: 160px;
+  position: relative;
+}
+.card.upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.notice {
+  max-width: 640px;
+  margin: 18px auto 0;
+  padding: 10px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 10px;
+  color: var(--danger);
+  font-size: 13px;
+  text-align: left;
+}
+.reference {
+  display: grid;
+  gap: 6px;
+}
+.reference img {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  display: block;
+}
+.reference small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  width: 100%;
+}
+.compare figure {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.compare figcaption {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+@media (max-width: 900px) {
+  .compare {
+    grid-template-columns: 1fr;
+  }
+}

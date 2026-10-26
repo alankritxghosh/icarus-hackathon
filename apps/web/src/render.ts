@@ -1,3 +1,4 @@
+import { describeStyle } from "@icarus/core";
 import type { Built } from "./design";
 
 export interface MadeReal {
@@ -16,13 +17,20 @@ export class RenderError extends Error {
 }
 
 /** What the picture should look like, built from the office itself, not typed by the user. */
-export function renderPrompt(built: Built, viewName: string): string {
+export function renderPrompt(built: Built, viewName: string, hasStyleReference = false): string {
   const { headcount } = built.program.company;
+  const look = describeStyle(built.program.style);
   return [
-    `Hyper-realistic architectural interior photograph of the ${viewName.toLowerCase()} of a modern ${headcount}-person coworking and design studio office.`,
+    `Hyper-realistic architectural interior photograph of the ${viewName.toLowerCase()} of a modern ${headcount}-person coworking office.`,
     "Keep the room, walls, windows, doors, desks, chairs, sofas and plants in exactly the same positions as the reference image.",
-    "Warm oak herringbone floors, deep forest green fabric and accents, white walls, soft natural daylight through floor-to-ceiling windows, realistic materials, soft shadows and reflections.",
+    `${look.floor[0]?.toUpperCase()}${look.floor.slice(1)}, ${look.furniture}, ${look.walls}, ${look.ceiling}.`,
+    "Soft natural daylight, realistic materials, soft shadows and reflections.",
     "Shot on a full-frame camera with a 24mm lens at eye height. No text, no logos.",
+    ...(hasStyleReference
+      ? [
+          "The second image is a style reference: match its floor, materials, colours, furniture style and lighting mood, but keep the layout of the first image.",
+        ]
+      : []),
   ].join(" ");
 }
 
@@ -32,13 +40,14 @@ export async function makeItReal(
   prompt: string,
   seed: number,
   size: { width: number; height: number },
+  styleReference?: string,
 ): Promise<MadeReal> {
   let response: Response;
   try {
     response = await fetch("/api/render", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ prompt, reference: image, seed, ...size }),
+      body: JSON.stringify({ prompt, reference: image, styleReference, seed, ...size }),
     });
   } catch {
     throw new RenderError(
