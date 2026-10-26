@@ -7,7 +7,13 @@ import type { RoomKind } from "../catalog";
  */
 export type Geometry =
   | { kind: "box"; size: [number, number, number] }
-  | { kind: "cylinder"; radius: number; height: number };
+  | { kind: "cylinder"; radius: number; height: number }
+  /**
+   * A modelled object loaded by id. `size` is its footprint and height in metres (x, y, z). The
+   * node position is the centre of the footprint on the floor (or the top for hanging fixtures);
+   * the viewer centres the model on it and rests it there.
+   */
+  | { kind: "asset"; id: string; size: [number, number, number] };
 
 export type NodeType =
   | "floor"
@@ -65,6 +71,23 @@ export const MATERIALS: Record<string, MaterialDef> = {
   "floor.wood": { color: "#b48a5e", roughness: 0.6, metalness: 0, opacity: 1 },
   "floor.wood.light": { color: "#cdb18a", roughness: 0.55, metalness: 0, opacity: 1 },
   "floor.concrete": { color: "#a9a8a3", roughness: 0.8, metalness: 0, opacity: 1 },
+  oak: { color: "#c9a273", roughness: 0.5, metalness: 0, opacity: 1 },
+  "oak.dark": { color: "#8a6a47", roughness: 0.55, metalness: 0, opacity: 1 },
+  "fabric.green": { color: "#4d7558", roughness: 0.95, metalness: 0, opacity: 1 },
+  "fabric.charcoal": { color: "#383d3b", roughness: 0.95, metalness: 0, opacity: 1 },
+  "felt.green": { color: "#3d6a4d", roughness: 1, metalness: 0, opacity: 1 },
+  "metal.black": { color: "#1f2326", roughness: 0.45, metalness: 0.7, opacity: 1 },
+  steel: { color: "#b9bdc0", roughness: 0.35, metalness: 0.85, opacity: 1 },
+  "laminate.white": { color: "#f2f1ee", roughness: 0.5, metalness: 0, opacity: 1 },
+  terrazzo: { color: "#d2cbbf", roughness: 0.35, metalness: 0, opacity: 1 },
+  screen: { color: "#0d1012", roughness: 0.2, metalness: 0.3, opacity: 1 },
+  "light.warm": {
+    color: "#fff1d0",
+    roughness: 0.4,
+    metalness: 0,
+    opacity: 1,
+    emissive: "#ffe2a8",
+  },
   "floor.corridor": { color: "#bdbab2", roughness: 0.75, metalness: 0, opacity: 1 },
 };
 

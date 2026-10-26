@@ -1,6 +1,8 @@
 import type { Scene } from "@icarus/core";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 
 export type ViewMode = "orbit" | "plan";
 
@@ -21,6 +23,9 @@ export class OfficeView {
   private showCeiling = false;
   private shell = { w: 20, h: 12 };
   private frame = 0;
+  private generation = 0;
+  private readonly loader = new GLTFLoader();
+  private readonly models = new Map<string, Promise<THREE.Object3D>>();
   private readonly observer: ResizeObserver;
 
   constructor(private readonly host: HTMLElement) {
@@ -31,6 +36,10 @@ export class OfficeView {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     host.appendChild(this.renderer.domElement);
     this.three.background = new THREE.Color("#0a0f0d");
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    this.three.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    this.three.environmentIntensity = 0.55;
+    pmrem.dispose();
     this.three.add(this.content);
     this.three.add(new THREE.HemisphereLight(0xffffff, 0xb9bec4, 1.0));
     this.three.add(this.sun, this.sun.target);
@@ -83,7 +92,12 @@ export class OfficeView {
       }
       return m;
     };
+    const generation = ++this.generation;
     for (const node of scene.nodes) {
+      if (node.geometry.kind === "asset") {
+        this.addAsset(node, generation);
+        continue;
+      }
       const geometry =
         node.geometry.kind === "box"
           ? new THREE.BoxGeometry(...node.geometry.size)
@@ -126,6 +140,50 @@ export class OfficeView {
     this.applyCeiling();
     this.frameCameras();
     this.requestRender();
+  }
+
+  /** Loads a modelled object once, then places a clone: centred on its footprint, resting on its base. */
+  private addAsset(node: Scene["nodes"][number], generation: number) {
+    if (node.geometry.kind !== "asset") return;
+    const { id, size } = node.geometry;
+    let model = this.models.get(id);
+    if (!model) {
+      model = this.loader.loadAsync(`/assets/models/${id}/${id}.gltf`).then((gltf) => {
+        gltf.scene.traverse((o) => {
+          if (o instanceof THREE.Mesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+        return gltf.scene;
+      });
+      this.models.set(id, model);
+    }
+    const group = new THREE.Group();
+    group.position.set(...node.position);
+    group.rotation.y = node.rotationY;
+    group.userData = { nodeId: node.id, type: node.type };
+    this.content.add(group);
+    model
+      .then((source) => {
+        if (generation !== this.generation) return;
+        const copy = source.clone(true);
+        const box = new THREE.Box3().setFromObject(copy);
+        const centre = box.getCenter(new THREE.Vector3());
+        copy.position.set(-centre.x, -box.min.y, -centre.z);
+        group.add(copy);
+        this.requestRender();
+      })
+      .catch(() => {
+        // A missing model must not leave a hole: show its footprint as a plain block.
+        const block = new THREE.Mesh(
+          new THREE.BoxGeometry(size[0], size[1], size[2]),
+          new THREE.MeshStandardMaterial({ color: "#c9a273" }),
+        );
+        block.position.y = size[1] / 2;
+        group.add(block);
+        this.requestRender();
+      });
   }
 
   setMode(mode: ViewMode) {

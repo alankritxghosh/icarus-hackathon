@@ -1,7 +1,9 @@
 import {
-  buildShell,
   type EvidenceItem,
   type FloorPlan,
+  type FurnishReport,
+  furnish,
+  furnishingEvidence,
   layoutOffice,
   measurePlan,
   type Program,
@@ -20,6 +22,7 @@ export interface Design {
 export interface Built extends Design {
   scene: Scene;
   evidence: EvidenceItem[];
+  report: FurnishReport;
   plannedMs: number;
 }
 
@@ -27,7 +30,7 @@ export interface Built extends Design {
 export const STAGES = [
   "Reading the brief",
   "Planning the rooms and circulation",
-  "Building walls, doors and windows",
+  "Building walls, furnishing and lighting",
   "Measuring the plan",
 ] as const;
 
@@ -41,10 +44,12 @@ export function planDesign(read: Pick<Design, "program" | "notes" | "seed">): De
 }
 
 export function finish(design: Design, plannedMs: number): Built {
+  const { scene, report } = furnish(design.plan, design.program);
   return {
     ...design,
-    scene: buildShell(design.plan),
-    evidence: measurePlan(design.plan, design.program),
+    scene,
+    report,
+    evidence: [...measurePlan(design.plan, design.program), ...furnishingEvidence(report)],
     plannedMs,
   };
 }
