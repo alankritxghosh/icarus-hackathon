@@ -29,3 +29,5 @@ An engineer describes a mechanical thing in words, shows a photo, or speaks. Ica
 ### 26 Oct (kickoff day)
 
 - Created this repository after kickoff. Workspace, license, provenance statement, project rules.
+- Wrote the Meta Model API adapter (`packages/meta`) from the public docs: bearer-authenticated transport with timeouts and retries (rate limits honour Retry-After), Responses API wrapper with schema-constrained output validated again on our side, a bounded tool-calling loop that validates arguments before anything runs, vision grounding (points and boxes on the 0 to 1000 grid), SAM 3.1 segmentation parsing, and a deterministic fake that applies the same validation as the real client.
+- 18 contract tests pass against the documented request and response shapes. Two live smoke tests exist and are skipped until `MODEL_API_KEY` is set, so **nothing here has yet been confirmed against the real API**.
