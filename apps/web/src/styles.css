@@ -930,3 +930,105 @@ fieldset.views {
   font-style: normal;
   font-size: 11px;
 }
+
+/* Change it with words */
+.editbox form {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.editbox input[type="text"] {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+.editbox input[type="text"]:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 1px;
+}
+.editbox form button,
+.editbox .examples button {
+  border: 1px solid var(--line-bright);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text);
+  padding: 6px 10px;
+  font-size: 12px;
+}
+.editbox form button:disabled,
+.editbox .examples button:disabled {
+  opacity: 0.5;
+}
+.editbox .examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.editbox .examples button {
+  color: var(--muted);
+}
+.editbox .examples button:hover:not(:disabled) {
+  color: var(--text);
+}
+.edit-lines {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.edit-lines .glyph {
+  text-align: center;
+  color: var(--muted);
+}
+.edit-lines .applied .glyph {
+  color: var(--green);
+}
+.edit-lines .refused .glyph {
+  color: var(--danger);
+}
+.edit-lines li {
+  display: grid;
+  grid-template-columns: 16px 1fr;
+  gap: 6px;
+  padding-left: 8px;
+  border-left: 2px solid var(--line-bright);
+}
+.edit-lines li.applied {
+  border-color: var(--green);
+}
+.edit-lines li.refused {
+  border-color: var(--danger);
+}
+.edit-lines li.quiet {
+  display: block;
+  color: var(--muted);
+}
+.locks {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.chip {
+  border: 1px solid var(--line-bright);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  padding: 2px 10px;
+  font-size: 12px;
+}
+.chip:hover {
+  border-color: var(--danger);
+}

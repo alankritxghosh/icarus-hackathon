@@ -234,6 +234,7 @@ export class OfficeView {
     this.plan.enabled = mode === "plan";
     this.three.background = mode === "eye" ? SKY : DARK;
     this.applyCeiling();
+    this.applyLabels();
     this.requestRender();
   }
 
@@ -376,7 +377,61 @@ export class OfficeView {
   private disposeContent() {
     for (const child of [...this.content.children]) {
       if (child instanceof THREE.Mesh) child.geometry.dispose();
+      if (child instanceof THREE.Sprite) {
+        child.material.map?.dispose();
+        child.material.dispose();
+      }
       this.content.remove(child);
     }
+  }
+
+  /**
+   * Name each room on the floor plan, so a request like "move the kitchen east" can be checked by
+   * eye. Labels show only in the plan view; they are part of the content and go with the scene.
+   */
+  setLabels(rooms: { name: string; x: number; y: number }[]) {
+    for (const child of [...this.content.children])
+      if (child.userData.type === "label") {
+        this.content.remove(child);
+        if (child instanceof THREE.Sprite) {
+          child.material.map?.dispose();
+          child.material.dispose();
+        }
+      }
+    for (const room of rooms) {
+      const canvas = document.createElement("canvas");
+      canvas.width = 256;
+      canvas.height = 64;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) continue;
+      ctx.fillStyle = "rgba(10,15,13,0.78)";
+      ctx.beginPath();
+      ctx.roundRect(4, 8, 248, 48, 12);
+      ctx.fill();
+      ctx.fillStyle = "#f3f7f5";
+      ctx.font = "600 26px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(room.name, 128, 33, 232);
+      const sprite = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: new THREE.CanvasTexture(canvas),
+          depthTest: false,
+          transparent: true,
+        }),
+      );
+      sprite.scale.set(4, 1, 1);
+      sprite.position.set(room.x, 3, room.y);
+      sprite.renderOrder = 10;
+      sprite.userData = { type: "label" };
+      this.content.add(sprite);
+    }
+    this.applyLabels();
+    this.requestRender();
+  }
+
+  private applyLabels() {
+    for (const child of this.content.children)
+      if (child.userData.type === "label") child.visible = this.mode === "plan";
   }
 }

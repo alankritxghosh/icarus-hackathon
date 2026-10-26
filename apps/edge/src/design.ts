@@ -1,4 +1,7 @@
 import {
+  EditSchema,
+  editInput,
+  editInstructions,
   IssueSchema,
   PatchSchema,
   ProgramSchema,
@@ -101,6 +104,17 @@ async function body<T extends z.ZodType>(
   return parsed.data;
 }
 
+const EditBody = z.object({
+  text: z.string().min(2).max(400),
+  program: ProgramSchema,
+  rooms: z
+    .array(
+      z.object({ id: z.string().max(60), name: z.string().max(60), x: z.number(), y: z.number() }),
+    )
+    .max(60),
+  shell: z.object({ w: z.number(), h: z.number() }),
+});
+
 const ProposeBody = z.object({ brief: z.string().min(8).max(1500) });
 const ReviseBody = z.object({
   program: ProgramSchema,
@@ -147,6 +161,36 @@ export async function handleRevise(request: Request, source: ModelSource): Promi
       }),
     );
     return json({ patch: result.parsed, model: model.model() });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
+/**
+ * POST /api/design/edit: the model turns a free-form request into the closed edit operations.
+ * It never edits anything itself: the browser applies the operations, measures the result and
+ * keeps or refuses it.
+ */
+export async function handleEdit(request: Request, source: ModelSource): Promise<Response> {
+  const input = await body(request, EditBody);
+  if (input instanceof Response) return input;
+  const model = source();
+  if (!model) return json({ error: "no model is configured" }, 503);
+  try {
+    const result = await twice(() =>
+      model.api.respond({
+        instructions: editInstructions(),
+        input: editInput(input.text, {
+          program: input.program,
+          rooms: input.rooms,
+          shell: input.shell,
+        }),
+        schema: { name: "Edit", type: EditSchema },
+        maxOutputTokens: 1200,
+        reasoningEffort: "low",
+      }),
+    );
+    return json({ edit: result.parsed, model: model.model() });
   } catch (error) {
     return failure(error);
   }

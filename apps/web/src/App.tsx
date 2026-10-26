@@ -3,12 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   type Built,
   builtFromRefine,
+  type EditEntry,
   PHOTO_STAGES,
   readPhotoDesign,
   rebuild,
   STAGES,
 } from "./design";
 import { designFromBrief, refineProgram } from "./designLoop";
+import { editByWords } from "./editByWords";
 import { Home } from "./Home";
 import { readPhoto } from "./photo";
 import type { Reference } from "./references";
@@ -178,6 +180,28 @@ export function App() {
     remember(session.id, session.brief, built);
   };
 
+  const editWords = async (current: Session, text: string): Promise<EditEntry> => {
+    const base = current.built;
+    if (!base)
+      return { text, by: "rules", lines: [{ status: "refused", text: "Nothing is built yet." }] };
+    const result = await editByWords(text, base);
+    if (result.undo) {
+      const can = current.history.length > 0;
+      if (can) undo();
+      return {
+        ...result.entry,
+        lines: [
+          {
+            status: can ? "applied" : "unchanged",
+            text: can ? "Undid the last change." : "There is nothing to undo.",
+          },
+        ],
+      };
+    }
+    if (result.built) change(current, result.built);
+    return result.entry;
+  };
+
   return (
     <div className="app">
       <Sidebar
@@ -210,11 +234,18 @@ export function App() {
           onApplyEdit={(current, program, seed) =>
             change(session, rebuild(program, seed, current.notes))
           }
+          onEditWords={(text) => editWords(session, text)}
           onAnother={() =>
             session.built &&
             change(
               session,
-              rebuild(session.built.program, session.built.seed + 1, session.built.notes),
+              // A new search starts the arrangement afresh, so moves and locks made in words are cleared;
+              // Undo brings them back.
+              rebuild(
+                { ...session.built.program, arrangement: undefined, locks: [] },
+                session.built.seed + 1,
+                session.built.notes,
+              ),
             )
           }
         />

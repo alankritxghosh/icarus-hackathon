@@ -2,7 +2,7 @@ import { z } from "zod";
 import { KIND_RULES, ROOM_KINDS, type RoomKind } from "../catalog";
 import { reachable } from "../evidence";
 import type { FurnishReport } from "../furnish";
-import { exposureOnSide, facingSpan } from "../geometry";
+import { exposureOnSide, facingSpan, sharedEdge } from "../geometry";
 import { KNOWLEDGE } from "../knowledge";
 import { ADJACENT_GAP_M } from "../layout/cost";
 import type { FloorPlan } from "../layout/types";
@@ -195,6 +195,20 @@ export function diagnose(plan: FloorPlan, program: Program, report: FurnishRepor
       target: round(minimum),
       shortfall: (minimum - capacity) / capacity,
       message: `The rooms need at least ${Math.round(minimum)} m2 even at their smallest, but the shell offers about ${Math.round(capacity)} m2 after circulation.`,
+    });
+
+  const reception = plan.rooms.find((r) => r.kind === "reception");
+  const lobby = plan.circulation.find((c) => c.id === "lobby");
+  if (reception && lobby && sharedEdge(reception.rect, lobby.rect) <= 0.5)
+    issues.push({
+      code: "reception_off_entrance",
+      severity: "warn",
+      kinds: ["reception"],
+      roomIds: [reception.id],
+      measured: 0,
+      target: 1,
+      shortfall: 1,
+      message: `${reception.name} is not on the entrance lobby, so visitors would not meet it first.`,
     });
 
   const reach = reachable(plan);

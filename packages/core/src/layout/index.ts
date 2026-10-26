@@ -1,7 +1,7 @@
 import { KIND_RULES } from "../catalog";
 import type { Side } from "../geometry";
 import { checkProgram, expandRooms, type PlannedRoom, type Program } from "../program";
-import type { CostBreakdown } from "./cost";
+import { type CostBreakdown, planCost } from "./cost";
 import { makeFrame } from "./frame";
 import { realize } from "./realize";
 import { searchLayout } from "./search";
@@ -24,6 +24,18 @@ export interface LayoutOptions {
 
 const DOOR_WIDTH_M = 0.9;
 const WIDE_DOOR_M = 1.8;
+
+/** The arrangement as rows of ids, if it names exactly the planned rooms once each. */
+function usableArrangement(
+  arrangement: string[][] | undefined,
+  rooms: Map<string, PlannedRoom>,
+): string[][] | undefined {
+  if (!arrangement) return undefined;
+  const ids = arrangement.flat();
+  if (ids.length !== rooms.size || new Set(ids).size !== ids.length) return undefined;
+  if (!ids.every((id) => rooms.has(id))) return undefined;
+  return arrangement.map((row) => [...row]);
+}
 
 /**
  * Plan a whole office inside the shell. Deterministic for a given seed. The result is always
@@ -48,16 +60,23 @@ export function layoutOffice(
   const frame = makeFrame(shell, program.shell.entrance);
   const windows = program.shell.windows.map((side) => frame.side(side));
   const seed = options.seed ?? 1;
-  const found = searchLayout(
-    { rooms, W: frame.W, D: frame.D, windows, preferences: program.preferences },
-    { seed, iterations: options.iterations, restarts: options.restarts },
-  );
+  const ctx = { rooms, W: frame.W, D: frame.D, windows, preferences: program.preferences };
+  const fixed = usableArrangement(program.arrangement, rooms);
+  const found = fixed
+    ? { rows: fixed, cost: planCost(realize(fixed, rooms, frame.W, frame.D), ctx) }
+    : searchLayout(ctx, { seed, iterations: options.iterations, restarts: options.restarts });
   const real = realize(found.rows, rooms, frame.W, frame.D);
 
   const diagnostics: Diagnostic[] = checkProgram(program).map((message) => ({
     level: "warn",
     message,
   }));
+  if (program.arrangement && !fixed)
+    diagnostics.push({
+      level: "info",
+      message:
+        "The arranged order of rooms no longer matches the program, so the plan was searched afresh.",
+    });
   const out: PlanRoom[] = [];
   const k = found.rows.length;
   found.rows.forEach((row, b) => {

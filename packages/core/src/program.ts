@@ -45,6 +45,10 @@ export const PreferencesSchema = z.object({
 });
 export type Preferences = z.infer<typeof PreferencesSchema>;
 
+/** A room the user asked to keep where it is: its centre at the time, in plan metres. */
+export const LockSchema = z.object({ id: z.string().max(60), x: z.number(), y: z.number() });
+export type Lock = z.infer<typeof LockSchema>;
+
 export const ProgramSchema = z.object({
   company: z.object({ name: z.string().max(80).optional(), headcount: z.int().min(2).max(500) }),
   shell: ShellSchema,
@@ -55,6 +59,18 @@ export const ProgramSchema = z.object({
   /** How it looks. The default is the house style: warm oak and green. */
   style: StyleSchema.default(() => StyleSchema.parse({})),
   preferences: PreferencesSchema.default(() => PreferencesSchema.parse({})),
+  /**
+   * A fixed order of rooms in each row (room ids, in the solver's canonical frame), set when the
+   * user edits the plan by words. When present and it names exactly the planned rooms, the layout
+   * uses it as it is instead of searching; otherwise it is ignored and the plan is searched afresh.
+   */
+  arrangement: z
+    .array(z.array(z.string().max(60)).min(1).max(40))
+    .min(1)
+    .max(4)
+    .optional(),
+  /** Rooms the user asked to keep in place; later edits may not move them. */
+  locks: z.array(LockSchema).max(40).default([]),
 });
 
 export type Program = z.infer<typeof ProgramSchema>;

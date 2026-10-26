@@ -3,6 +3,7 @@ import { FakeMeta, MetaError } from "@icarus/meta";
 import { describe, expect, it } from "vitest";
 import {
   DESIGN_DEV_MODEL,
+  handleEdit,
   handlePropose,
   handleRevise,
   type ModelSource,
@@ -158,5 +159,54 @@ describe("one re-ask on an invalid answer", () => {
     ]);
     expect((await handlePropose(post("/", { brief: BRIEF }), source(busy))).status).toBe(429);
     expect(busy.requests).toHaveLength(1);
+  });
+});
+
+describe("POST /api/design/edit", () => {
+  const body = () => ({
+    text: "move the kitchen over to the right side",
+    program: program(),
+    rooms: [
+      { id: "kitchen.1", name: "Kitchen", x: 4, y: 3 },
+      { id: "lounge.1", name: "Lounge", x: 12, y: 8 },
+    ],
+    shell: { w: 20, h: 13 },
+  });
+
+  it("returns validated edit operations and tells the model the rooms and the closed set", async () => {
+    const edit = { ops: [{ op: "move_room", room: "kitchen.1", to: "east" }] };
+    const fake = new FakeMeta([{ json: edit }]);
+    const res = await handleEdit(post("/api/design/edit", body()), source(fake));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ edit, model: "fake-model" });
+    expect(fake.requests[0]?.instructions).toContain("lock_room");
+    expect(fake.requests[0]?.instructions).toContain("Never invent an operation");
+    expect(String(fake.requests[0]?.input)).toContain('kitchen.1 "Kitchen"');
+    expect(String(fake.requests[0]?.input)).toContain("Phone booths now:");
+  });
+
+  it("passes on the model's own statement that a request cannot be done", async () => {
+    const edit = { ops: [], unsupported: "Adding rooms is not supported here." };
+    const fake = new FakeMeta([{ json: edit }]);
+    const res = await handleEdit(post("/api/design/edit", body()), source(fake));
+    expect(await res.json()).toMatchObject({ edit });
+  });
+
+  it("refuses an invented operation without leaking the answer", async () => {
+    const fake = new FakeMeta([
+      { json: { ops: [{ op: "demolish", room: "kitchen.1" }], note: "internal prompt text" } },
+      { json: { ops: [{ op: "demolish", room: "kitchen.1" }] } },
+    ]);
+    const res = await handleEdit(post("/api/design/edit", body()), source(fake));
+    expect(res.status).toBe(502);
+    expect(JSON.stringify(await res.json())).not.toContain("internal prompt text");
+  });
+
+  it("rejects bad input before calling the model", async () => {
+    const fake = new FakeMeta([]);
+    for (const bad of [{ ...body(), text: "" }, { ...body(), text: "x".repeat(500) }, {}])
+      expect((await handleEdit(post("/", bad), source(fake))).status).toBe(400);
+    expect((await handleEdit(post("/", body()), () => undefined)).status).toBe(503);
+    expect(fake.requests).toHaveLength(0);
   });
 });

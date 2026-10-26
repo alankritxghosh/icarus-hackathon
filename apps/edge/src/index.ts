@@ -1,4 +1,4 @@
-import { handlePropose, handleRevise, modelFromEnv } from "./design";
+import { handleEdit, handlePropose, handleRevise, modelFromEnv } from "./design";
 import { handleReadPhoto } from "./photo";
 import { type Env, handleRender } from "./render";
 
@@ -10,6 +10,7 @@ export default {
     if (pathname === "/api/design/propose")
       return handlePropose(request, modelFromEnv(env as never));
     if (pathname === "/api/design/revise") return handleRevise(request, modelFromEnv(env as never));
+    if (pathname === "/api/design/edit") return handleEdit(request, modelFromEnv(env as never));
     return new Response("not found", { status: 404 });
   },
 };

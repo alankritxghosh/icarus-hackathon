@@ -35,6 +35,14 @@ export interface DesignTrace extends ModelTrace {
   endCost: number;
 }
 
+/** One typed request and what came of each operation in it, kept so the user can see what they changed. */
+export interface EditEntry {
+  text: string;
+  /** Whether a fixed grammar or the model understood the request. */
+  by: "rules" | "model";
+  lines: { status: "applied" | "unchanged" | "refused" | "note"; text: string }[];
+}
+
 export interface Built extends Design {
   scene: Scene;
   evidence: EvidenceItem[];
@@ -42,6 +50,8 @@ export interface Built extends Design {
   plannedMs: number;
   /** Present when the design went through the propose-and-repair loop. */
   trace?: DesignTrace;
+  /** Changes asked for in words since the design was made, oldest first. */
+  edits?: EditEntry[];
 }
 
 /** The stages shown while building. Each one does real work, in order. */
@@ -119,5 +129,19 @@ export function builtFromRefine(
       startCost: refine.baseline.cost,
       endCost: refine.best.cost,
     },
+  };
+}
+
+/** A design after a spoken or typed change: the measured evaluation becomes the shown design, nothing is planned twice. */
+export function builtFromEvaluation(ev: Evaluation, base: Built, entry: EditEntry): Built {
+  return {
+    ...base,
+    program: ev.program,
+    plan: ev.plan,
+    seed: ev.seed,
+    scene: ev.furnished.scene,
+    report: ev.furnished.report,
+    evidence: [...measurePlan(ev.plan, ev.program), ...furnishingEvidence(ev.furnished.report)],
+    edits: [...(base.edits ?? []), entry],
   };
 }

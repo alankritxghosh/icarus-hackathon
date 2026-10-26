@@ -1,7 +1,8 @@
 import { type Suggestion, type Viewpoint, viewpoints } from "@icarus/core";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DesignTrace } from "./DesignTrace";
-import type { Built } from "./design";
+import type { Built, EditEntry } from "./design";
+import { EditBox } from "./EditBox";
 import { EditPanel } from "./EditPanel";
 import { OfficeView, type ViewMode } from "./officeView";
 import { Prompt } from "./Prompt";
@@ -26,6 +27,8 @@ interface Props {
   onStop: () => void;
   onBuild: (brief: string) => void;
   onApplyEdit: (built: Built, program: Built["program"], seed: number) => void;
+  /** Change the design with a typed sentence; resolves with what happened, line by line. */
+  onEditWords: (text: string) => Promise<EditEntry>;
   onAnother: () => void;
 }
 
@@ -49,6 +52,7 @@ export function Workspace({
   onStop,
   onBuild,
   onApplyEdit,
+  onEditWords,
   onAnother,
 }: Props) {
   const host = useRef<HTMLDivElement>(null);
@@ -76,7 +80,15 @@ export function Workspace({
     };
   }, []);
   useEffect(() => {
-    if (built) view.current?.setScene(built.scene);
+    if (!built) return;
+    view.current?.setScene(built.scene);
+    view.current?.setLabels(
+      built.plan.rooms.map((r) => ({
+        name: r.name,
+        x: r.rect.x + r.rect.w / 2,
+        y: r.rect.y + r.rect.h / 2,
+      })),
+    );
   }, [built]);
   useEffect(() => {
     if (mode !== "eye") view.current?.setMode(mode);
@@ -195,6 +207,14 @@ export function Workspace({
                         Edit
                       </button>
                     </div>
+                    <EditBox
+                      locked={built.program.locks.map((l) => ({
+                        id: l.id,
+                        name: built.plan.rooms.find((r) => r.id === l.id)?.name ?? l.id,
+                      }))}
+                      onSubmit={onEditWords}
+                      onUnlock={(id) => void onEditWords(`unlock ${id}`)}
+                    />
                     {reference && (
                       <div className="reference">
                         <p className="eyebrow">STYLE TAKEN FROM THIS PHOTO</p>
@@ -234,7 +254,11 @@ export function Workspace({
                       <button type="button" className="ghost" disabled={!canUndo} onClick={onUndo}>
                         ↶ Undo this change
                       </button>
-                      <button type="button" onClick={onAnother}>
+                      <button
+                        type="button"
+                        onClick={onAnother}
+                        title="Searches for a new arrangement. Moves and locks made in words are cleared; Undo brings them back."
+                      >
                         Another layout
                       </button>
                     </div>
