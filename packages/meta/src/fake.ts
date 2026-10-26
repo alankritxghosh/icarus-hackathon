@@ -14,6 +14,8 @@ export type FakeStep =
  * never be held to. An unscripted call fails loudly instead of returning something plausible.
  */
 export class FakeMeta implements MetaApi {
+  /** Set true to behave like a provider that keeps no conversation state. */
+  stateless = false;
   readonly requests: RespondRequest<unknown>[] = [];
   readonly segmentRequests: { image: string; phrase: string }[] = [];
   private readonly steps: FakeStep[];

@@ -4,6 +4,8 @@ export type FetchFn = typeof globalThis.fetch;
 
 export interface TransportOptions {
   apiKey: string;
+  /** Name of the environment variable the key came from, for the error message only. */
+  keyName?: string;
   baseUrl?: string;
   fetch?: FetchFn;
   maxRetries?: number;
@@ -31,7 +33,8 @@ export class Transport {
   private readonly random: () => number;
 
   constructor(private readonly options: TransportOptions) {
-    if (!options.apiKey.trim()) throw new MetaError("auth", "MODEL_API_KEY is not set");
+    if (!options.apiKey.trim())
+      throw new MetaError("auth", `${options.keyName ?? "MODEL_API_KEY"} is not set`);
     this.baseUrl = (options.baseUrl || DEFAULT_BASE_URL).replace(/\/$/, "");
     this.doFetch = options.fetch ?? globalThis.fetch;
     this.maxRetries = options.maxRetries ?? 3;

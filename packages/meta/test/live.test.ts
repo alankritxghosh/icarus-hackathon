@@ -3,11 +3,11 @@ import { z } from "zod";
 import { defineTool, metaClientFromEnv, runToolLoop } from "../src";
 
 /**
- * Real calls to the Meta Model API. Skipped unless MODEL_API_KEY is set, so CI and fresh clones
+ * Real calls to the Meta Model API. Skipped unless MODEL_API_KEY or OPENROUTER_API_KEY is set, so CI and fresh clones
  * pass without credentials. Each call is tiny; this confirms the documented wire formats the
  * contract tests assume.
  */
-const live = process.env.MODEL_API_KEY ? describe : describe.skip;
+const live = process.env.MODEL_API_KEY || process.env.OPENROUTER_API_KEY ? describe : describe.skip;
 
 live("Meta Model API (live)", () => {
   // Built lazily: a skipped suite still runs its body while tests are collected, and there may be no key.

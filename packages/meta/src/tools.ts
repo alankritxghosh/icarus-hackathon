@@ -50,6 +50,11 @@ export async function runToolLoop(
   const maxTurns = options.maxTurns ?? 6;
   const byName = new Map(options.tools.map((tool) => [tool.name, tool]));
   const calls: ToolCallRecord[] = [];
+  const stateless = api.stateless === true;
+  const history: InputItem[] =
+    typeof options.input === "string"
+      ? [{ type: "message", role: "user", content: [{ type: "input_text", text: options.input }] }]
+      : [...options.input];
   let input = options.input;
   let previousResponseId: string | undefined;
   let text = "";
@@ -57,8 +62,8 @@ export async function runToolLoop(
     const response = await api.respond({
       model: options.model,
       instructions: options.instructions,
-      input,
-      previousResponseId,
+      input: stateless ? history : input,
+      previousResponseId: stateless ? undefined : previousResponseId,
       tools: options.tools.map((t) => ({
         name: t.name,
         description: t.description,
@@ -68,12 +73,21 @@ export async function runToolLoop(
     text = response.text;
     if (response.toolCalls.length === 0) return { text, calls, turns: turn, stopped: "done" };
     const outputs: InputItem[] = [];
+    if (stateless)
+      for (const call of response.toolCalls)
+        history.push({
+          type: "function_call",
+          call_id: call.callId,
+          name: call.name,
+          arguments: call.arguments,
+        });
     for (const call of response.toolCalls) {
       const record = await execute(byName.get(call.name), call.arguments);
       calls.push({ name: call.name, arguments: call.arguments, ...record });
       outputs.push({ type: "function_call_output", call_id: call.callId, output: record.output });
     }
     input = outputs;
+    if (stateless) history.push(...outputs);
     previousResponseId = response.id;
   }
   return { text, calls, turns: maxTurns, stopped: "max_turns" };

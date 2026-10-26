@@ -10,6 +10,7 @@ export type InputContent =
 
 export type InputItem =
   | { type: "message"; role: "user" | "developer" | "assistant"; content: InputContent[] }
+  | { type: "function_call"; call_id: string; name: string; arguments: string }
   | { type: "function_call_output"; call_id: string; output: string };
 
 export interface RespondRequest<T = never> {
@@ -50,6 +51,8 @@ export interface SamMatch {
 
 /** What the rest of Icarus depends on. The real client and the deterministic fake both implement it. */
 export interface MetaApi {
+  /** True when the provider keeps no conversation state, so every request must carry the history. */
+  readonly stateless?: boolean;
   respond<T = never>(request: RespondRequest<T>): Promise<RespondResult<T>>;
   segment(request: { image: string; phrase: string }): Promise<SamMatch[]>;
 }
