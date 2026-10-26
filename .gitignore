@@ -12,3 +12,5 @@ workers/cad/.venv/
 __pycache__/
 # Reference photographs stay local; only Icarus-owned renders and metrics are committed.
 fixtures/private/
+.wrangler/
+.dev.vars
