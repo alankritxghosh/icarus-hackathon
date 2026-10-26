@@ -1,4 +1,4 @@
-import type { FloorPlan, Program } from "@icarus/core";
+import { type FloorPlan, type Program, ProgramSchema } from "@icarus/core";
 
 export interface SavedBuild {
   id: string;
@@ -16,7 +16,13 @@ const KEY = "icarus.builds.v1";
 export function loadBuilds(): SavedBuild[] {
   try {
     const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as SavedBuild[]) : [];
+    const all = raw ? (JSON.parse(raw) as SavedBuild[]) : [];
+    // Re-validate each program so a build saved before a field existed (locks, arrangement) gets its
+    // defaults instead of breaking the page; one that no longer parses is dropped.
+    return all.flatMap((b) => {
+      const program = ProgramSchema.safeParse(b.program);
+      return program.success ? [{ ...b, program: program.data }] : [];
+    });
   } catch {
     return [];
   }

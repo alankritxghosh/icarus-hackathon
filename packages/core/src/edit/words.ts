@@ -32,7 +32,7 @@ const ORDINAL_TOTAL: Record<string, number> = {
 };
 
 const VERBS =
-  "move|put|shift|relocate|place|push|slide|add|include|install|remove|delete|swap|switch|exchange|trade|lock|unlock|pin|unpin|take|get|drop|keep|make|change|paint|colour|color|turn|set|rename|resize|enlarge|shrink|grow|expand|reduce|increase";
+  "move|put|shift|relocate|place|push|slide|add|include|install|remove|delete|swap|switch|exchange|trade|lock|unlock|pin|unpin|take|get|drop|keep|make|change|paint|colour|color|turn|set|rename|resize|enlarge|shrink|grow|expand|reduce|increase|give";
 const SPLIT = new RegExp(
   `\\s*(?:;|,|\\band then\\b|\\bthen\\b|\\balso\\b|\\band\\b(?=\\s+(?:${VERBS})\\b))\\s*`,
 );
@@ -86,17 +86,48 @@ function boothOp(clause: string, have: number): { ops: EditOp[]; note?: string }
 
 /** What the grammar needs to know about the design: the booth count and the names rooms go by. */
 export interface WordsContext extends Pick<Program, "phoneBooths"> {
+  /** How many meeting rooms there are now, so "a fourth meeting room" can be turned into a count. */
+  meetingRooms?: number;
   /** Display names of the plan's rooms, so a room the user named themselves is still recognised. */
   names?: string[];
+}
+
+const COUNT_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, a: 1, an: 1, another: 1 };
+
+function meetingRoomOp(clause: string, have: number): { ops: EditOp[]; note?: string } | undefined {
+  const m = clause.match(
+    /^(?:add|include|put in|build|create|we need|i need|i want)\s+(?:(\d+|one|two|three|an?|another)\s+)?(?:more\s+|extra\s+|additional\s+|new\s+)?(second|third|fourth|fifth|sixth|2nd|3rd|4th|5th|6th)?\s*meeting rooms?(?:\s+(?:for|that seats|seating|with)\s+(\d{1,2})(?:\s+(?:people|seats))?)?$/,
+  );
+  if (!m) return undefined;
+  const capacity = m[3] ? Number(m[3]) : undefined;
+  const withCap = capacity && capacity >= 2 && capacity <= 30 ? { capacity } : {};
+  if (m[2]) {
+    const need = (ORDINAL_TOTAL[m[2]] ?? have + 1) - have;
+    if (need <= 0)
+      return {
+        ops: [],
+        note: `There ${have === 1 ? "is" : "are"} already ${have} meeting room${have === 1 ? "" : "s"}, so a ${m[2]} needs no change.`,
+      };
+    return {
+      ops: [{ op: "add_room", kind: "meeting_room", count: Math.min(3, need), ...withCap }],
+    };
+  }
+  const n = m[1] ? (/^\d+$/.test(m[1]) ? Number(m[1]) : (COUNT_WORDS[m[1]] ?? 1)) : 1;
+  return {
+    ops: [{ op: "add_room", kind: "meeting_room", count: Math.min(3, Math.max(1, n)), ...withCap }],
+  };
 }
 
 function oneClause(
   clause: string,
   have: number,
+  meetings: number,
   isRoom: (phrase: string) => boolean,
 ): { ops: EditOp[]; note?: string } | undefined {
   const booth = boothOp(clause, have);
   if (booth) return booth;
+  const meeting = meetingRoomOp(clause, meetings);
+  if (meeting) return meeting;
   const parsed = roomClause(clause);
   // A phrase that does not name a room is not guessed at: the clause is left for the model to read.
   const named = (...phrases: (string | undefined)[]) => phrases.every((p) => !!p && isRoom(p));
@@ -123,6 +154,43 @@ function roomClause(clause: string): { rooms: string[]; result: { ops: EditOp[] 
   if (lock?.[1]) return { rooms: [lock[1]], result: { ops: [{ op: "lock_room", room: lock[1] }] } };
   const keep = clause.match(/^keep\s+(.+?)\s+(?:in place|where it is|fixed)$/);
   if (keep?.[1]) return { rooms: [keep[1]], result: { ops: [{ op: "lock_room", room: keep[1] }] } };
+
+  const remove = clause.match(/^(?:remove|delete|take out|get rid of|drop)\s+(.+)$/);
+  if (remove?.[1]) {
+    const phrase = remove[1].replace(/^(?:an?|one|another)\s+(?=meeting rooms?$)/, "last ");
+    return { rooms: [phrase], result: { ops: [{ op: "remove_room", room: phrase }] } };
+  }
+
+  const resizeTo = clause.match(
+    /^(?:make|resize)\s+(.+?)\s+(?:(\d{1,3})\s*%\s+)?(?:(a bit|a little|slightly|a touch|much|a lot|way|far|significantly)\s+)?(bigger|larger|smaller)$/,
+  );
+  const resizeVerb = clause.match(
+    /^(enlarge|expand|grow|increase|shrink|reduce)\s+(.+?)(?:\s+(?:by\s+)?(\d{1,3})\s*%)?$/,
+  );
+  const moreSpace = clause.match(/^give\s+(.+?)\s+more\s+(?:space|room)$/);
+  const resize = resizeTo
+    ? { room: resizeTo[1], pct: resizeTo[2], degree: resizeTo[3], up: resizeTo[4] !== "smaller" }
+    : resizeVerb
+      ? {
+          room: resizeVerb[2],
+          pct: resizeVerb[3],
+          degree: undefined,
+          up: !/^(?:shrink|reduce)$/.test(resizeVerb[1] ?? ""),
+        }
+      : moreSpace
+        ? { room: moreSpace[1], pct: undefined, degree: undefined, up: true }
+        : undefined;
+  if (resize?.room) {
+    const strong = /much|a lot|way|far|significantly/.test(resize.degree ?? "");
+    const slight = /a bit|a little|slightly|a touch/.test(resize.degree ?? "");
+    const amount = resize.pct ? Number(resize.pct) / 100 : strong ? 0.5 : slight ? 0.1 : 0.25;
+    const factor = resize.up ? 1 + amount : 1 - Math.min(amount, 0.4);
+    const clamped = Math.round(Math.min(1.6, Math.max(0.6, factor)) * 100) / 100;
+    return {
+      rooms: [resize.room],
+      result: { ops: [{ op: "resize_room", room: resize.room, factor: clamped }] },
+    };
+  }
 
   const move = clause.match(
     new RegExp(
@@ -157,8 +225,9 @@ export function understandEdit(text: string, context: WordsContext): Understood 
   const notes: string[] = [];
   const rest: string[] = [];
   let have = context.phoneBooths;
+  let meetings = context.meetingRooms ?? 0;
   for (const clause of clauses) {
-    const parsed = oneClause(clause, have, isRoom);
+    const parsed = oneClause(clause, have, meetings, isRoom);
     if (!parsed) {
       rest.push(clause);
       continue;
@@ -167,6 +236,8 @@ export function understandEdit(text: string, context: WordsContext): Understood 
       ops.push(op);
       if (op.op === "add_phone_booths") have += op.count;
       if (op.op === "remove_phone_booths") have = Math.max(0, have - op.count);
+      if (op.op === "add_room") meetings += op.count;
+      if (op.op === "remove_room") meetings = Math.max(0, meetings - 1);
     }
     if (parsed.note) notes.push(parsed.note);
   }
@@ -193,13 +264,16 @@ The only operations that exist:
 - {"op":"swap_rooms","a":"<room>","b":"<room>"}  exchange two rooms' positions
 - {"op":"add_phone_booths","count":1..6}  add that many phone booths
 - {"op":"remove_phone_booths","count":1..6}  remove that many phone booths
+- {"op":"resize_room","room":"<room>","factor":0.6..1.6}  make one room bigger (above 1) or smaller (below 1); "bigger" is about 1.25
+- {"op":"add_room","kind":"meeting_room","count":1..3,"capacity":2..30 (optional seats)}  add meeting rooms; no other kind of room can be added
+- {"op":"remove_room","room":"<meeting room>"}  remove one meeting room; no other kind of room can be removed
 - {"op":"lock_room","room":"<room>"}  keep a room where it is
 - {"op":"unlock_room","room":"<room>"} or {"op":"unlock_room","room":"all"}
 
 Rules:
 - Refer to rooms by the id or name listed in the input. Compass directions are real directions on the plan: north is the top, east is the right.
 - "add a third phone booth" when there are 2 means add_phone_booths with count 1: use the current count given in the input.
-- If the request needs anything else (adding or removing rooms, resizing, colours, the shell), return "ops": [] and say in "unsupported" what cannot be done. Never invent an operation.
+- If the request needs anything else (adding or removing any room other than a meeting room, colours, the shell), return "ops": [] and say in "unsupported" what cannot be done. Never invent an operation.
 - Do not give coordinates or sizes.
 
 Example answer:
@@ -212,7 +286,7 @@ export function editInput(text: string, ctx: EditContext): string {
     .join("\n");
   const locked = ctx.program.locks.length ? ctx.program.locks.map((l) => l.id).join(", ") : "none";
   return `Shell: ${ctx.shell.w} m wide (east-west) by ${ctx.shell.h} m deep (north-south).
-Phone booths now: ${ctx.program.phoneBooths}.
+Phone booths now: ${ctx.program.phoneBooths}.\nMeeting rooms now: ${ctx.rooms.filter((r) => r.id.startsWith("meeting_room.")).length}.
 Locked rooms: ${locked}.
 Rooms:
 ${rooms}

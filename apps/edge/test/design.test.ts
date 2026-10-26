@@ -180,6 +180,9 @@ describe("POST /api/design/edit", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toMatchObject({ edit, model: "fake-model" });
     expect(fake.requests[0]?.instructions).toContain("lock_room");
+    expect(fake.requests[0]?.instructions).toContain("resize_room");
+    expect(fake.requests[0]?.instructions).toContain("no other kind of room can be added");
+    expect(String(fake.requests[0]?.input)).toContain("Meeting rooms now:");
     expect(fake.requests[0]?.instructions).toContain("Never invent an operation");
     expect(String(fake.requests[0]?.input)).toContain('kitchen.1 "Kitchen"');
     expect(String(fake.requests[0]?.input)).toContain("Phone booths now:");

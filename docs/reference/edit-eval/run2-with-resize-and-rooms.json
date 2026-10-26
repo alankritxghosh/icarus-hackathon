@@ -1,0 +1,1386 @@
+{
+  "tally": {
+    "applied": 86,
+    "unchanged": 36,
+    "refused": 36,
+    "requests": 158,
+    "newFailures": 0
+  },
+  "byKind": {
+    "move": {
+      "applied": 34,
+      "unchanged": 36,
+      "refused": 6
+    },
+    "booth": {
+      "applied": 7,
+      "unchanged": 0,
+      "refused": 1
+    },
+    "resize": {
+      "applied": 20,
+      "unchanged": 0,
+      "refused": 11
+    },
+    "rooms": {
+      "applied": 21,
+      "unchanged": 0,
+      "refused": 3
+    },
+    "swap": {
+      "applied": 4,
+      "unchanged": 0,
+      "refused": 15
+    }
+  },
+  "refusalReasons": {
+    "room held at its size limit": 9,
+    "every arrangement breaks something": 9,
+    "other": 2,
+    "reception off the entrance lobby": 15,
+    "would leave too few workstations": 1
+  },
+  "medianScoreDelta": 0.2,
+  "betterOrEqual": 35,
+  "appliedCount": 86,
+  "medianMs": 0,
+  "p95Ms": 7,
+  "rows": [
+    {
+      "name": "demo studio",
+      "startScore": 11.5,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "applied",
+          "scoreDelta": 7.9,
+          "introduced": [],
+          "ms": 11,
+          "message": "Moved Kitchen to the north: its centre is now 2.4 m from the north wall (was 10.7 m). Also shifted: Server room (3.1 m), Storage (3 m), Restroom 2 (2.7 m) and 3"
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the south part of the office (its centre is 10.7 m from the north wall of 16 m)."
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "applied",
+          "scoreDelta": 7.9,
+          "introduced": [],
+          "ms": 6,
+          "message": "Moved Kitchen to the east: its centre is now 17.1 m from the west wall (was 7.5 m). Also shifted: Open workspace (1.6 m). New notes: Kitchen is 73% of its targe"
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the west part of the office (its centre is 7.5 m from the west wall of 24 m)."
+        },
+        {
+          "text": "move the lounge north",
+          "status": "applied",
+          "scoreDelta": 4.7,
+          "introduced": [],
+          "ms": 7,
+          "message": "Moved Lounge to the north: its centre is now 2.2 m from the north wall (was 10.7 m). Also shifted: Server room (9.8 m), Storage (2.2 m), Kitchen (2.2 m) and 2 m"
+        },
+        {
+          "text": "move the lounge south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the south part of the office (its centre is 10.7 m from the north wall of 16 m)."
+        },
+        {
+          "text": "move the lounge east",
+          "status": "applied",
+          "scoreDelta": 11.6,
+          "introduced": [],
+          "ms": 5,
+          "message": "Moved Lounge to the east: its centre is now 15.5 m from the west wall (was 4 m). Also shifted: Meeting room 3 (15.1 m). New notes: Lounge is not next to a kitch"
+        },
+        {
+          "text": "move the lounge west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the west part of the office (its centre is 4 m from the west wall of 24 m)."
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 1,
+          "message": "Added 1 phone booth: 3 placed along the workspace walls."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already 31.7 m², above its 20.3 m² target, because a kitchen cannot be narrower than 3 m; a larger target changes nothing, so it was left alone."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already at the smallest a kitchen works at (3 m wide, 3 m deep), so it was left alone."
+        },
+        {
+          "text": "make the lounge bigger",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already 42.3 m², above its 21 m² target, because a lounge cannot be narrower than 4 m; a larger target changes nothing, so it was left alone."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 18.1,
+          "introduced": [],
+          "ms": 9,
+          "message": "Added Meeting room 4, 11.9 m², centred 14.2 m from the west wall and 2.1 m from the north wall. New notes: Meeting room 4 is 80% of its target size; 85% is the "
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": 3.1,
+          "introduced": [],
+          "ms": 1,
+          "message": "Removed Meeting room 1; later meeting rooms were renumbered. New notes: Reception is only 3.35 m across; 3.5 m is the least that works. Score 11.5 → 14.5."
+        },
+        {
+          "text": "swap reception and lounge",
+          "status": "applied",
+          "scoreDelta": 15.5,
+          "introduced": [],
+          "ms": 1,
+          "message": "Swapped Reception and Lounge. New notes: Lounge is not next to a kitchen. Kitchen is not next to a lounge. Score 11.5 → 26.9. This measures noticeably worse tha"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "applied",
+          "scoreDelta": 27.4,
+          "introduced": [],
+          "ms": 1,
+          "message": "Swapped Reception and Kitchen. Reception was kept first in its row so it stays on the entrance lobby. Also shifted: Lounge (3.5 m). New notes: Kitchen is not ne"
+        }
+      ]
+    },
+    {
+      "name": "startup 12 (tight)",
+      "startScore": 82.2,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "applied",
+          "scoreDelta": -25,
+          "introduced": [],
+          "ms": 3,
+          "message": "Moved Kitchen to the north: its centre is now 1.4 m from the north wall (was 7.3 m). Also shifted: Meeting room 1 (6.8 m). New notes: Kitchen is 68% of its targ"
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the south part of the office (its centre is 7.3 m from the north wall of 10 m)."
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "applied",
+          "scoreDelta": 7.5,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Kitchen to the east: its centre is now 12.5 m from the west wall (was 3.5 m). Also shifted: Meeting room 2 (9.3 m). Score 82.2 → 89.7. This measures notic"
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the west part of the office (its centre is 3.5 m from the west wall of 14 m)."
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "applied",
+          "scoreDelta": 5,
+          "introduced": [],
+          "ms": 0,
+          "message": "Added 2 phone booths: 3 placed along the workspace walls."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already 16.4 m², above its 12.2 m² target, because a kitchen cannot be narrower than 3 m; a larger target changes nothing, so it was left alone."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already at the smallest a kitchen works at (3 m wide, 3 m deep), so it was left alone."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 2,
+          "message": "Every arrangement that does this breaks something: The rooms need at least 136 m2 even at their smallest, but the shell offers about 129 m2 after circulation. T"
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": -36.6,
+          "introduced": [],
+          "ms": 1,
+          "message": "Removed Meeting room 2; later meeting rooms were renumbered. Score 82.2 → 45.6."
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 1,
+          "message": "Every arrangement that does this breaks something: Some rows cannot fit their rooms even at minimum widths: the shell is too small for this program. The plan wa"
+        }
+      ]
+    },
+    {
+      "name": "consultancy offices",
+      "startScore": 110.4,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "applied",
+          "scoreDelta": -18.3,
+          "introduced": [],
+          "ms": 5,
+          "message": "Moved Kitchen to the north: its centre is now 3.5 m from the north wall (was 9.3 m). Also shifted: Meeting room 2 (3 m), Open workspace (1.6 m). New notes: Open"
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the south part of the office (its centre is 9.3 m from the north wall of 14 m)."
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the east part of the office (its centre is 19.5 m from the west wall of 22 m)."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "applied",
+          "scoreDelta": -10.8,
+          "introduced": [],
+          "ms": 4,
+          "message": "Moved Kitchen to the west: its centre is now 2.7 m from the west wall (was 19.5 m). New notes: Kitchen is 67% of its target size; 80% is the least this kind of "
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Added 2 phone booths: 3 placed along the workspace walls."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen cannot get bigger here without breaking something, so it was left alone."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already at the smallest a kitchen works at (3 m wide, 3 m deep), so it was left alone."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 22.6,
+          "introduced": [],
+          "ms": 4,
+          "message": "Added Meeting room 3, 8.6 m², centred 2.5 m from the west wall and 6.3 m from the north wall. New notes: Meeting room 3 is 58% of its target size; 85% is the le"
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": -32.8,
+          "introduced": [],
+          "ms": 0,
+          "message": "Removed Meeting room 1; later meeting rooms were renumbered. Also shifted: Storage (2.1 m), Kitchen (1.7 m). Score 110.4 → 77.6."
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    },
+    {
+      "name": "agency 40 (tight)",
+      "startScore": 88.8,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the north part of the office (its centre is 4.5 m from the north wall of 14 m)."
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 7,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 6,
+          "message": "Every arrangement that does this breaks something: Open workspace needs daylight and touches no window wall. The plan was left alone."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the west part of the office (its centre is 7.5 m from the west wall of 22 m)."
+        },
+        {
+          "text": "move the lounge north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the north part of the office (its centre is 4.5 m from the north wall of 14 m)."
+        },
+        {
+          "text": "move the lounge south",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 8,
+          "message": "Every arrangement that does this breaks something: Some rows cannot fit their rooms even at minimum widths: the shell is too small for this program. The plan wa"
+        },
+        {
+          "text": "move the lounge east",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 7,
+          "message": "Every arrangement that does this breaks something: Open workspace needs daylight and touches no window wall. The plan was left alone."
+        },
+        {
+          "text": "move the lounge west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the west part of the office (its centre is 4 m from the west wall of 22 m)."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already 27.3 m², above its 22 m² target, because a kitchen cannot be narrower than 3 m; a larger target changes nothing, so it was left alone."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already at the smallest a kitchen works at (3 m wide, 3 m deep), so it was left alone."
+        },
+        {
+          "text": "make the lounge bigger",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already 36.4 m², above its 24 m² target, because a lounge cannot be narrower than 4 m; a larger target changes nothing, so it was left alone."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 6,
+          "message": "Every arrangement that does this breaks something: Only 33 of 40 workstations fit with aisles. The plan was left alone."
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": -6,
+          "introduced": [],
+          "ms": 1,
+          "message": "Removed Meeting room 3; later meeting rooms were renumbered. New notes: Reception is 74% of its target size; 80% is the least this kind of room should keep. Sco"
+        },
+        {
+          "text": "swap reception and lounge",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Only 30 of 40 workstations fit with aisles. The plan was left alone."
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "applied",
+          "scoreDelta": 15.6,
+          "introduced": [],
+          "ms": 1,
+          "message": "Swapped Reception and Kitchen. Reception was kept first in its row so it stays on the entrance lobby. Also shifted: Lounge (3.5 m). New notes: Kitchen is 60% of"
+        }
+      ]
+    },
+    {
+      "name": "east entrance",
+      "startScore": 0.3,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "applied",
+          "scoreDelta": 7.7,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Kitchen to the north: its centre is now 4.7 m from the north wall (was 12.6 m). Also shifted: Lounge (3.3 m), Storage (2.9 m), Meeting room 2 (2.2 m) and "
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the south part of the office (its centre is 12.6 m from the north wall of 15 m)."
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the east part of the office (its centre is 16.8 m from the west wall of 24 m)."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 4,
+          "message": "Moved Kitchen to the west: its centre is now 8.5 m from the west wall (was 16.8 m). Also shifted: Meeting room 2 (8.9 m). Score 0.3 → 0.3."
+        },
+        {
+          "text": "move the lounge north",
+          "status": "applied",
+          "scoreDelta": 18.4,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Lounge to the north: its centre is now 4.7 m from the north wall (was 12.6 m). Also shifted: Storage (2.8 m), Meeting room 2 (2.1 m), Open workspace (2 m)"
+        },
+        {
+          "text": "move the lounge south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the south part of the office (its centre is 12.6 m from the north wall of 15 m)."
+        },
+        {
+          "text": "move the lounge east",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 3,
+          "message": "Moved Lounge to the east: its centre is now 16.5 m from the west wall (was 13.1 m). Also shifted: Kitchen (4 m). Score 0.3 → 0.3."
+        },
+        {
+          "text": "move the lounge west",
+          "status": "applied",
+          "scoreDelta": 30.1,
+          "introduced": [],
+          "ms": 4,
+          "message": "Moved Lounge to the west: its centre is now 8.8 m from the west wall (was 13.1 m). Also shifted: Meeting room 2 (5.5 m). New notes: Kitchen is not next to a lou"
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Added 1 phone booth: 3 placed along the workspace walls."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "applied",
+          "scoreDelta": 3.4,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen bigger: 16.4 m² → 17.7 m² (target 18.5 → 23.1 m²). New notes: Kitchen is 77% of its target size; 80% is the least this kind of room should keep. Sc"
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen smaller: 16.4 m² → 14 m² (target 18.5 → 13.9 m²). Score 0.3 → 0.3."
+        },
+        {
+          "text": "make the lounge bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Lounge bigger: 19.2 m² → 20.3 m² (target 18 → 22.5 m²). Score 0.3 → 0.3."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 13.8,
+          "introduced": [],
+          "ms": 4,
+          "message": "Added Meeting room 4, 23.9 m², centred 18 m from the west wall and 4.4 m from the north wall. New notes: Meeting room 2 is 85% of its target size; 85% is the le"
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Removed Meeting room 1; later meeting rooms were renumbered. Also shifted: Restroom 1 (2.6 m), Restroom 2 (2.3 m). Score 0.3 → 0.3."
+        },
+        {
+          "text": "swap reception and lounge",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    },
+    {
+      "name": "roomy 25",
+      "startScore": 0.3,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "applied",
+          "scoreDelta": 15.2,
+          "introduced": [],
+          "ms": 1,
+          "message": "Moved Kitchen to the north: its centre is now 4.8 m from the north wall (was 13.1 m). Also shifted: Lounge (2.4 m), Meeting room 1 (1.9 m), Open workspace (1.6 "
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the south part of the office (its centre is 13.1 m from the north wall of 16 m)."
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the east part of the office (its centre is 19 m from the west wall of 26 m)."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "applied",
+          "scoreDelta": 15.1,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Kitchen to the west: its centre is now 7.4 m from the west wall (was 19 m). Also shifted: Restroom 2 (3.8 m), Restroom 1 (3.8 m), Meeting room 1 (3.8 m) a"
+        },
+        {
+          "text": "move the lounge north",
+          "status": "applied",
+          "scoreDelta": 15.4,
+          "introduced": [],
+          "ms": 1,
+          "message": "Moved Lounge to the north: its centre is now 4.7 m from the north wall (was 13.1 m). Also shifted: Open workspace (2 m), Meeting room 1 (1.7 m), Kitchen (1.6 m)"
+        },
+        {
+          "text": "move the lounge south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the south part of the office (its centre is 13.1 m from the north wall of 16 m)."
+        },
+        {
+          "text": "move the lounge east",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Lounge to the east: its centre is now 18.9 m from the west wall (was 15.1 m). Also shifted: Kitchen (4 m). Score 0.3 → 0.3."
+        },
+        {
+          "text": "move the lounge west",
+          "status": "applied",
+          "scoreDelta": 15.1,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Lounge to the west: its centre is now 7.5 m from the west wall (was 15.1 m). Also shifted: Restroom 2 (4 m), Restroom 1 (4 m), Meeting room 1 (4 m). New n"
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Added 1 phone booth: 3 placed along the workspace walls."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen bigger: 22 m² → 26.6 m² (target 16.8 → 21 m²). Score 0.3 → 0.3."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen smaller: 22 m² → 17.1 m² (target 16.8 → 12.6 m²). Score 0.3 → 0.4."
+        },
+        {
+          "text": "make the lounge bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Lounge bigger: 23.4 m² → 24.9 m² (target 15 → 18.8 m²). Score 0.3 → 0.3."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 3,
+          "message": "Added Meeting room 3, 24 m², centred 3.4 m from the west wall and 4.4 m from the north wall. Score 0.3 → 0.3."
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": 0.2,
+          "introduced": [],
+          "ms": 1,
+          "message": "Removed Meeting room 2; later meeting rooms were renumbered. Also shifted: Kitchen (2.6 m), Lounge (2.1 m). Score 0.3 → 0.5."
+        },
+        {
+          "text": "swap reception and lounge",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    },
+    {
+      "name": "law firm (no shell)",
+      "startScore": 0,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the north part of the office (its centre is 1.8 m from the north wall of 13 m)."
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "applied",
+          "scoreDelta": 4,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Kitchen to the south: its centre is now 9.3 m from the north wall (was 1.8 m). Also shifted: Storage (18.4 m). New notes: Reception is only 3.14 m across;"
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the east part of the office (its centre is 17.7 m from the west wall of 19.5 m)."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 3,
+          "message": "Moved Kitchen to the west: its centre is now 1.7 m from the west wall (was 17.7 m). Also shifted: Meeting room 2 (15.9 m). Score 0.0 → 0.0."
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Added 2 phone booths: 3 placed along the workspace walls."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen bigger: 13.4 m² → 16 m² (target 14.3 → 17.9 m²). Score 0.0 → 0.0."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": 3.2,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen smaller: 13.4 m² → 10.3 m² (target 14.3 → 10.7 m²). New notes: Reception is only 3.44 m across; 3.5 m is the least that works. Score 0.0 → 3.2. Thi"
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 10.2,
+          "introduced": [],
+          "ms": 3,
+          "message": "Added Meeting room 3, 26.2 m², centred 9.6 m from the west wall and 9.7 m from the north wall. New notes: Open workspace is 74% of its target size; 80% is the l"
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": 9.8,
+          "introduced": [],
+          "ms": 0,
+          "message": "Removed Meeting room 1; later meeting rooms were renumbered. New notes: Reception is only 2.61 m across; 3.5 m is the least that works. Kitchen is only 2.61 m a"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    },
+    {
+      "name": "software 50",
+      "startScore": 8.4,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the north part of the office (its centre is 1.5 m from the north wall of 18 m)."
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "applied",
+          "scoreDelta": 15.1,
+          "introduced": [],
+          "ms": 5,
+          "message": "Moved Kitchen to the south: its centre is now 11 m from the north wall (was 1.5 m). Also shifted: Restroom 1 (3 m), Storage (3 m), Restroom 2 (3 m) and 1 more. "
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the east part of the office (its centre is 27.2 m from the west wall of 30 m)."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "applied",
+          "scoreDelta": 15.3,
+          "introduced": [],
+          "ms": 7,
+          "message": "Moved Kitchen to the west: its centre is now 2.5 m from the west wall (was 27.2 m). Also shifted: Meeting room 5 (25.4 m). New notes: Kitchen is not next to a l"
+        },
+        {
+          "text": "move the lounge north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the north part of the office (its centre is 5 m from the north wall of 18 m)."
+        },
+        {
+          "text": "move the lounge south",
+          "status": "applied",
+          "scoreDelta": 37,
+          "introduced": [],
+          "ms": 4,
+          "message": "Moved Lounge to the south: its centre is now 14 m from the north wall (was 5 m). Also shifted: Open workspace (2.2 m), Kitchen (1.5 m). New notes: Open workspac"
+        },
+        {
+          "text": "move the lounge east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the east part of the office (its centre is 27.2 m from the west wall of 30 m)."
+        },
+        {
+          "text": "move the lounge west",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 6,
+          "message": "Every arrangement that does this breaks something: Some rows cannot fit their rooms even at minimum widths: the shell is too small for this program. The plan wa"
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen cannot get bigger here without breaking something, so it was left alone."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": -4.2,
+          "introduced": [],
+          "ms": 1,
+          "message": "Made Kitchen smaller: 16.9 m² → 16.1 m² (target 25.5 → 19.1 m²). Score 8.4 → 4.2."
+        },
+        {
+          "text": "make the lounge bigger",
+          "status": "applied",
+          "scoreDelta": 16.6,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Lounge bigger: 22.6 m² → 23.8 m² (target 30 → 37.5 m²). New notes: Meeting room 1 is 84% of its target size; 85% is the least this kind of room should keep"
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 28.8,
+          "introduced": [],
+          "ms": 7,
+          "message": "Added Meeting room 6, 45.8 m², centred 14.4 m from the west wall and 14.7 m from the north wall. New notes: Meeting room 1 is 83% of its target size; 85% is the"
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": -0.6,
+          "introduced": [],
+          "ms": 1,
+          "message": "Removed Meeting room 4; later meeting rooms were renumbered. Score 8.4 → 7.8."
+        },
+        {
+          "text": "swap reception and lounge",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 1,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 1,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    },
+    {
+      "name": "small studio (no shell)",
+      "startScore": 0.1,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the north part of the office (its centre is 1.6 m from the north wall of 10 m)."
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 1,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the east part of the office (its centre is 13 m from the west wall of 14.5 m)."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "applied",
+          "scoreDelta": 7.5,
+          "introduced": [],
+          "ms": 1,
+          "message": "Moved Kitchen to the west: its centre is now 3.5 m from the west wall (was 13 m). Also shifted: Storage (3.1 m), Meeting room (3.1 m), Restroom (3.1 m). New not"
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Adding 2 phone booths would break the plan: Only 7 of 8 workstations fit with aisles. The plan was left alone."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen bigger: 10 m² → 12.2 m² (target 10.8 → 13.5 m²). Score 0.1 → 0.0."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen smaller: 10 m² → 9.4 m² (target 10.8 → 8.1 m²). Score 0.1 → 0.1."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 18.3,
+          "introduced": [],
+          "ms": 1,
+          "message": "Added Meeting room 2, 15 m², centred 13.2 m from the west wall and 7.2 m from the north wall. New notes: Kitchen is only 2.83 m across; 3 m is the least that wo"
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": 5.2,
+          "introduced": [],
+          "ms": 0,
+          "message": "Removed Meeting room; later meeting rooms were renumbered. Also shifted: Restroom (2.8 m). New notes: Kitchen is only 2.33 m across; 3 m is the least that works"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "applied",
+          "scoreDelta": 6.2,
+          "introduced": [],
+          "ms": 0,
+          "message": "Swapped Reception and Kitchen. Reception was kept first in its row so it stays on the entrance lobby. Also shifted: Storage (3.6 m), Meeting room (3.4 m), Restr"
+        }
+      ]
+    },
+    {
+      "name": "call centre 60",
+      "startScore": 0.1,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the north part of the office (its centre is 2.5 m from the north wall of 20 m)."
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "applied",
+          "scoreDelta": 0.2,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Kitchen to the south: its centre is now 12.7 m from the north wall (was 2.5 m). Also shifted: Restroom 4 (5.7 m), Restroom 3 (4.8 m), Meeting room 1 (3.9 "
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 4,
+          "message": "Moved Kitchen to the east: its centre is now 20.7 m from the west wall (was 9 m). Also shifted: Restroom 4 (6.9 m), Restroom 3 (6.9 m), Meeting room 1 (6.9 m) a"
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the west part of the office (its centre is 9 m from the west wall of 34 m)."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen bigger: 34.5 m² → 42.3 m² (target 29 → 36.3 m²). Score 0.1 → 0.1."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen smaller: 34.5 m² → 26.4 m² (target 29 → 21.8 m²). Score 0.1 → 0.1."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 5,
+          "message": "Added Meeting room 3, 17.1 m², centred 18.8 m from the west wall and 2.7 m from the north wall. Also shifted: Meeting room 1 (1.5 m). Score 0.1 → 0.1."
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Removed Meeting room 2; later meeting rooms were renumbered. Also shifted: Restroom 1 (3.4 m), Restroom 2 (3 m), Storage (2.7 m) and 1 more. Score 0.1 → 0.1."
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    },
+    {
+      "name": "agency 22 north",
+      "startScore": 69.2,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "applied",
+          "scoreDelta": 15.9,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Kitchen to the north: its centre is now 3.5 m from the north wall (was 12.5 m). Also shifted: Meeting room 3 (12.4 m). New notes: Meeting room 3 is 67% of"
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the south part of the office (its centre is 12.5 m from the north wall of 14 m)."
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "applied",
+          "scoreDelta": 12.2,
+          "introduced": [],
+          "ms": 3,
+          "message": "Moved Kitchen to the east: its centre is now 18.3 m from the west wall (was 1.7 m). Also shifted: Meeting room 2 (17.1 m). New notes: Lounge is not next to a ki"
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the west part of the office (its centre is 1.7 m from the west wall of 20 m)."
+        },
+        {
+          "text": "move the lounge north",
+          "status": "applied",
+          "scoreDelta": 10.4,
+          "introduced": [],
+          "ms": 2,
+          "message": "Moved Lounge to the north: its centre is now 4 m from the north wall (was 9 m). Also shifted: Meeting room 3 (10 m). New notes: Meeting room 3 is 79% of its tar"
+        },
+        {
+          "text": "move the lounge south",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the south part of the office (its centre is 9 m from the north wall of 14 m)."
+        },
+        {
+          "text": "move the lounge east",
+          "status": "applied",
+          "scoreDelta": 15.6,
+          "introduced": [],
+          "ms": 3,
+          "message": "Moved Lounge to the east: its centre is now 18.4 m from the west wall (was 1.7 m). Also shifted: Meeting room 1 (16.9 m). New notes: Restroom 1 is 76% of its ta"
+        },
+        {
+          "text": "move the lounge west",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the west part of the office (its centre is 1.7 m from the west wall of 20 m)."
+        },
+        {
+          "text": "add a third phone booth",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Added 2 phone booths: 3 placed along the workspace walls."
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "applied",
+          "scoreDelta": -5,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen bigger: 10.4 m² → 11 m² (target 15.7 → 19.6 m²). Score 69.2 → 64.2."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": -3.4,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen smaller: 10.4 m² → 9.8 m² (target 15.7 → 11.8 m²). Score 69.2 → 65.8."
+        },
+        {
+          "text": "make the lounge bigger",
+          "status": "applied",
+          "scoreDelta": -6.5,
+          "introduced": [],
+          "ms": 1,
+          "message": "Made Lounge bigger: 13.9 m² → 14.6 m² (target 13.2 → 16.5 m²). Score 69.2 → 62.6."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 3,
+          "message": "Every arrangement that does this breaks something: 3.12 m2 of workspace per person; 4.5 m2 is the planning minimum. The plan was left alone."
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": -13.9,
+          "introduced": [],
+          "ms": 0,
+          "message": "Removed Meeting room 1; later meeting rooms were renumbered. Also shifted: Restroom 2 (1.6 m). New notes: Meeting room 1 is only 2.43 m across; 2.7 m is the lea"
+        },
+        {
+          "text": "swap reception and lounge",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    },
+    {
+      "name": "all-glass 30",
+      "startScore": 0.1,
+      "results": [
+        {
+          "text": "move the kitchen north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the north part of the office (its centre is 2.7 m from the north wall of 15 m)."
+        },
+        {
+          "text": "move the kitchen south",
+          "status": "applied",
+          "scoreDelta": 7.5,
+          "introduced": [],
+          "ms": 1,
+          "message": "Moved Kitchen to the south: its centre is now 10.6 m from the north wall (was 2.7 m). Also shifted: Lounge (3.5 m), Meeting room 1 (3 m), Meeting room 2 (2.3 m)"
+        },
+        {
+          "text": "move the kitchen east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Kitchen is already in the east part of the office (its centre is 26.1 m from the west wall of 28 m)."
+        },
+        {
+          "text": "move the kitchen west",
+          "status": "applied",
+          "scoreDelta": 15.1,
+          "introduced": [],
+          "ms": 3,
+          "message": "Moved Kitchen to the west: its centre is now 7.4 m from the west wall (was 26.1 m). Also shifted: Restroom 2 (3.7 m), Restroom 1 (3.7 m), Storage (3.7 m) and 4 "
+        },
+        {
+          "text": "move the lounge north",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the north part of the office (its centre is 2.7 m from the north wall of 15 m)."
+        },
+        {
+          "text": "move the lounge south",
+          "status": "applied",
+          "scoreDelta": 7.7,
+          "introduced": [],
+          "ms": 1,
+          "message": "Moved Lounge to the south: its centre is now 10.6 m from the north wall (was 2.7 m). Also shifted: Meeting room 1 (2.9 m), Meeting room 2 (2.2 m), Open workspac"
+        },
+        {
+          "text": "move the lounge east",
+          "status": "unchanged",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Lounge is already in the east part of the office (its centre is 22.3 m from the west wall of 28 m)."
+        },
+        {
+          "text": "move the lounge west",
+          "status": "applied",
+          "scoreDelta": 15.1,
+          "introduced": [],
+          "ms": 3,
+          "message": "Moved Lounge to the west: its centre is now 7.5 m from the west wall (was 22.3 m). Also shifted: Restroom 2 (4 m), Restroom 1 (4 m), Storage (4 m) and 3 more. N"
+        },
+        {
+          "text": "make the kitchen bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen bigger: 20.4 m² → 24.5 m² (target 18.5 → 23.1 m²). Score 0.1 → 0.1."
+        },
+        {
+          "text": "make the kitchen smaller",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Kitchen smaller: 20.4 m² → 16 m² (target 18.5 → 13.9 m²). Score 0.1 → 0.1."
+        },
+        {
+          "text": "make the lounge bigger",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Made Lounge bigger: 21.8 m² → 24.7 m² (target 18 → 22.5 m²). Score 0.1 → 0.1."
+        },
+        {
+          "text": "add a meeting room",
+          "status": "applied",
+          "scoreDelta": 0.1,
+          "introduced": [],
+          "ms": 4,
+          "message": "Added Meeting room 4, 22.2 m², centred 3.4 m from the west wall and 10.9 m from the north wall. Score 0.1 → 0.2."
+        },
+        {
+          "text": "remove a meeting room",
+          "status": "applied",
+          "scoreDelta": 0,
+          "introduced": [],
+          "ms": 0,
+          "message": "Removed Meeting room 1; later meeting rooms were renumbered. Score 0.1 → 0.0."
+        },
+        {
+          "text": "swap reception and lounge",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        },
+        {
+          "text": "swap reception and kitchen",
+          "status": "refused",
+          "scoreDelta": null,
+          "introduced": [],
+          "ms": 0,
+          "message": "Every arrangement that does this breaks something: Reception is not on the entrance lobby, so visitors would not meet it first. Reception has to stay on the ent"
+        }
+      ]
+    }
+  ]
+}

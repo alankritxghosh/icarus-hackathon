@@ -11,6 +11,8 @@ interface Props {
 
 const EXAMPLES = [
   "Move the kitchen east",
+  "Make the kitchen bigger",
+  "Add a meeting room",
   "Add a third phone booth",
   "Swap reception and the lounge",
 ];

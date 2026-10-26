@@ -7,6 +7,7 @@ import {
   EditSchema,
   type Evaluation,
   evaluateProgram,
+  expandRooms,
   furnish,
   type Issue,
   inZone,
@@ -490,5 +491,254 @@ describe("the reception rule", () => {
     const plan = layoutOffice(program, { seed: 1 });
     const issues = diagnose(plan, program, furnish(plan, program).report);
     expect(issues.some((i) => i.code === "reception_off_entrance")).toBe(true);
+  });
+});
+
+const area = (ev: Evaluation, id: string) => {
+  const r = must(ev.plan.rooms.find((x) => x.id === id)).rect;
+  return r.w * r.h;
+};
+const idsOf = (ev: Evaluation) => ev.plan.rooms.map((r) => r.id).sort();
+const TIGHT =
+  "A 12-person startup. Open workspace, two meeting rooms, one phone booth, kitchen, reception, two restrooms. 14 m by 10 m shell, windows on the north and south walls, entrance on the west.";
+
+describe("resizing, adding and removing: the operations and the words", () => {
+  const read = (text: string, meetings = 3) =>
+    understandEdit(text, { phoneBooths: 2, meetingRooms: meetings });
+  it("accepts only meeting rooms to add, and only sane factors", () => {
+    expect(EditOpSchema.safeParse({ op: "add_room", kind: "kitchen", count: 1 }).success).toBe(
+      false,
+    );
+    expect(EditOpSchema.safeParse({ op: "add_room", kind: "meeting_room", count: 9 }).success).toBe(
+      false,
+    );
+    expect(EditOpSchema.safeParse({ op: "resize_room", room: "kitchen", factor: 3 }).success).toBe(
+      false,
+    );
+    expect(
+      EditOpSchema.safeParse({ op: "resize_room", room: "kitchen", factor: 1.25 }).success,
+    ).toBe(true);
+    expect(EditOpSchema.safeParse({ op: "remove_room", room: "meeting room 2" }).success).toBe(
+      true,
+    );
+  });
+  it("reads resizing", () => {
+    expect(read("make the kitchen bigger")).toMatchObject({
+      ops: [{ op: "resize_room", room: "the kitchen", factor: 1.25 }],
+    });
+    expect(read("make the kitchen a bit smaller")).toMatchObject({ ops: [{ factor: 0.9 }] });
+    expect(read("make the lounge much larger")).toMatchObject({ ops: [{ factor: 1.5 }] });
+    expect(read("make the lounge 30% bigger")).toMatchObject({ ops: [{ factor: 1.3 }] });
+    expect(read("shrink the storage by 20%")).toMatchObject({ ops: [{ factor: 0.8 }] });
+    expect(read("give the kitchen more space")).toMatchObject({ ops: [{ factor: 1.25 }] });
+    expect(read("make the sauna bigger")).toMatchObject({ kind: "unknown" });
+  });
+  it("reads adding and removing meeting rooms, counting from what is there", () => {
+    expect(read("add a meeting room")).toMatchObject({
+      ops: [{ op: "add_room", kind: "meeting_room", count: 1 }],
+    });
+    expect(read("add two meeting rooms for 10")).toMatchObject({
+      ops: [{ count: 2, capacity: 10 }],
+    });
+    expect(read("add a fourth meeting room", 3)).toMatchObject({ ops: [{ count: 1 }] });
+    expect(read("add a fourth meeting room", 1)).toMatchObject({ ops: [{ count: 3 }] });
+    const already = read("add a third meeting room", 3);
+    expect(already).toMatchObject({ kind: "edit", ops: [] });
+    expect(read("remove meeting room 2")).toMatchObject({
+      ops: [{ op: "remove_room", room: "meeting room 2" }],
+    });
+    expect(read("remove a meeting room")).toMatchObject({
+      ops: [{ op: "remove_room", room: "last meeting room" }],
+    });
+    expect(read("add a meeting room and make the kitchen bigger")).toMatchObject({
+      ops: [{ op: "add_room" }, { op: "resize_room" }],
+    });
+  });
+  it("names the last room of a kind", () => {
+    const ev = start("firm");
+    expect(resolveRoom(ev.plan, "last meeting room")).toEqual({ ok: true, id: "meeting_room.3" });
+  });
+});
+
+describe("resizing a room", () => {
+  it("changes the room's own area, keeps every id, and breaks nothing", () => {
+    const ev = start("roomy");
+    const before = area(ev, "meeting_room.2");
+    const out = applyEdit(ev, [{ op: "resize_room", room: "meeting room 2", factor: 1.4 }]);
+    expect(out.steps[0]?.status).toBe("applied");
+    expect(area(out.evaluation, "meeting_room.2")).toBeGreaterThan(before * 1.05);
+    expect(idsOf(out.evaluation)).toEqual(idsOf(ev));
+    // Only that room has its own size now; the other meeting room keeps the catalogue rule.
+    const meetings = out.evaluation.program.rooms.filter((r) => r.kind === "meeting_room");
+    expect(meetings.filter((r) => r.areaM2 !== undefined)).toHaveLength(1);
+    expect(
+      expandRooms(out.evaluation.program)
+        .map((r) => r.id)
+        .sort(),
+    ).toEqual(idsOf(ev));
+    assertSound(out.evaluation);
+    expect(failKeys(out.evaluation.issues).filter((k) => !failKeys(ev.issues).includes(k))).toEqual(
+      [],
+    );
+    expect(ev.program.rooms.every((r) => r.areaM2 === undefined)).toBe(true);
+  });
+  it("makes a room smaller", () => {
+    const ev = start("roomy");
+    const out = applyEdit(ev, [{ op: "resize_room", room: "kitchen", factor: 0.9 }]);
+    expect(out.steps[0]?.status).toBe("applied");
+    expect(area(out.evaluation, "kitchen.1")).toBeLessThan(area(ev, "kitchen.1") * 0.95);
+  });
+  it("says why when the room is held at its minimum width and cannot change", () => {
+    const ev = start("firm");
+    const out = applyEdit(ev, [
+      { op: "resize_room", room: "kitchen", factor: 1.25 },
+      { op: "resize_room", room: "kitchen", factor: 0.9 },
+    ]);
+    expect(out.steps.map((x) => x.status)).toEqual(["refused", "refused"]);
+    expect(out.steps[0]?.message).toContain("cannot be narrower than");
+    expect(out.steps[1]?.message).toContain("smallest");
+    expect(out.evaluation).toBe(ev);
+  });
+  it("will not resize a locked room", () => {
+    const ev = applyEdit(start("roomy"), [{ op: "lock_room", room: "lounge" }]).evaluation;
+    const out = applyEdit(ev, [{ op: "resize_room", room: "lounge", factor: 1.3 }]);
+    expect(out.steps[0]?.status).toBe("refused");
+    expect(out.steps[0]?.message).toContain("locked");
+  });
+});
+
+describe("adding a meeting room", () => {
+  it("places a new room, records it as the user's fact, and breaks nothing", () => {
+    const ev = start("roomy");
+    const out = applyEdit(ev, [{ op: "add_room", kind: "meeting_room", count: 1, capacity: 10 }]);
+    expect(out.steps[0]?.status).toBe("applied");
+    expect(out.evaluation.plan.rooms.filter((r) => r.kind === "meeting_room")).toHaveLength(3);
+    expect(idsOf(out.evaluation)).toEqual([...idsOf(ev), "meeting_room.3"].sort());
+    expect(out.evaluation.program.rooms.at(-1)).toMatchObject({
+      kind: "meeting_room",
+      count: 1,
+      capacity: 10,
+    });
+    expect(
+      out.evaluation.program.assumptions.find((a) => a.topic === "meeting rooms"),
+    ).toMatchObject({ source: "brief" });
+    expect(out.evaluation.plan.search.rows.flat()).toContain("meeting_room.3");
+    assertSound(out.evaluation);
+    expect(failKeys(out.evaluation.issues).filter((k) => !failKeys(ev.issues).includes(k))).toEqual(
+      [],
+    );
+    expect(ev.program.rooms).toHaveLength(readBrief(BRIEFS.roomy).program.rooms.length);
+  });
+  it("adds several, and refuses all of them if one cannot be placed", async () => {
+    const ev = start("roomy");
+    const three = applyEdit(ev, [{ op: "add_room", kind: "meeting_room", count: 3 }]);
+    if (three.steps[0]?.status === "applied")
+      expect(three.evaluation.plan.rooms.filter((r) => r.kind === "meeting_room")).toHaveLength(5);
+    else expect(three.evaluation).toBe(ev);
+    // A tight shell cannot hold another meeting room without failing the seat check.
+    const tight = (await refineDesign(readBrief(TIGHT).program, { layout: FAST })).best;
+    const out = applyEdit(tight, [{ op: "add_room", kind: "meeting_room", count: 2 }]);
+    expect(out.steps[0]?.status).toBe("refused");
+    expect(out.steps[0]?.message).toContain("workstations");
+    expect(out.evaluation).toBe(tight);
+  });
+});
+
+describe("removing a meeting room", () => {
+  it("renumbers the later rooms and keeps locks on the rooms they were on", () => {
+    const ev = start("firm");
+    const locked = applyEdit(ev, [{ op: "lock_room", room: "meeting room 3" }]).evaluation;
+    const at = must(locked.program.locks[0]);
+    const out = applyEdit(locked, [{ op: "remove_room", room: "meeting room 1" }]);
+    expect(out.steps[0]?.status).toBe("applied");
+    expect(idsOf(out.evaluation)).toEqual(idsOf(ev).filter((id) => id !== "meeting_room.3"));
+    expect(out.evaluation.program.locks).toEqual([{ ...at, id: "meeting_room.2" }]);
+    expect(out.evaluation.program.rooms.find((r) => r.kind === "meeting_room")?.count).toBe(2);
+    expect(out.evaluation.plan.search.rows.flat().sort()).toEqual(idsOf(out.evaluation));
+    const [cx, cy] = centreOf(out.evaluation, "meeting_room.2");
+    expect(Math.hypot(cx - at.x, cy - at.y)).toBeLessThanOrEqual(
+      lockTolerance(ev.plan.shell) + 1e-6,
+    );
+    assertSound(out.evaluation);
+  });
+  it("removes the last one when none is named, and the only one if that is all there is", () => {
+    const ev = start("roomy");
+    const first = applyEdit(ev, [{ op: "remove_room", room: "last meeting room" }]);
+    expect(idsOf(first.evaluation)).not.toContain("meeting_room.2");
+    const second = applyEdit(first.evaluation, [{ op: "remove_room", room: "meeting room" }]);
+    expect(second.evaluation.plan.rooms.some((r) => r.kind === "meeting_room")).toBe(false);
+    assertSound(second.evaluation);
+  });
+  it("refuses other rooms and locked rooms", () => {
+    const ev = start("firm");
+    expect(applyEdit(ev, [{ op: "remove_room", room: "lounge" }]).steps[0]?.message).toContain(
+      "Only meeting rooms",
+    );
+    const locked = applyEdit(ev, [{ op: "lock_room", room: "meeting room 2" }]).evaluation;
+    const out = applyEdit(locked, [{ op: "remove_room", room: "meeting room 2" }]);
+    expect(out.steps[0]?.status).toBe("refused");
+    expect(out.evaluation).toBe(locked);
+  });
+});
+
+describe("the new operations under hostile sequences", () => {
+  it("never leave the plan invalid or failing, whatever order they come in", () => {
+    let seed = 11;
+    const next = () => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed;
+    };
+    const rooms = [
+      "kitchen",
+      "lounge",
+      "meeting room",
+      "last meeting room",
+      "meeting room 1",
+      "storage",
+    ];
+    for (const key of ["firm", "roomy", "northDoor"] as const) {
+      let ev = start(key);
+      const baseFails = failKeys(ev.issues);
+      for (let i = 0; i < 14; i++) {
+        const room = rooms[next() % rooms.length] as string;
+        const pick = next() % 5;
+        const op =
+          pick === 0
+            ? ({
+                op: "resize_room",
+                room,
+                factor: [0.7, 0.9, 1.2, 1.5][next() % 4] as number,
+              } as const)
+            : pick === 1
+              ? ({ op: "add_room", kind: "meeting_room", count: 1 } as const)
+              : pick === 2
+                ? ({ op: "remove_room", room } as const)
+                : pick === 3
+                  ? ({ op: "lock_room", room } as const)
+                  : ({
+                      op: "move_room",
+                      room,
+                      to: (["north", "south", "east", "west"] as const)[next() % 4] as "north",
+                    } as const);
+        ev = applyEdit(ev, [op]).evaluation;
+        assertSound(ev);
+        expect(failKeys(ev.issues).filter((k) => !baseFails.includes(k))).toEqual([]);
+        // Ids, arrangement and locks always agree.
+        expect(ev.plan.search.rows.flat().sort()).toEqual(idsOf(ev));
+        for (const lock of ev.program.locks) expect(idsOf(ev)).toContain(lock.id);
+      }
+    }
+  });
+});
+
+describe("a warning that becomes a failure", () => {
+  it("is a new failure: a meeting room that tips workspace density over the line is refused", async () => {
+    const brief =
+      "A 22-person agency with three meeting rooms, kitchen, lounge, reception. 20 m by 14 m shell, windows on the west wall, entrance on the north.";
+    const ev = (await refineDesign(readBrief(brief).program, { layout: FAST })).best;
+    const out = applyEdit(ev, [{ op: "add_room", kind: "meeting_room", count: 1 }]);
+    expect(failKeys(out.evaluation.issues).filter((k) => !failKeys(ev.issues).includes(k))).toEqual(
+      [],
+    );
   });
 });

@@ -32,6 +32,9 @@ function reasonClass(message: string): string {
   if (message.startsWith("Every arrangement")) return "every arrangement breaks something";
   if (message.startsWith("No arrangement")) return "no arrangement does this";
   if (message.includes("fit along")) return "no wall space for the booth";
+  if (message.includes("cannot be narrower") || message.includes("smallest"))
+    return "room held at its size limit";
+  if (message.includes("workstations")) return "would leave too few workstations";
   return "other";
 }
 
@@ -40,6 +43,7 @@ suite("edit by words evaluation", () => {
     const rows: unknown[] = [];
     const tally = { applied: 0, unchanged: 0, refused: 0, requests: 0, newFailures: 0 };
     const reasons: Record<string, number> = {};
+    const byKind: Record<string, Record<string, number>> = {};
     const deltas: number[] = [];
     const times: number[] = [];
     for (const { name, brief } of EVAL_BRIEFS) {
@@ -51,6 +55,15 @@ suite("edit by words evaluation", () => {
         if (kinds.has(kind))
           for (const side of SIDES) requests.push(...parsed(`move the ${kind} ${side}`, base));
       requests.push(...parsed(`add a third phone booth`, base));
+      for (const text of [
+        "make the kitchen bigger",
+        "make the kitchen smaller",
+        "make the lounge bigger",
+        "add a meeting room",
+        "remove a meeting room",
+      ])
+        if (kinds.has(text.includes("lounge") ? "lounge" : "kitchen"))
+          requests.push(...parsed(text, base));
       if (kinds.has("reception") && kinds.has("lounge"))
         requests.push(...parsed("swap reception and lounge", base));
       if (kinds.has("reception") && kinds.has("kitchen"))
@@ -61,6 +74,17 @@ suite("edit by words evaluation", () => {
         const ms = performance.now() - started;
         times.push(ms);
         const step = outcome.steps[0];
+        const kind = text.startsWith("make")
+          ? "resize"
+          : text.startsWith("add a meeting") || text.startsWith("remove")
+            ? "rooms"
+            : text.startsWith("move")
+              ? "move"
+              : text.includes("booth")
+                ? "booth"
+                : "swap";
+        byKind[kind] ??= { applied: 0, unchanged: 0, refused: 0 };
+        if (step) (byKind[kind] as Record<string, number>)[step.status]++;
         tally.requests++;
         if (step) tally[step.status]++;
         const status = step?.status ?? "none";
@@ -94,6 +118,7 @@ suite("edit by words evaluation", () => {
       JSON.stringify(
         {
           tally,
+          byKind,
           refusalReasons: reasons,
           medianScoreDelta: Math.round(median * 10) / 10,
           betterOrEqual: deltas.filter((d) => d <= 0.01).length,
@@ -112,6 +137,7 @@ suite("edit by words evaluation", () => {
 function parsed(text: string, base: Evaluation): { text: string; ops: EditOp[] }[] {
   const said = understandEdit(text, {
     phoneBooths: base.program.phoneBooths,
+    meetingRooms: base.plan.rooms.filter((r) => r.kind === "meeting_room").length,
     names: base.plan.rooms.map((r) => r.name),
   });
   return said.kind === "edit" && said.ops.length ? [{ text, ops: said.ops }] : [];

@@ -21,7 +21,7 @@ export interface EditResult {
 }
 
 const HELP =
-  "I can move a room (“move the kitchen east”), swap two rooms (“swap the lounge and the kitchen”), change phone booths (“add a third phone booth”), and lock or unlock a room (“lock the kitchen”).";
+  "I can move a room (“move the kitchen east”), make a room bigger or smaller (“make the kitchen bigger”), add or remove a meeting room (“add a meeting room”), swap two rooms (“swap the lounge and the kitchen”), change phone booths (“add a third phone booth”), and lock or unlock a room (“lock the kitchen”).";
 
 /** The design as a measured evaluation, held at its current arrangement so nothing is searched again. */
 export function evaluationOf(built: Built): Evaluation {
@@ -77,6 +77,7 @@ export async function editByWords(
   const ev = evaluationOf(built);
   const said = understandEdit(text, {
     phoneBooths: ev.program.phoneBooths,
+    meetingRooms: ev.plan.rooms.filter((r) => r.kind === "meeting_room").length,
     names: ev.plan.rooms.map((r) => r.name),
   });
   const entry: EditEntry = { text, by: "rules", lines: [] };

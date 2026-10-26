@@ -1,7 +1,8 @@
+import { KIND_RULES } from "../catalog";
 import { centre, type Side } from "../geometry";
 import { layoutOffice } from "../layout";
 import type { FloorPlan } from "../layout/types";
-import type { Program } from "../program";
+import { expandRooms, type Program } from "../program";
 import type { Issue } from "../repair/diagnose";
 import { type Evaluation, evaluateProgram } from "../repair/evaluate";
 import type { EditOp } from "./ops";
@@ -64,10 +65,12 @@ const issueKey = (i: Issue) => `${i.code}:${[...i.roomIds].sort().join(",")}`;
 /** Problems an edit introduced: new failures, and reception losing the front door. Existing ones do not count against it. */
 function introduced(before: Issue[], after: Issue[]): Issue[] {
   const had = new Set(before.map(issueKey));
+  // A warning that has become a failure counts as new, so failures are matched among failures only.
+  const hadFail = new Set(before.filter((i) => i.severity === "fail").map(issueKey));
   return after.filter(
     (i) =>
-      !had.has(issueKey(i)) &&
-      (i.severity === "fail" || (i.code === "reception_off_entrance" && i.severity !== "info")),
+      (i.severity === "fail" && !hadFail.has(issueKey(i))) ||
+      (i.code === "reception_off_entrance" && i.severity !== "info" && !had.has(issueKey(i))),
   );
 }
 
@@ -109,6 +112,16 @@ function freshNotes(before: Issue[], after: Issue[]): string {
     .join(" ")}`;
 }
 
+/** Why a resize changed nothing, from the measurements, so the user is not told something vague. */
+function pinnedReason(room: FloorPlan["rooms"][number], area: number, bigger: boolean): string {
+  const rule = KIND_RULES[room.kind];
+  if (bigger && area >= room.targetAreaM2 * 1.02)
+    return `${room.name} is already ${round1(area)} m², above its ${round1(room.targetAreaM2)} m² target, because a ${rule.label.toLowerCase()} cannot be narrower than ${rule.minWidth} m; a larger target changes nothing, so it was left alone.`;
+  if (!bigger && (room.rect.w <= rule.minWidth + 0.05 || room.rect.h <= rule.minDepth + 0.05))
+    return `${room.name} is already at the smallest a ${rule.label.toLowerCase()} works at (${rule.minWidth} m wide, ${rule.minDepth} m deep), so it was left alone.`;
+  return `${room.name} cannot get ${bigger ? "bigger" : "smaller"} here without breaking something, so it was left alone.`;
+}
+
 /** Hold the current arrangement in the program so every later step re-plans exactly this plan. */
 const pin = (ev: Evaluation): Evaluation => ({
   ...ev,
@@ -130,9 +143,10 @@ function settle(
   candidates: string[][][],
   intent: (plan: FloorPlan) => boolean,
   subject: string[],
+  none = "No arrangement of the existing rows does this, so the plan was left alone.",
 ): Settled {
   const tolerance = lockTolerance(cur.plan.shell);
-  const locked = cur.program.locks.filter((l) => cur.plan.rooms.some((r) => r.id === l.id));
+  const locked = cur.program.locks;
   const seen = new Set<string>();
   const viable: { rows: string[][]; plan: FloorPlan; moved: number }[] = [];
   const blockers = new Set<string>();
@@ -158,8 +172,7 @@ function settle(
       moved: shifted(cur.plan, plan, subject).reduce((s, r) => s + r.metres, 0),
     });
   }
-  if (meant === 0)
-    return { reason: "No arrangement of the existing rows does this, so the plan was left alone." };
+  if (meant === 0) return { reason: none };
   if (viable.length === 0)
     return {
       reason: `Doing this would move ${listNames([...blockers])}, which you locked in place (a locked room may drift ${round1(tolerance)} m). Unlock ${blockers.size > 1 ? "them" : "it"} first, or ask for something else.`,
@@ -230,6 +243,96 @@ const withBooths = (program: Program, total: number): Program => ({
     {
       topic: "phone booths",
       statement: `${total} phone booth${total === 1 ? "" : "s"}, as you asked.`,
+      source: "brief",
+      confidence: 1,
+    },
+  ],
+});
+
+type Request = Program["rooms"][number];
+const MAX_MEETING_ROOMS = 12;
+const MAX_REQUESTS = 40;
+
+/** Which request holds a room, and where in it, using the same numbering as `expandRooms`. */
+function locate(program: Program, id: string): { r: number; i: number } | undefined {
+  const seen = new Map<string, number>();
+  for (let r = 0; r < program.rooms.length; r++) {
+    const req = program.rooms[r] as Request;
+    for (let i = 0; i < req.count; i++) {
+      const n = (seen.get(req.kind) ?? 0) + 1;
+      seen.set(req.kind, n);
+      if (`${req.kind}.${n}` === id) return { r, i };
+    }
+  }
+  return undefined;
+}
+
+/** Give one room its own floor area. Splits its request so every other room keeps its id and size. */
+function withRoomArea(program: Program, id: string, areaM2: number): Program | undefined {
+  const at = locate(program, id);
+  const req = at && (program.rooms[at.r] as Request);
+  if (!at || !req || (req.count > 1 && req.name)) return undefined;
+  const pieces: Request[] = [
+    ...(at.i > 0 ? [{ ...req, count: at.i }] : []),
+    { ...req, count: 1, areaM2 },
+    ...(at.i < req.count - 1 ? [{ ...req, count: req.count - at.i - 1 }] : []),
+  ];
+  return {
+    ...program,
+    rooms: [...program.rooms.slice(0, at.r), ...pieces, ...program.rooms.slice(at.r + 1)],
+  };
+}
+
+const idParts = (id: string) => {
+  const dot = id.lastIndexOf(".");
+  return { kind: id.slice(0, dot), n: Number(id.slice(dot + 1)) };
+};
+
+/** The program without one room, and how every room id changes because later ones are renumbered. */
+function withoutRoom(
+  program: Program,
+  id: string,
+): { program: Program; remap: (id: string) => string | undefined } | undefined {
+  const at = locate(program, id);
+  const req = at && (program.rooms[at.r] as Request);
+  if (!at || !req) return undefined;
+  const gone = idParts(id);
+  const remap = (other: string) => {
+    if (other === id) return undefined;
+    const p = idParts(other);
+    return p.kind === gone.kind && p.n > gone.n ? `${p.kind}.${p.n - 1}` : other;
+  };
+  const rooms =
+    req.count > 1
+      ? program.rooms.map((x, r) => (r === at.r ? { ...x, count: x.count - 1 } : x))
+      : program.rooms.filter((_, r) => r !== at.r);
+  const rows = (program.arrangement ?? [])
+    .map((row) => row.map(remap).filter((x): x is string => x !== undefined))
+    .filter((row) => row.length > 0);
+  return {
+    remap,
+    program: {
+      ...program,
+      rooms,
+      arrangement: rows.length ? rows : undefined,
+      locks: program.locks.flatMap((l) => {
+        const next = remap(l.id);
+        return next ? [{ ...l, id: next }] : [];
+      }),
+    },
+  };
+}
+
+const meetingCount = (program: Program) =>
+  program.rooms.filter((r) => r.kind === "meeting_room").reduce((s, r) => s + r.count, 0);
+
+const withMeetingNote = (program: Program): Program => ({
+  ...program,
+  assumptions: [
+    ...program.assumptions.filter((a) => a.topic !== "meeting rooms"),
+    {
+      topic: "meeting rooms",
+      statement: `${meetingCount(program)} meeting room${meetingCount(program) === 1 ? "" : "s"}, as you asked.`,
       source: "brief",
       confidence: 1,
     },
@@ -402,6 +505,156 @@ export function applyEdit(current: Evaluation, ops: EditOp[]): EditOutcome {
         ),
       );
       cur = next;
+    } else if (op.op === "resize_room") {
+      const found = resolveRoom(plan, op.room);
+      if (!found.ok) {
+        steps.push(step(op, "refused", found.reason));
+        continue;
+      }
+      const room = plan.rooms.find((r) => r.id === found.id) as FloorPlan["rooms"][number];
+      if (cur.program.locks.some((l) => l.id === found.id)) {
+        steps.push(step(op, "refused", `${room.name} is locked in place. Unlock it to resize it.`));
+        continue;
+      }
+      const was = room.rect.w * room.rect.h;
+      const area = Math.min(500, Math.max(2, round1(room.targetAreaM2 * op.factor)));
+      const resized = withRoomArea(cur.program, found.id, area);
+      if (!resized) {
+        steps.push(step(op, "refused", `${room.name} could not be resized on its own.`));
+        continue;
+      }
+      const bigger = op.factor > 1;
+      const result = settle(
+        { ...cur, program: resized },
+        [rows],
+        (p) => {
+          const r = p.rooms.find((x) => x.id === found.id)?.rect;
+          const now = r ? r.w * r.h : was;
+          return bigger ? now >= was * 1.05 : now <= was * 0.95;
+        },
+        [found.id],
+        pinnedReason(room, was, bigger),
+      );
+      if (!result.evaluation) {
+        steps.push(step(op, "refused", result.reason ?? "This could not be done."));
+        continue;
+      }
+      const now = result.evaluation.plan.rooms.find((r) => r.id === found.id)?.rect;
+      steps.push(
+        step(
+          op,
+          "applied",
+          `Made ${room.name} ${bigger ? "bigger" : "smaller"}: ${round1(was)} m² → ${round1(now ? now.w * now.h : was)} m² (target ${round1(room.targetAreaM2)} → ${area} m²).${sentenceOfShifts(shifted(plan, result.evaluation.plan, [found.id]))}${freshNotes(cur.issues, result.evaluation.issues)} Score ${cur.cost.toFixed(1)} → ${result.evaluation.cost.toFixed(1)}.${worseNote(cur.cost, result.evaluation.cost)}`,
+        ),
+      );
+      cur = result.evaluation;
+    } else if (op.op === "add_room") {
+      const before = cur;
+      let working = cur;
+      let failed: string | undefined;
+      const added: string[] = [];
+      for (let n = 0; n < op.count && !failed; n++) {
+        if (
+          working.program.rooms.length >= MAX_REQUESTS ||
+          meetingCount(working.program) >= MAX_MEETING_ROOMS
+        ) {
+          failed = `An office plan holds at most ${MAX_MEETING_ROOMS} meeting rooms.`;
+          break;
+        }
+        const program = withMeetingNote({
+          ...working.program,
+          rooms: [
+            ...working.program.rooms,
+            { kind: "meeting_room", count: 1, ...(op.capacity ? { capacity: op.capacity } : {}) },
+          ],
+        });
+        const newId = expandRooms(program)
+          .filter((r) => r.kind === "meeting_room")
+          .map((r) => r.id)
+          .pop() as string;
+        const base = working.plan.search.rows;
+        const candidates = base.flatMap((row, r) =>
+          Array.from({ length: row.length + 1 }, (_, i) =>
+            base.map((x, k) => (k === r ? [...x.slice(0, i), newId, ...x.slice(i)] : [...x])),
+          ),
+        );
+        const result = settle({ ...working, program }, candidates, () => true, [newId]);
+        if (!result.evaluation) {
+          failed = result.reason ?? "This could not be done.";
+          break;
+        }
+        added.push(newId);
+        working = result.evaluation;
+      }
+      if (failed || added.length === 0) {
+        steps.push(
+          step(
+            op,
+            "refused",
+            `${failed ?? "This could not be done."}${added.length ? " None were added." : ""}`,
+          ),
+        );
+        continue;
+      }
+      const names = added.map((id) => nameOf(working.plan, id));
+      const last = working.plan.rooms.find((r) => r.id === added[added.length - 1]);
+      steps.push(
+        step(
+          op,
+          "applied",
+          `Added ${names.join(" and ")}${op.capacity ? ` (${op.capacity} seats)` : ""}${last ? `, ${round1(last.rect.w * last.rect.h)} m², centred ${round1(last.rect.x + last.rect.w / 2)} m from the west wall and ${round1(last.rect.y + last.rect.h / 2)} m from the north wall` : ""}.${sentenceOfShifts(shifted(before.plan, working.plan, added))}${freshNotes(before.issues, working.issues)} Score ${before.cost.toFixed(1)} → ${working.cost.toFixed(1)}.${worseNote(before.cost, working.cost)}`,
+        ),
+      );
+      cur = working;
+    } else if (op.op === "remove_room") {
+      const found = resolveRoom(plan, op.room);
+      if (!found.ok) {
+        steps.push(step(op, "refused", found.reason));
+        continue;
+      }
+      const name = nameOf(plan, found.id);
+      if (!found.id.startsWith("meeting_room.")) {
+        steps.push(
+          step(op, "refused", `Only meeting rooms can be added or removed here; ${name} stays.`),
+        );
+        continue;
+      }
+      if (cur.program.locks.some((l) => l.id === found.id)) {
+        steps.push(step(op, "refused", `${name} is locked in place. Unlock it to remove it.`));
+        continue;
+      }
+      const gone = withoutRoom(cur.program, found.id);
+      if (!gone) {
+        steps.push(step(op, "refused", `${name} could not be removed.`));
+        continue;
+      }
+      const trial: Evaluation = {
+        ...cur,
+        program: withMeetingNote(gone.program),
+        issues: cur.issues.map((i) => ({
+          ...i,
+          roomIds: i.roomIds.flatMap((id) => gone.remap(id) ?? []),
+        })),
+      };
+      const result = settle(trial, [gone.program.arrangement ?? []], () => true, [], undefined);
+      if (!result.evaluation) {
+        steps.push(step(op, "refused", result.reason ?? "This could not be done."));
+        continue;
+      }
+      steps.push(
+        step(
+          op,
+          "applied",
+          `Removed ${name}; later meeting rooms were renumbered.${sentenceOfShifts(
+            shifted(
+              plan,
+              result.evaluation.plan,
+              plan.rooms.filter((r) => r.kind === "meeting_room").map((r) => r.id),
+            ),
+          )}${freshNotes(trial.issues, result.evaluation.issues)} Score ${cur.cost.toFixed(1)} → ${result.evaluation.cost.toFixed(1)}.`,
+        ),
+      );
+      cur = result.evaluation;
     } else if (op.op === "lock_room") {
       const found = resolveRoom(plan, op.room);
       if (!found.ok) {

@@ -28,6 +28,7 @@ const ORDINALS: Record<string, number> = {
   "4th": 4,
   fifth: 5,
   "5th": 5,
+  last: -1,
 };
 
 export type Resolved = { ok: true; id: string } | { ok: false; reason: string };
@@ -71,7 +72,7 @@ export function resolveRoom(plan: Pick<FloorPlan, "rooms">, phrase: string): Res
   const rooms = plan.rooms.filter((r) => r.kind === kind);
   if (rooms.length === 0) return { ok: false, reason: `This plan has no ${rest}.` };
   if (ordinal !== undefined) {
-    const found = rooms[ordinal - 1];
+    const found = rooms[ordinal === -1 ? rooms.length - 1 : ordinal - 1];
     return found
       ? { ok: true, id: found.id }
       : {

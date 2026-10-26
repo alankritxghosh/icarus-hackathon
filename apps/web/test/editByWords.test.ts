@@ -52,6 +52,27 @@ describe("editByWords", () => {
     } else expect(result.built).toBeUndefined();
   });
 
+  it("adds, resizes and removes meeting rooms from words, with no model", async () => {
+    const base = await built();
+    const before = base.plan.rooms.filter((r) => r.kind === "meeting_room").length;
+    const added = await editByWords("add a meeting room for 10", base, { useModel: false });
+    expect(["applied", "refused"]).toContain(added.entry.lines[0]?.status);
+    if (added.built) {
+      expect(added.built.plan.rooms.filter((r) => r.kind === "meeting_room")).toHaveLength(
+        before + 1,
+      );
+      const removed = await editByWords("remove the last meeting room", added.built, {
+        useModel: false,
+      });
+      expect(removed.built?.plan.rooms.filter((r) => r.kind === "meeting_room")).toHaveLength(
+        before,
+      );
+    }
+    const resized = await editByWords("make meeting room 2 bigger", base, { useModel: false });
+    expect(["applied", "refused"]).toContain(resized.entry.lines[0]?.status);
+    if (resized.built) expect(resized.built.edits?.[0]?.text).toBe("make meeting room 2 bigger");
+  });
+
   it("returns an undo request without touching the design", async () => {
     const result = await editByWords("undo", await built(), { useModel: false });
     expect(result.undo).toBe(true);

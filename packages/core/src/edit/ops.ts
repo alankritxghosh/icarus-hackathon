@@ -15,6 +15,17 @@ export const EditOpSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("swap_rooms"), a: Room, b: Room }),
   z.object({ op: z.literal("add_phone_booths"), count: z.int().min(1).max(6) }),
   z.object({ op: z.literal("remove_phone_booths"), count: z.int().min(1).max(6) }),
+  /** Make one room bigger or smaller by this factor of its target floor area. */
+  z.object({ op: z.literal("resize_room"), room: Room, factor: z.number().min(0.6).max(1.6) }),
+  /** Add meeting rooms, optionally sized for a number of seats. */
+  z.object({
+    op: z.literal("add_room"),
+    kind: z.literal("meeting_room"),
+    count: z.int().min(1).max(3),
+    capacity: z.int().min(2).max(30).optional(),
+  }),
+  /** Remove one meeting room. */
+  z.object({ op: z.literal("remove_room"), room: Room }),
   /** Keep a room where it is while other things change. */
   z.object({ op: z.literal("lock_room"), room: Room }),
   /** Release one room, or every room with "all". */
