@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+coverage/
+test-results/
+playwright-report/
+workers/cad/.venv/
+__pycache__/
+# Reference photographs stay local; only Icarus-owned renders and metrics are committed.
+fixtures/private/
