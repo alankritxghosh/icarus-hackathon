@@ -1,0 +1,159 @@
+{
+  "version": 1,
+  "scope": "Concept-design planning rules of thumb for offices. They are assumptions for early layouts, not building-code, fire, accessibility, structural or acoustic requirements, and nothing here claims compliance.",
+  "references": [
+    {
+      "id": "ada-route",
+      "text": "2010 ADA Standards for Accessible Design, section 403.5.1: an accessible route is at least 36 in (0.915 m) clear in width.",
+      "url": "https://www.ada.gov/law-and-regs/design-standards/2010-stds/"
+    },
+    {
+      "id": "ada-door",
+      "text": "2010 ADA Standards, section 404.2.3: a door opening is at least 32 in (0.815 m) clear.",
+      "url": "https://www.ada.gov/law-and-regs/design-standards/2010-stds/"
+    },
+    {
+      "id": "icarus-default",
+      "text": "An Icarus planning default chosen for concept layouts. Not derived from a standard and not validated against real projects."
+    }
+  ],
+  "rooms": {
+    "open_workspace": {
+      "label": "Open workspace",
+      "minWidthM": 6,
+      "minDepthM": 5,
+      "maxAspect": 4.5,
+      "daylight": "required",
+      "minScale": 0.8,
+      "adjacent": ["kitchen", "lounge"],
+      "area": {
+        "basis": "6.0 m2 per person for desks and local circulation",
+        "baseM2": 0,
+        "perPersonM2": 6,
+        "minM2": 18
+      },
+      "source": "icarus-default"
+    },
+    "meeting_room": {
+      "label": "Meeting room",
+      "minWidthM": 2.7,
+      "minDepthM": 3,
+      "maxAspect": 2.2,
+      "daylight": "preferred",
+      "minScale": 0.85,
+      "adjacent": ["open_workspace"],
+      "area": { "basis": "2 m2 per seat plus 3 m2", "baseM2": 3, "perSeatM2": 2, "minM2": 9 },
+      "source": "icarus-default"
+    },
+    "private_office": {
+      "label": "Private office",
+      "minWidthM": 2.7,
+      "minDepthM": 3,
+      "maxAspect": 2.2,
+      "daylight": "preferred",
+      "minScale": 0.85,
+      "adjacent": [],
+      "area": { "basis": "10 m2 each", "baseM2": 10 },
+      "source": "icarus-default"
+    },
+    "kitchen": {
+      "label": "Kitchen",
+      "minWidthM": 3,
+      "minDepthM": 3,
+      "maxAspect": 3,
+      "daylight": "preferred",
+      "minScale": 0.8,
+      "adjacent": ["lounge"],
+      "area": {
+        "basis": "8 m2 plus 0.35 m2 per person",
+        "baseM2": 8,
+        "perPersonM2": 0.35,
+        "minM2": 10
+      },
+      "source": "icarus-default"
+    },
+    "lounge": {
+      "label": "Lounge",
+      "minWidthM": 4,
+      "minDepthM": 3.5,
+      "maxAspect": 3,
+      "daylight": "preferred",
+      "minScale": 0.8,
+      "adjacent": ["kitchen"],
+      "area": {
+        "basis": "0.6 m2 per person, at least 12 m2",
+        "baseM2": 0,
+        "perPersonM2": 0.6,
+        "minM2": 12
+      },
+      "source": "icarus-default"
+    },
+    "reception": {
+      "label": "Reception",
+      "minWidthM": 3.5,
+      "minDepthM": 3.5,
+      "maxAspect": 2.5,
+      "daylight": "preferred",
+      "minScale": 0.8,
+      "adjacent": [],
+      "area": { "basis": "14 m2", "baseM2": 14 },
+      "source": "icarus-default"
+    },
+    "storage": {
+      "label": "Storage",
+      "minWidthM": 1.5,
+      "minDepthM": 2,
+      "maxAspect": 3,
+      "daylight": "avoid",
+      "minScale": 0.7,
+      "adjacent": [],
+      "area": { "basis": "8 m2", "baseM2": 8 },
+      "source": "icarus-default"
+    },
+    "server_room": {
+      "label": "Server room",
+      "minWidthM": 1.8,
+      "minDepthM": 2,
+      "maxAspect": 3,
+      "daylight": "avoid",
+      "minScale": 0.7,
+      "adjacent": [],
+      "area": { "basis": "6 m2", "baseM2": 6 },
+      "source": "icarus-default"
+    },
+    "restroom": {
+      "label": "Restroom",
+      "minWidthM": 2,
+      "minDepthM": 2.4,
+      "maxAspect": 3,
+      "daylight": "none",
+      "minScale": 0.8,
+      "adjacent": ["restroom"],
+      "area": { "basis": "7 m2 plus 0.1 m2 per person", "baseM2": 7, "perPersonM2": 0.1 },
+      "source": "icarus-default"
+    }
+  },
+  "circulation": {
+    "corridorWidthM": 1.6,
+    "lobbyWidthM": 2.0,
+    "entranceWidthM": 1.8,
+    "minClearRouteM": 0.915,
+    "minDoorClearM": 0.815,
+    "doorClearanceM": 1.1,
+    "source": "icarus-default; minClearRouteM and minDoorClearM follow the ADA references above as a floor, not as a compliance claim"
+  },
+  "workstation": {
+    "deskWidthsM": [1.6, 1.4, 1.2],
+    "deskDepthM": 0.75,
+    "chairReachM": 0.73,
+    "chairClearanceM": 0.9,
+    "modulePitchM": 3.3,
+    "source": "icarus-default"
+  },
+  "thresholds": {
+    "workspacePerPersonOkM2": 4.5,
+    "workspacePerPersonWarnM2": 3.5,
+    "oversizeRatio": 1.4,
+    "source": "icarus-default"
+  }
+}

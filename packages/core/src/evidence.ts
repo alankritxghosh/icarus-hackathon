@@ -1,5 +1,6 @@
 import { KIND_RULES } from "./catalog";
 import { exposureOnSide, facingSpan, round2, sharedEdge } from "./geometry";
+import { KNOWLEDGE } from "./knowledge";
 import { ADJACENT_GAP_M } from "./layout/cost";
 import { CORRIDOR_WIDTH_M, type FloorPlan, LOBBY_WIDTH_M } from "./layout/types";
 import { expandRooms, type Program } from "./program";
@@ -13,8 +14,8 @@ export interface EvidenceItem {
   unit?: string;
 }
 
-const WORKSPACE_OK_M2 = 4.5;
-const WORKSPACE_WARN_M2 = 3.5;
+const WORKSPACE_OK_M2 = KNOWLEDGE.thresholds.workspacePerPersonOkM2;
+const WORKSPACE_WARN_M2 = KNOWLEDGE.thresholds.workspacePerPersonWarnM2;
 
 /** Every circulation or room id reachable from the front door by walking through doors. */
 export function reachable(plan: FloorPlan): Set<string> {

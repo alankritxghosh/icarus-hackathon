@@ -1,5 +1,6 @@
 import type { SceneNode } from "../build/scene";
 import { overlapArea, type Rect, type Side } from "../geometry";
+import { KNOWLEDGE } from "../knowledge";
 import type { PlanRoom } from "../layout/types";
 import { ASSETS, type AssetKey } from "./catalog";
 
@@ -204,7 +205,7 @@ export class Space {
 export function doorClearance(room: PlanRoom): Rect {
   const { door, rect } = room;
   const span = door.widthM + 0.3;
-  const depth = 1.1;
+  const depth = KNOWLEDGE.circulation.doorClearanceM;
   if (door.side === "north") return { x: door.x - span / 2, y: rect.y, w: span, h: depth };
   if (door.side === "south")
     return { x: door.x - span / 2, y: rect.y + rect.h - depth, w: span, h: depth };

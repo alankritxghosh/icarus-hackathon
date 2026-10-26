@@ -1,5 +1,6 @@
 import { OPPOSITE } from "../catalog";
 import type { Rect, Side } from "../geometry";
+import { KNOWLEDGE } from "../knowledge";
 import type { PlanRoom } from "../layout/types";
 import { ASSETS } from "./catalog";
 import {
@@ -50,13 +51,13 @@ const asset = (key: keyof typeof ASSETS, name: string, hangs = false, reserve = 
   return { name, w: a.w, d: a.d, front: reserve, asset: { key, hangs } };
 };
 
-const DESK_WIDTHS = [1.6, 1.4, 1.2];
+const DESK_WIDTHS = KNOWLEDGE.workstation.deskWidthsM;
 const CHAIR_OFFSET = 0.45;
 
 /** Half the depth of a desk pair: desk 0.75 each, chairs reaching 0.73 beyond the fronts. */
-const PAIR_DEPTH = 0.75;
-const CHAIR_REACH = 0.73;
-const MODULE_PITCH = 3.3;
+const PAIR_DEPTH = KNOWLEDGE.workstation.deskDepthM;
+const CHAIR_REACH = KNOWLEDGE.workstation.chairReachM;
+const MODULE_PITCH = KNOWLEDGE.workstation.modulePitchM;
 
 /**
  * Lay desk pairs for a chosen desk width, module count and desks per row, centred in the room, on
@@ -72,7 +73,7 @@ function layDesks(
 ): number {
   const f = frame(space.rect);
   const chair = taskChair();
-  const deskItem: Item = { ...desk(width), front: 0.9 };
+  const deskItem: Item = { ...desk(width), front: KNOWLEDGE.workstation.chairClearanceM };
   const block = (modules - 1) * MODULE_PITCH + PAIR_DEPTH + 2 * CHAIR_REACH;
   const free = Math.max(0, f.V - block);
   const extra = modules > 1 ? Math.min(free / (modules + 1), 1.2) : 0;
@@ -288,7 +289,7 @@ function restroom(space: Space) {
 
 function privateOffice(space: Space) {
   const f = frame(space.rect);
-  const d = { ...desk(1.4), front: 0.9 };
+  const d = { ...desk(1.4), front: KNOWLEDGE.workstation.chairClearanceM };
   const [cx, cz] = f.xz(f.U * 0.5, f.V * 0.28);
   if (space.place(d, cx, cz, f.faceV)) {
     const [fx, fz] = front(f.faceV);

@@ -1,5 +1,6 @@
 import type { RoomKind } from "../catalog";
 import type { Rect, Side } from "../geometry";
+import { KNOWLEDGE } from "../knowledge";
 
 export interface Door {
   /** The wall of the room the door is cut into. */
@@ -44,6 +45,6 @@ export interface FloorPlan {
   search: { seed: number; rows: string[][]; cost: number };
 }
 
-export const CORRIDOR_WIDTH_M = 1.6;
-export const LOBBY_WIDTH_M = 2.0;
-export const ENTRANCE_WIDTH_M = 1.8;
+export const CORRIDOR_WIDTH_M = KNOWLEDGE.circulation.corridorWidthM;
+export const LOBBY_WIDTH_M = KNOWLEDGE.circulation.lobbyWidthM;
+export const ENTRANCE_WIDTH_M = KNOWLEDGE.circulation.entranceWidthM;

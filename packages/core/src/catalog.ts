@@ -1,17 +1,8 @@
 import type { Side } from "./geometry";
 
-export const ROOM_KINDS = [
-  "open_workspace",
-  "meeting_room",
-  "private_office",
-  "kitchen",
-  "lounge",
-  "reception",
-  "storage",
-  "server_room",
-  "restroom",
-] as const;
-export type RoomKind = (typeof ROOM_KINDS)[number];
+import { KNOWLEDGE, ROOM_KINDS, type RoomKind } from "./knowledge";
+
+export { ROOM_KINDS, type RoomKind };
 
 export type Daylight = "required" | "preferred" | "avoid" | "none";
 
@@ -30,92 +21,27 @@ export interface KindRule {
 }
 
 /**
- * Planning rules of thumb for concept layouts. These are assumptions, not building-code values,
- * and the evidence panel labels them that way.
+ * Planning rules of thumb for concept layouts, read from the knowledge file
+ * (`knowledge/office.v1.json`). They are assumptions, not building-code values, and the evidence
+ * panel labels them that way.
  */
-export const KIND_RULES: Record<RoomKind, KindRule> = {
-  open_workspace: {
-    label: "Open workspace",
-    minWidth: 6,
-    minDepth: 5,
-    maxAspect: 4.5,
-    daylight: "required",
-    minScale: 0.8,
-    adjacent: ["kitchen", "lounge"],
-  },
-  meeting_room: {
-    label: "Meeting room",
-    minWidth: 2.7,
-    minDepth: 3,
-    maxAspect: 2.2,
-    daylight: "preferred",
-    minScale: 0.85,
-    adjacent: ["open_workspace"],
-  },
-  private_office: {
-    label: "Private office",
-    minWidth: 2.7,
-    minDepth: 3,
-    maxAspect: 2.2,
-    daylight: "preferred",
-    minScale: 0.85,
-    adjacent: [],
-  },
-  kitchen: {
-    label: "Kitchen",
-    minWidth: 3,
-    minDepth: 3,
-    maxAspect: 3,
-    daylight: "preferred",
-    minScale: 0.8,
-    adjacent: ["lounge"],
-  },
-  lounge: {
-    label: "Lounge",
-    minWidth: 4,
-    minDepth: 3.5,
-    maxAspect: 3,
-    daylight: "preferred",
-    minScale: 0.8,
-    adjacent: ["kitchen"],
-  },
-  reception: {
-    label: "Reception",
-    minWidth: 3.5,
-    minDepth: 3.5,
-    maxAspect: 2.5,
-    daylight: "preferred",
-    minScale: 0.8,
-    adjacent: [],
-  },
-  storage: {
-    label: "Storage",
-    minWidth: 1.5,
-    minDepth: 2,
-    maxAspect: 3,
-    daylight: "avoid",
-    minScale: 0.7,
-    adjacent: [],
-  },
-  server_room: {
-    label: "Server room",
-    minWidth: 1.8,
-    minDepth: 2,
-    maxAspect: 3,
-    daylight: "avoid",
-    minScale: 0.7,
-    adjacent: [],
-  },
-  restroom: {
-    label: "Restroom",
-    minWidth: 2,
-    minDepth: 2.4,
-    maxAspect: 3,
-    daylight: "none",
-    minScale: 0.8,
-    adjacent: ["restroom"],
-  },
-};
+export const KIND_RULES: Record<RoomKind, KindRule> = Object.fromEntries(
+  ROOM_KINDS.map((kind) => {
+    const r = KNOWLEDGE.rooms[kind];
+    return [
+      kind,
+      {
+        label: r.label,
+        minWidth: r.minWidthM,
+        minDepth: r.minDepthM,
+        maxAspect: r.maxAspect,
+        daylight: r.daylight,
+        minScale: r.minScale,
+        adjacent: r.adjacent,
+      },
+    ];
+  }),
+) as Record<RoomKind, KindRule>;
 
 export interface AreaRule {
   /** Rule used to size the room, shown to the user. */
@@ -124,20 +50,19 @@ export interface AreaRule {
   area: (headcount: number, capacity: number) => number;
 }
 
-export const AREA_RULES: Record<RoomKind, AreaRule> = {
-  open_workspace: {
-    basis: "6.0 m2 per person for desks and local circulation",
-    area: (n) => Math.max(18, 6 * n),
-  },
-  meeting_room: { basis: "2 m2 per seat plus 3 m2", area: (_n, cap) => Math.max(9, 2 * cap + 3) },
-  private_office: { basis: "10 m2 each", area: () => 10 },
-  kitchen: { basis: "8 m2 plus 0.35 m2 per person", area: (n) => Math.max(10, 8 + 0.35 * n) },
-  lounge: { basis: "0.6 m2 per person, at least 12 m2", area: (n) => Math.max(12, 0.6 * n) },
-  reception: { basis: "14 m2", area: () => 14 },
-  storage: { basis: "8 m2", area: () => 8 },
-  server_room: { basis: "6 m2", area: () => 6 },
-  restroom: { basis: "7 m2 plus 0.1 m2 per person", area: (n) => 7 + 0.1 * n },
-};
+export const AREA_RULES: Record<RoomKind, AreaRule> = Object.fromEntries(
+  ROOM_KINDS.map((kind) => {
+    const a = KNOWLEDGE.rooms[kind].area;
+    return [
+      kind,
+      {
+        basis: a.basis,
+        area: (n: number, cap: number) =>
+          Math.max(a.minM2 ?? 0, a.baseM2 + (a.perPersonM2 ?? 0) * n + (a.perSeatM2 ?? 0) * cap),
+      },
+    ];
+  }),
+) as Record<RoomKind, AreaRule>;
 
 export const OPPOSITE: Record<Side, Side> = {
   north: "south",

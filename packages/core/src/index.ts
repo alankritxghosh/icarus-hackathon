@@ -5,6 +5,13 @@ export { dominantColours, type MeasuredColours } from "./colour";
 export { type EvidenceItem, measurePlan, reachable } from "./evidence";
 export * from "./furnish";
 export * from "./geometry";
+export {
+  describeKnowledge,
+  KNOWLEDGE,
+  type Knowledge,
+  KnowledgeSchema,
+  loadKnowledge,
+} from "./knowledge";
 export { type LayoutOptions, layoutOffice } from "./layout";
 export * from "./layout/types";
 export {
