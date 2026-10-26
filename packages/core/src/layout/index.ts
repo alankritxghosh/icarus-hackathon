@@ -35,13 +35,21 @@ export function layoutOffice(
   options: LayoutOptions = {},
 ): FloorPlan & { breakdown: CostBreakdown } {
   const planned = expandRooms(program);
-  const rooms = new Map<string, PlannedRoom>(planned.map((room) => [room.id, room]));
+  // The solver sees targets nudged by the design's area bias; every report below uses the unbiased ones.
+  const bias = program.preferences.areaScale;
+  const rooms = new Map<string, PlannedRoom>(
+    planned.map((room) => [
+      room.id,
+      { ...room, targetAreaM2: room.targetAreaM2 * (bias[room.kind] ?? 1) },
+    ]),
+  );
+  const base = new Map<string, PlannedRoom>(planned.map((room) => [room.id, room]));
   const shell = { w: program.shell.widthM, h: program.shell.depthM };
   const frame = makeFrame(shell, program.shell.entrance);
   const windows = program.shell.windows.map((side) => frame.side(side));
   const seed = options.seed ?? 1;
   const found = searchLayout(
-    { rooms, W: frame.W, D: frame.D, windows },
+    { rooms, W: frame.W, D: frame.D, windows, preferences: program.preferences },
     { seed, iterations: options.iterations, restarts: options.restarts },
   );
   const real = realize(found.rows, rooms, frame.W, frame.D);
@@ -54,7 +62,7 @@ export function layoutOffice(
   const k = found.rows.length;
   found.rows.forEach((row, b) => {
     for (const id of row) {
-      const room = rooms.get(id) as PlannedRoom;
+      const room = base.get(id) as PlannedRoom;
       const canon = real.rects.get(id);
       if (!canon) continue;
       const toLobby = room.kind === "reception";

@@ -1,4 +1,4 @@
-import { KIND_RULES } from "./catalog";
+import { KIND_RULES, type RoomKind } from "./catalog";
 import { exposureOnSide, facingSpan, round2, sharedEdge } from "./geometry";
 import { KNOWLEDGE } from "./knowledge";
 import { ADJACENT_GAP_M } from "./layout/cost";
@@ -117,8 +117,12 @@ export function measurePlan(plan: FloorPlan, program: Program): EvidenceItem[] {
 
   const misses: string[] = [];
   let wishes = 0;
+  const wished = (kind: RoomKind) => [
+    ...KIND_RULES[kind].adjacent,
+    ...program.preferences.adjacent.filter((p) => p.a === kind).map((p) => p.b),
+  ];
   for (const room of plan.rooms)
-    for (const want of KIND_RULES[room.kind].adjacent) {
+    for (const want of wished(room.kind)) {
       const others = plan.rooms.filter((o) => o.id !== room.id && o.kind === want);
       if (others.length === 0) continue;
       wishes++;

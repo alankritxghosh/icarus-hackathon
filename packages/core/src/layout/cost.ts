@@ -1,6 +1,6 @@
 import { KIND_RULES, type RoomKind } from "../catalog";
 import { exposureOnSide, facingSpan, type Rect, type Side } from "../geometry";
-import type { PlannedRoom } from "../program";
+import type { PlannedRoom, Preferences } from "../program";
 import type { Realized } from "./realize";
 import { LOBBY_WIDTH_M } from "./types";
 
@@ -10,6 +10,8 @@ export interface CostContext {
   D: number;
   /** Window sides in the canonical frame. */
   windows: Side[];
+  /** Extra neighbours and separations asked for by the design. */
+  preferences?: Preferences;
 }
 
 export interface CostBreakdown {
@@ -75,26 +77,38 @@ export function planCost(realized: Realized, ctx: CostContext): CostBreakdown {
       c.daylight += 2 * (1 - Math.min(1, exposure / perimeterReach));
     else if (rule.daylight === "avoid" && exposure > EPS) c.daylight += 1.5;
     if (room.kind === "reception" && rect.x > LOBBY_WIDTH_M + EPS) c.entrance += 12;
-    const wanted = wantedNeighbours(room.kind);
-    if (wanted.length) {
-      for (const want of wanted) {
-        const others = [...realized.rects].filter(
-          ([oid]) => oid !== id && ctx.rooms.get(oid)?.kind === want,
-        );
-        if (others.length === 0) continue;
-        const touching = others.some(([, r]) => facingSpan(rect, r, ADJACENT_GAP_M) >= 1.5);
-        if (!touching) {
-          const nearest = Math.min(
-            ...others.map(([, r]) =>
-              Math.hypot(
-                rect.x + rect.w / 2 - (r.x + r.w / 2),
-                rect.y + rect.h / 2 - (r.y + r.h / 2),
-              ),
+    const wanted = [
+      ...wantedNeighbours(room.kind).map((kind) => ({ kind, weight: 1 })),
+      ...(ctx.preferences?.adjacent ?? [])
+        .filter((p) => p.a === room.kind)
+        .map((p) => ({ kind: p.b, weight: p.weight })),
+    ];
+    for (const want of wanted) {
+      const others = [...realized.rects].filter(
+        ([oid]) => oid !== id && ctx.rooms.get(oid)?.kind === want.kind,
+      );
+      if (others.length === 0) continue;
+      const touching = others.some(([, r]) => facingSpan(rect, r, ADJACENT_GAP_M) >= 1.5);
+      if (!touching) {
+        const nearest = Math.min(
+          ...others.map(([, r]) =>
+            Math.hypot(
+              rect.x + rect.w / 2 - (r.x + r.w / 2),
+              rect.y + rect.h / 2 - (r.y + r.h / 2),
             ),
-          );
-          c.adjacency += 2.5 + (3 * nearest) / ctx.W;
-        }
+          ),
+        );
+        c.adjacency += want.weight * (2.5 + (3 * nearest) / ctx.W);
       }
+    }
+    for (const keep of (ctx.preferences?.apart ?? []).filter((p) => p.a === room.kind)) {
+      const touching = [...realized.rects].some(
+        ([oid, r]) =>
+          oid !== id &&
+          ctx.rooms.get(oid)?.kind === keep.b &&
+          facingSpan(rect, r, ADJACENT_GAP_M) >= 1.5,
+      );
+      if (touching) c.adjacency += 4 * keep.weight;
     }
   }
   c.total = c.shrink + c.aspect + c.depth + c.daylight + c.adjacency + c.entrance + c.crowded;

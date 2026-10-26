@@ -26,6 +26,8 @@ export {
   checkProgram,
   expandRooms,
   type PlannedRoom,
+  type Preferences,
+  PreferencesSchema,
   type Program,
   ProgramSchema,
   type RoomRequest,
@@ -44,6 +46,7 @@ export {
   GeometrySchema,
   type PointCloud,
 } from "./reconstruct/geometry";
+export * from "./repair";
 export {
   applyStyle,
   colourName,

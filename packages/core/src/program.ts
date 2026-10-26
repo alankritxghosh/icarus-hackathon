@@ -30,6 +30,21 @@ export const AssumptionSchema = z.object({
   confidence: z.number().min(0).max(1),
 });
 
+const Kind = z.enum(ROOM_KINDS);
+const Pair = z.object({ a: Kind, b: Kind, weight: z.number().min(0.5).max(3).default(1) });
+
+/**
+ * What a designer (or a model, or the repair loop) may ask of the solver beyond the stated facts:
+ * extra neighbours, rooms to keep apart, and a bias on how much floor a kind of room should get.
+ * The bias steers the solver only; the validator still measures against the unbiased targets.
+ */
+export const PreferencesSchema = z.object({
+  adjacent: z.array(Pair).max(8).default([]),
+  apart: z.array(Pair).max(8).default([]),
+  areaScale: z.partialRecord(Kind, z.number().min(0.6).max(1.6)).default({}),
+});
+export type Preferences = z.infer<typeof PreferencesSchema>;
+
 export const ProgramSchema = z.object({
   company: z.object({ name: z.string().max(80).optional(), headcount: z.int().min(2).max(500) }),
   shell: ShellSchema,
@@ -39,6 +54,7 @@ export const ProgramSchema = z.object({
   assumptions: z.array(AssumptionSchema).default([]),
   /** How it looks. The default is the house style: warm oak and green. */
   style: StyleSchema.default(() => StyleSchema.parse({})),
+  preferences: PreferencesSchema.default(() => PreferencesSchema.parse({})),
 });
 
 export type Program = z.infer<typeof ProgramSchema>;
