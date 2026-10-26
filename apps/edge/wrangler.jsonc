@@ -1,0 +1,7 @@
+{
+  "name": "icarus-edge",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // Workers AI is the only binding: no API token ever reaches the browser or the repository.
+  "ai": { "binding": "AI" }
+}

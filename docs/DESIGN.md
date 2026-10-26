@@ -67,7 +67,7 @@ OpenRouter now, Meta later, through one adapter. OpenRouter serves Meta's models
 not a rewrite. Development uses a free model; the submission must run `ICARUS_MODEL=meta/muse-spark-1.3`
 and say so. Known limits through OpenRouter: no conversation state (the tool loop resends history), no
 SAM 3.1 endpoint, and `meta/muse-image` is listed with no endpoints yet, so the default picture model is
-the open-weight `black-forest-labs/flux.2-klein-4b`.
+the open-weight `black-forest-labs/flux.2-klein-4b`. While OpenRouter has no credits, pictures come free from Cloudflare Workers AI through the `apps/edge` Worker (about 80 images a day at 1024 px).
 
 ## Assets
 
