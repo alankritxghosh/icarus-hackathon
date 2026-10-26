@@ -12,8 +12,8 @@ import {
 } from "./types";
 
 export const OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-/** A free model with tools, JSON output and image input, for development before credits exist. */
-export const OPENROUTER_DEV_MODEL = "google/gemma-4-31b-it:free";
+/** A free model verified live for JSON output and tool calls, for development before credits exist. */
+export const OPENROUTER_DEV_MODEL = "recursive/flint-v1.0:free";
 
 export interface ClientOptions extends TransportOptions {
   /** Which service this is, for logs and the interface: never changes behaviour except below. */
