@@ -14,6 +14,7 @@ import {
 } from "./types";
 
 export { rng } from "./search";
+export { snapPlanToMm } from "./snap";
 export * from "./types";
 
 export interface LayoutOptions {

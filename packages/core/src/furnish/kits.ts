@@ -21,6 +21,9 @@ import {
 } from "./parts";
 import { type Item, Space } from "./place";
 
+/** Positions are millimetre-grid values; a fit within this much counts as a fit. */
+const FIT_TOLERANCE_M = 0.001;
+
 export interface FurnishReport {
   /** Desks wanted and placed in the open workspace. */
   seatsWanted: number;
@@ -108,13 +111,14 @@ function layDesks(
 /** The fewest rows of the widest desks that seat everyone, found by trying them on a copy first. */
 function placeDesks(space: Space, wanted: number): number {
   const f = frame(space.rect);
+  // Fits are decided to the millimetre: a room a fraction of a millimetre short is not short.
   const maxModules = Math.max(
     0,
-    Math.floor((f.V - 2 * CHAIR_REACH - PAIR_DEPTH) / MODULE_PITCH) + 1,
+    Math.floor((f.V - 2 * CHAIR_REACH - PAIR_DEPTH + FIT_TOLERANCE_M) / MODULE_PITCH) + 1,
   );
   let fallback: { width: number; modules: number; perRow: number; placed: number } | undefined;
   for (const width of DESK_WIDTHS) {
-    const maxPerRow = Math.floor((f.U - 1.2 + 0.1) / (width + 0.1));
+    const maxPerRow = Math.floor((f.U - 1.2 + 0.1 + FIT_TOLERANCE_M) / (width + 0.1));
     for (let modules = 1; modules <= maxModules; modules++) {
       const base = Math.min(maxPerRow, Math.ceil(wanted / (2 * modules)));
       // A slot beside the door can be blocked, so try a spare desk or two per row.

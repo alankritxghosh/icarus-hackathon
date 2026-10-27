@@ -239,10 +239,9 @@ suite("spatial model migration gate", () => {
       expect(t.issueDiffs).toEqual([]);
       expect(t.maxCostDrift).toBeLessThan(1e-9);
     }
-    // Knife-edge sensitivity is reported, and bounded so that a regression cannot hide in it.
-    const plansTotal = dt.plans + et.plans;
-    expect(dt.snapSensitive.length + et.snapSensitive.length).toBeLessThanOrEqual(
-      Math.ceil(0.02 * plansTotal),
-    );
+    // Snapping to the grid must not change what the engine measures. (It did, for 1 plan in 110,
+    // before furnishing counted a fit within a millimetre as a fit.)
+    expect(dt.snapSensitive).toEqual([]);
+    expect(et.snapSensitive).toEqual([]);
   });
 });

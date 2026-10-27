@@ -13,7 +13,7 @@ export {
   KnowledgeSchema,
   loadKnowledge,
 } from "./knowledge";
-export { type LayoutOptions, layoutOffice } from "./layout";
+export { type LayoutOptions, layoutOffice, snapPlanToMm } from "./layout";
 export * from "./layout/types";
 export {
   type FromPhoto,

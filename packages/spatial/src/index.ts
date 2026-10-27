@@ -1,9 +1,9 @@
+export { snapPlanToMm } from "@icarus/core";
 export {
   type BackConversion,
   CIRCULATION,
   fromFloorPlan,
   OFFICE,
-  snapPlanToMm,
   toFloorPlan,
 } from "./adapter";
 export { circulationGraph } from "./circulation";
