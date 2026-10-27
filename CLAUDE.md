@@ -15,6 +15,12 @@ This repository is a fresh build for the Meta Global AI Developer Hackathon, Ind
 - A model may only propose. The deterministic layout engine and validators in `packages/core` decide what is accepted, and they never draw geometry from model output unchecked.
 - This is concept design. Never imply building-code compliance, structural soundness or construction readiness in copy, fixtures or demos.
 
+## Engineering rules (founder, 28 Oct 2026; full text and audit in `docs/ENGINEERING_RULES.md`)
+
+1. Nothing enters the architecture that the founder cannot have explained: what it does, why it exists, what it assumes, what can go wrong.
+2. Every major engineering decision has evidence: real alternatives, trade-offs and an experiment. No technology is adopted because an AI agent says it is good.
+3. Every major subsystem has an independent test (known geometry, external architectural evaluation, measurable reference geometry, tests for unintended changes). "The demo looks right" is not a test. A check that reuses the code's own score is not independent.
+
 ## Working rules
 
 - pnpm workspace: `packages/core` (program, layout, build, edits, evidence), `packages/meta`, `apps/server`, `apps/web`.
