@@ -1,0 +1,21 @@
+{
+  "name": "@icarus/spatial",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p . && tsc -p test",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@icarus/core": "workspace:*",
+    "clipper2-wasm": "0.2.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2"
+  }
+}
