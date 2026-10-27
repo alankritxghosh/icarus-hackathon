@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="589" height="402" viewBox="-10 -26 589 402" font-family="sans-serif" font-size="10">
+<text x="0" y="-10" font-size="12">agency 40 (tight) - row zones L (326 ms)</text>
+<polygon points="0.0,0.0 0.0,362.4 568.8,362.4 568.8,144.0 369.6,144.0 369.6,0.0 0.0,0.0" fill="#f6f3ec" stroke="#222" stroke-width="2"/>
+<rect x="48.0" y="0.0" width="96.0" height="144.0" fill="#c9a08a" stroke="#333" stroke-width="1"/>
+<text x="96.0" y="72.0" text-anchor="middle">lounge 24m²</text>
+<rect x="144.0" y="0.0" width="225.6" height="144.0" fill="#d9c9a3" stroke="#333" stroke-width="1"/>
+<text x="256.8" y="72.0" text-anchor="middle">open workspace 56m²</text>
+<rect x="48.0" y="182.4" width="220.3" height="58.4" fill="#e0b98a" stroke="#333" stroke-width="1"/>
+<text x="158.2" y="211.6" text-anchor="middle">kitchen 22m²</text>
+<rect x="268.3" y="182.4" width="80.1" height="58.4" fill="#bdbdb5" stroke="#333" stroke-width="1"/>
+<text x="308.4" y="211.6" text-anchor="middle">storage 8m²</text>
+<rect x="348.5" y="182.4" width="110.2" height="58.4" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="403.5" y="211.6" text-anchor="middle">restroom 11m²</text>
+<rect x="458.6" y="182.4" width="110.2" height="58.4" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="513.7" y="211.6" text-anchor="middle">restroom 11m²</text>
+<rect x="48.0" y="279.2" width="98.5" height="83.2" fill="#a9bcd0" stroke="#333" stroke-width="1"/>
+<text x="97.3" y="320.8" text-anchor="middle">reception 14m²</text>
+<rect x="146.5" y="279.2" width="105.6" height="83.2" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="199.3" y="320.8" text-anchor="middle">meeting room 15m²</text>
+<rect x="252.1" y="279.2" width="105.6" height="83.2" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="304.9" y="320.8" text-anchor="middle">meeting room 15m²</text>
+<rect x="357.7" y="279.2" width="105.6" height="83.2" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="410.4" y="320.8" text-anchor="middle">meeting room 15m²</text>
+<rect x="463.2" y="279.2" width="105.6" height="83.2" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="516.0" y="320.8" text-anchor="middle">meeting room 15m²</text>
+</svg>
