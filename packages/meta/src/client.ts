@@ -84,15 +84,30 @@ export class MetaClient implements MetaApi {
 
 type Env = Record<string, string | undefined>;
 
+export type Provider = "openrouter" | "meta";
+
 /**
- * Build a client from the environment without ever echoing a key. OPENROUTER_API_KEY selects
- * OpenRouter (model from ICARUS_MODEL, default a free development model); otherwise
- * MODEL_API_KEY selects the Meta Model API directly.
+ * Which route to use. ICARUS_PROVIDER says so outright ("openrouter" or "meta"), so both keys can sit
+ * in the environment and switching is one setting. Without it, an OpenRouter key selects OpenRouter
+ * and otherwise the Meta Model API is used, as before.
+ */
+export function providerFromEnv(env: Env): Provider {
+  const named = env.ICARUS_PROVIDER?.trim().toLowerCase();
+  if (named === "openrouter" || named === "meta") return named;
+  if (named)
+    throw new MetaError("invalid_request", 'ICARUS_PROVIDER must be "openrouter" or "meta"');
+  return env.OPENROUTER_API_KEY?.trim() ? "openrouter" : "meta";
+}
+
+/**
+ * Build a client from the environment without ever echoing a key. OpenRouter uses OPENROUTER_API_KEY
+ * (model from ICARUS_MODEL, default a free development model); the Meta Model API uses
+ * MODEL_API_KEY (model from ICARUS_MODEL, default Muse Spark).
  */
 export function metaClientFromEnv(env: Env, options: Partial<ClientOptions> = {}): MetaClient {
-  if (env.OPENROUTER_API_KEY?.trim())
+  if (providerFromEnv(env) === "openrouter")
     return new MetaClient({
-      apiKey: env.OPENROUTER_API_KEY,
+      apiKey: env.OPENROUTER_API_KEY ?? "",
       keyName: "OPENROUTER_API_KEY",
       baseUrl: env.OPENROUTER_BASE_URL || OPENROUTER_BASE_URL,
       provider: "openrouter",

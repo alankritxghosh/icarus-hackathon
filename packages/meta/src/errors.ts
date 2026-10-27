@@ -5,7 +5,9 @@ export type MetaErrorCategory =
   | "server"
   | "network"
   | "timeout"
-  | "invalid_response";
+  | "invalid_response"
+  /** The daily spending limit for this route has been reached, or no limit is configured. */
+  | "budget";
 
 /** A failure talking to the Meta Model API. Messages never contain the API key. */
 export class MetaError extends Error {

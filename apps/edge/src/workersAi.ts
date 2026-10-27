@@ -111,6 +111,10 @@ export class FallbackMeta implements MetaApi {
       return result;
     } catch (error) {
       if (error instanceof MetaError && error.category === "invalid_response") throw error;
+      // Loud, because someone who has turned the paid route on should know when it was not used.
+      console.error(
+        `[design] ${this.primary.model} not used (${error instanceof MetaError ? error.category : "error"}); using ${this.secondary.model}`,
+      );
       const result = await this.secondary.api.respond(request);
       this.lastModel = this.secondary.model;
       return result;

@@ -213,3 +213,31 @@ describe("POST /api/design/edit", () => {
     expect(fake.requests).toHaveLength(0);
   });
 });
+
+describe("the provider setting and the paid route", () => {
+  const BOTH = { OPENROUTER_API_KEY: "sk-or-x", MODEL_API_KEY: "meta-key" };
+  const FREE = DESIGN_DEV_MODEL;
+
+  it("ICARUS_PROVIDER picks the route when both keys are present; without it nothing changes", () => {
+    expect(modelFromEnv(BOTH)()?.model()).toBe(FREE);
+    expect(modelFromEnv({ ...BOTH, ICARUS_PROVIDER: "openrouter" })()?.model()).toBe(FREE);
+    expect(modelFromEnv({ ...BOTH, ICARUS_PROVIDER: "meta" })()?.model()).toBe("muse-spark-1.3");
+    expect(
+      modelFromEnv({ ...BOTH, ICARUS_PROVIDER: "meta", ICARUS_MODEL: "muse-spark-2" })()?.model(),
+    ).toBe("muse-spark-2");
+  });
+
+  it("asking for Meta without its key, or with a typo, gives no model instead of the wrong one", () => {
+    expect(
+      modelFromEnv({ OPENROUTER_API_KEY: "sk-or-x", ICARUS_PROVIDER: "meta" })(),
+    ).toBeUndefined();
+    expect(modelFromEnv({ ...BOTH, ICARUS_PROVIDER: "metta" })()).toBeUndefined();
+  });
+
+  it("the Meta route refuses to run without a spending limit and prices, and says why", async () => {
+    const found = modelFromEnv({ MODEL_API_KEY: "meta-key", ICARUS_PROVIDER: "meta" })();
+    const res = await handlePropose(post("/api/design/propose", { brief: BRIEF }), () => found);
+    expect(res.status).toBe(429);
+    expect(JSON.stringify(await res.json())).toContain("budget");
+  });
+});

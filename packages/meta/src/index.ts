@@ -1,9 +1,18 @@
 export {
+  BudgetedMeta,
+  type BudgetLimits,
+  type BudgetStore,
+  limitsFromEnv,
+  memoryStore,
+} from "./budget";
+export {
   type ClientOptions,
   MetaClient,
   metaClientFromEnv,
   OPENROUTER_BASE_URL,
   OPENROUTER_DEV_MODEL,
+  type Provider,
+  providerFromEnv,
 } from "./client";
 export { MetaError, type MetaErrorCategory } from "./errors";
 export { FakeMeta, type FakeStep } from "./fake";

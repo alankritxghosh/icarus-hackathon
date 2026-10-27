@@ -12,7 +12,17 @@ import {
   reviseInput,
   reviseInstructions,
 } from "@icarus/core";
-import { type MetaApi, MetaError, metaClientFromEnv } from "@icarus/meta";
+import {
+  BudgetedMeta,
+  type BudgetStore,
+  limitsFromEnv,
+  type MetaApi,
+  MetaError,
+  memoryStore,
+  metaClientFromEnv,
+  type Provider,
+  providerFromEnv,
+} from "@icarus/meta";
 import { z } from "zod";
 import type { AiBinding } from "./render";
 import { FallbackMeta, WORKERS_AI_MODEL, WorkersAiMeta } from "./workersAi";
@@ -30,7 +40,32 @@ const json = (body: unknown, status = 200) =>
  */
 export const DESIGN_DEV_MODEL = "poolside/laguna-s-2.1:free";
 
-/** The model service from the Worker's environment, or undefined when no key is configured. */
+/** Spend for the paid Meta route is counted here when no KV namespace is bound; it lives as long as the Worker process. */
+const processBudget = memoryStore();
+
+/** A KV namespace (binding BUDGET) as a budget store, so the day's spend survives restarts and is shared. */
+function kvBudget(kv: unknown): BudgetStore | undefined {
+  const k = kv as
+    | {
+        get?: (key: string) => Promise<string | null>;
+        put?: (key: string, v: string) => Promise<void>;
+      }
+    | undefined;
+  if (!k?.get || !k?.put) return undefined;
+  const get = k.get.bind(k);
+  const put = k.put.bind(k);
+  return {
+    get: async (key) => Number((await get(key)) ?? 0) || 0,
+    set: async (key, value) => put(key, String(value)),
+  };
+}
+
+/**
+ * The model service from the Worker's environment, or undefined when no key is configured.
+ * ICARUS_PROVIDER ("openrouter" or "meta") chooses the route when both keys are present. The Meta
+ * route is paid, so it is wrapped in a daily spending limit and refuses to run without one; a free
+ * Workers AI route behind it answers when the paid one is refused, busy or down.
+ */
 export function modelFromEnv(env: Record<string, unknown>): ModelSource {
   return () => {
     const strings = Object.fromEntries(
@@ -38,15 +73,30 @@ export function modelFromEnv(env: Record<string, unknown>): ModelSource {
     ) as Record<string, string>;
     const ai = (env.AI as AiBinding | undefined)?.run ? (env.AI as AiBinding) : undefined;
     const workers = ai ? { api: new WorkersAiMeta(ai), model: WORKERS_AI_MODEL } : undefined;
-    const hasKey = !!(strings.OPENROUTER_API_KEY?.trim() || strings.MODEL_API_KEY?.trim());
-    if (!hasKey) return workers ? { api: workers.api, model: () => workers.model } : undefined;
-    const withModel = strings.OPENROUTER_API_KEY?.trim()
-      ? { ...strings, ICARUS_MODEL: strings.ICARUS_MODEL || DESIGN_DEV_MODEL }
-      : strings;
+    const onlyWorkers = workers ? { api: workers.api, model: () => workers.model } : undefined;
+    let provider: Provider;
+    try {
+      provider = providerFromEnv(strings);
+    } catch (error) {
+      console.error(`[design] ${error instanceof Error ? error.message : "bad provider setting"}`);
+      return onlyWorkers;
+    }
+    const hasKey = !!(provider === "openrouter"
+      ? strings.OPENROUTER_API_KEY?.trim()
+      : strings.MODEL_API_KEY?.trim());
+    if (!hasKey) return onlyWorkers;
+    const withModel =
+      provider === "openrouter"
+        ? { ...strings, ICARUS_MODEL: strings.ICARUS_MODEL || DESIGN_DEV_MODEL }
+        : strings;
     const client = metaClientFromEnv(withModel, { timeoutMs: 60_000, maxRetries: 2 });
-    const primary = { api: client as MetaApi, model: client.model };
+    const api: MetaApi =
+      provider === "meta"
+        ? new BudgetedMeta(client, limitsFromEnv(strings), kvBudget(env.BUDGET) ?? processBudget)
+        : client;
+    const primary = { api, model: client.model };
     if (!workers) return { api: primary.api, model: () => primary.model };
-    // A second free route, tried when the first is busy, down or out of allowance.
+    // A second free route, tried when the first is busy, down, out of allowance or out of budget.
     const both = new FallbackMeta(primary, workers);
     return { api: both, model: () => both.lastModel };
   };
@@ -75,6 +125,8 @@ function failure(error: unknown): Response {
       return json({ error: "the model service is busy; try again shortly" }, 429);
     if (error.category === "auth")
       return json({ error: "the model service is not configured correctly" }, 503);
+    if (error.category === "budget")
+      return json({ error: "the paid model route is out of budget or has no limit set" }, 429);
     if (error.category === "invalid_response")
       return json({ error: "the model's answer did not match what Icarus needs" }, 502);
   }
