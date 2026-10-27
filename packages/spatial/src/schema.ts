@@ -127,6 +127,12 @@ export const Space = z.object({
     })
     .default({}),
   locked: z.boolean().default(false),
+  /**
+   * Where the room was when it was locked. A locked room may drift only a bounded distance from
+   * here as its neighbours change, so the anchor must outlive each edit; without it every edit would
+   * reset the starting point and the drift would be unbounded.
+   */
+  lockAt: z.object({ x: Mm, y: Mm }).optional(),
   provenance: Provenance.default(generated),
 });
 

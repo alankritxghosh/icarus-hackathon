@@ -1,3 +1,4 @@
+import { fromFloorPlan } from "@icarus/spatial/model";
 import { beforeAll, describe, expect, it } from "vitest";
 import { type Built, builtFromRefine } from "../src/design";
 import { designFromBrief } from "../src/designLoop";
@@ -156,5 +157,64 @@ describe("editByWords", () => {
     const base = await built();
     const ev = evaluationOf(base);
     expect(ev.plan.rooms.map((r) => r.rect)).toEqual(base.plan.rooms.map((r) => r.rect));
+  });
+
+  it("works from the model alone: a design with no stored row order edits the same", async () => {
+    const base = await built();
+    const bare: Built = {
+      ...base,
+      program: { ...base.program, arrangement: undefined },
+      plan: { ...base.plan, search: { ...base.plan.search, rows: [] } },
+    };
+    const a = await editByWords("move the kitchen east", base, { useModel: false });
+    const b = await editByWords("move the kitchen east", bare, { useModel: false });
+    expect(b.entry.lines.map((l) => `${l.status}: ${l.text}`)).toEqual(
+      a.entry.lines.map((l) => `${l.status}: ${l.text}`),
+    );
+    expect(JSON.stringify(b.built?.plan.rooms.map((r) => r.rect))).toBe(
+      JSON.stringify(a.built?.plan.rooms.map((r) => r.rect)),
+    );
+  });
+
+  it("hands back a model that is the model of the plan it hands back", async () => {
+    const base = await built();
+    const r = await editByWords("add a third phone booth", base, { useModel: false });
+    expect(r.built).toBeDefined();
+    if (!r.built) return;
+    expect(JSON.stringify(r.built.model)).toBe(
+      JSON.stringify(fromFloorPlan(r.built.plan, { program: r.built.program })),
+    );
+    expect(r.built.model).not.toBe(base.model);
+  });
+
+  it("says why when the building is not one the word editor can move", async () => {
+    const base = await built();
+    const odd: Built = {
+      ...base,
+      model: {
+        ...base.model,
+        obstacles: [
+          {
+            id: "col",
+            levelId: "L0",
+            kind: "column",
+            footprint: {
+              outer: [
+                { x: 5000, y: 5000 },
+                { x: 5400, y: 5000 },
+                { x: 5400, y: 5400 },
+                { x: 5000, y: 5400 },
+              ],
+              holes: [],
+            },
+            provenance: { source: "generated", evidence: [] },
+          },
+        ],
+      },
+    };
+    const r = await editByWords("move the kitchen east", odd, { useModel: false });
+    expect(r.built).toBeUndefined();
+    expect(r.entry.lines[0]?.status).toBe("refused");
+    expect(r.entry.lines[0]?.text).toContain("columns");
   });
 });

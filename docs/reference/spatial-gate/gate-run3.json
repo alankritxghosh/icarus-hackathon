@@ -1,0 +1,106 @@
+{
+  "generated": "2026-10-27T16:46:58.094Z",
+  "design": {
+    "briefs": 12,
+    "engineDriftFromRecordedRun": [],
+    "throughModel": {
+      "plans": 24,
+      "modelErrors": [],
+      "unreachable": [],
+      "roundTripDiffs": [],
+      "exactDiffs": [],
+      "unsupported": [],
+      "issueDiffs": [],
+      "snapSensitive": [],
+      "maxCostDrift": 0
+    }
+  },
+  "edit": {
+    "tally": {
+      "applied": 86,
+      "unchanged": 36,
+      "refused": 36,
+      "requests": 158,
+      "newFailures": 0
+    },
+    "byKind": {
+      "move": {
+        "applied": 34,
+        "unchanged": 36,
+        "refused": 6
+      },
+      "booth": {
+        "applied": 7,
+        "unchanged": 0,
+        "refused": 1
+      },
+      "resize": {
+        "applied": 20,
+        "unchanged": 0,
+        "refused": 11
+      },
+      "rooms": {
+        "applied": 21,
+        "unchanged": 0,
+        "refused": 3
+      },
+      "swap": {
+        "applied": 4,
+        "unchanged": 0,
+        "refused": 15
+      }
+    },
+    "recorded": {
+      "applied": 86,
+      "unchanged": 36,
+      "refused": 36,
+      "requests": 158,
+      "newFailures": 0
+    },
+    "recordedByKind": {
+      "move": {
+        "applied": 34,
+        "unchanged": 36,
+        "refused": 6
+      },
+      "booth": {
+        "applied": 7,
+        "unchanged": 0,
+        "refused": 1
+      },
+      "resize": {
+        "applied": 20,
+        "unchanged": 0,
+        "refused": 11
+      },
+      "rooms": {
+        "applied": 21,
+        "unchanged": 0,
+        "refused": 3
+      },
+      "swap": {
+        "applied": 4,
+        "unchanged": 0,
+        "refused": 15
+      }
+    },
+    "throughModel": {
+      "plans": 86,
+      "modelErrors": [],
+      "unreachable": [],
+      "roundTripDiffs": [],
+      "exactDiffs": [],
+      "unsupported": [],
+      "issueDiffs": [],
+      "snapSensitive": [],
+      "maxCostDrift": 0
+    },
+    "viaModel": {
+      "requestsCompared": 158,
+      "differences": [],
+      "chains": 72,
+      "chainDifferences": [],
+      "rowsReadBackDifferences": []
+    }
+  }
+}

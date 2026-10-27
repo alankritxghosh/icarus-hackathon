@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import {
   applyEdit,
+  arrangementOf,
   diagnose,
   type EditOp,
   type Evaluation,
@@ -18,6 +19,8 @@ import { describe, expect, it } from "vitest";
 import { EVAL_BRIEFS } from "../../../../apps/web/test/eval/briefs";
 import {
   circulationGraph,
+  type EditState,
+  editModel,
   fromFloorPlan,
   type Kernel,
   snapPlanToMm,
@@ -115,6 +118,39 @@ function parsed(text: string, base: Evaluation): { text: string; ops: EditOp[] }
   return said.kind === "edit" && said.ops.length ? [{ text, ops: said.ops }] : [];
 }
 
+const stepText = (steps: { status: string; message: string }[]) =>
+  steps.map((x) => `${x.status}: ${x.message}`).join(" | ");
+
+/** Differences between an edit done directly and the same edit done on the model; empty means identical. */
+function compareEdit(
+  label: string,
+  direct: ReturnType<typeof applyEdit>,
+  via: ReturnType<typeof editModel>,
+  before: EditState,
+): string[] {
+  if (!via.ok) return [`${label}: refused by the model path: ${via.reason}`];
+  const out: string[] = [];
+  if (stepText(direct.steps) !== stepText(via.outcome.steps)) out.push(`${label}: steps differ`);
+  if (direct.changed !== via.outcome.changed)
+    out.push(`${label}: changed ${direct.changed} vs ${via.outcome.changed}`);
+  if (!direct.changed) {
+    if (via.state !== before) out.push(`${label}: state replaced though nothing changed`);
+    return out;
+  }
+  for (const d of samePlan(direct.evaluation.plan, via.evaluation.plan, 1e-9))
+    out.push(`${label}: plan ${d}`);
+  if (Math.abs(direct.evaluation.cost - via.evaluation.cost) > 1e-9)
+    out.push(`${label}: cost ${direct.evaluation.cost} vs ${via.evaluation.cost}`);
+  if (issueKey(direct.evaluation.issues).join("|") !== issueKey(via.evaluation.issues).join("|"))
+    out.push(`${label}: issues differ`);
+  const want = fromFloorPlan(direct.evaluation.plan, {
+    program: direct.evaluation.program,
+    name: before.model.name,
+  });
+  if (JSON.stringify(want) !== JSON.stringify(via.state.model)) out.push(`${label}: model differs`);
+  return out;
+}
+
 suite("spatial model migration gate", () => {
   it("design set and edit set are unchanged and pass through the model", {
     timeout: 1_800_000,
@@ -162,6 +198,11 @@ suite("spatial model migration gate", () => {
       byKind: Record<string, Record<string, number>>;
     };
     const et = fresh();
+    const viaModelDiffs: string[] = [];
+    const rowsDiffs: string[] = [];
+    const chainDiffs: string[] = [];
+    let compared = 0;
+    let chains = 0;
     const tally = { applied: 0, unchanged: 0, refused: 0, requests: 0, newFailures: 0 };
     const byKind: Record<string, Record<string, number>> = {};
     const failsOf = (e: Evaluation) =>
@@ -190,8 +231,26 @@ suite("spatial model migration gate", () => {
         requests.push(...parsed("swap reception and lounge", base));
       if (kinds.has("reception") && kinds.has("kitchen"))
         requests.push(...parsed("swap reception and kitchen", base));
+      // The model path starts from the geometry alone: no stored row order, no stored plan.
+      const baseState: EditState = {
+        program: { ...base.program, arrangement: undefined },
+        model: fromFloorPlan(base.plan, { program: base.program }),
+        seed: base.seed,
+      };
+      if (JSON.stringify(arrangementOf(base.plan)) !== JSON.stringify(base.plan.search.rows))
+        rowsDiffs.push(`${name}: base`);
       for (const { text, ops } of requests) {
         const outcome = applyEdit(base, ops);
+        compared++;
+        viaModelDiffs.push(
+          ...compareEdit(`${name} :: ${text}`, outcome, editModel(baseState, ops), baseState),
+        );
+        if (
+          outcome.changed &&
+          JSON.stringify(arrangementOf(outcome.evaluation.plan)) !==
+            JSON.stringify(outcome.evaluation.plan.search.rows)
+        )
+          rowsDiffs.push(`${name} :: ${text}`);
         const step = outcome.steps[0];
         const kind = text.startsWith("make")
           ? "resize"
@@ -217,12 +276,67 @@ suite("spatial model migration gate", () => {
         }
       }
     }
+    // Chains of four requests, with locks and unlocks in the mix, done both ways.
+    let state32 = 2026;
+    const pick = () => {
+      state32 = (Math.imul(state32, 1664525) + 1013904223) >>> 0;
+      return state32 / 4294967296;
+    };
+    for (const { name, brief } of EVAL_BRIEFS) {
+      const base = (await refineDesign(readBrief(brief).program)).best;
+      const kinds = new Set(base.plan.rooms.map((r) => r.kind));
+      const menu = [
+        "move the kitchen east",
+        "move the lounge north",
+        "lock the kitchen",
+        "unlock the kitchen",
+        "lock the lounge",
+        "add a third phone booth",
+        "make the kitchen bigger",
+        "add a meeting room",
+        "remove a meeting room",
+        "swap reception and the kitchen",
+        "move the kitchen west",
+        "make the lounge smaller",
+      ].filter(
+        (t) =>
+          !(t.includes("kitchen") && !kinds.has("kitchen")) &&
+          !(t.includes("lounge") && !kinds.has("lounge")),
+      );
+      for (let c = 0; c < 6; c++) {
+        let direct = base;
+        let state: EditState = {
+          program: { ...base.program, arrangement: undefined },
+          model: fromFloorPlan(base.plan, { program: base.program }),
+          seed: base.seed,
+        };
+        chains++;
+        for (let i = 0; i < 4; i++) {
+          const text = menu[Math.floor(pick() * menu.length)] as string;
+          const o = parsed(text, direct)[0]?.ops;
+          if (!o) continue;
+          const d = applyEdit(direct, o);
+          const m = editModel(state, o);
+          chainDiffs.push(...compareEdit(`${name} chain ${c}.${i} :: ${text}`, d, m, state));
+          if (!m.ok) break;
+          direct = d.evaluation;
+          state = m.state;
+        }
+      }
+    }
     report.edit = {
       tally,
       byKind,
       recorded: editRef.tally,
       recordedByKind: editRef.byKind,
       throughModel: et,
+      viaModel: {
+        requestsCompared: compared,
+        differences: viaModelDiffs,
+        chains,
+        chainDifferences: chainDiffs,
+        rowsReadBackDifferences: rowsDiffs,
+      },
     };
     writeFileSync(out as string, JSON.stringify(report, null, 2));
 
@@ -239,6 +353,12 @@ suite("spatial model migration gate", () => {
       expect(t.issueDiffs).toEqual([]);
       expect(t.maxCostDrift).toBeLessThan(1e-9);
     }
+    // Editing on the model gives exactly what editing directly gives.
+    expect(compared).toBe(editRef.tally.requests);
+    expect(viaModelDiffs).toEqual([]);
+    expect(chains).toBeGreaterThan(50);
+    expect(chainDiffs).toEqual([]);
+    expect(rowsDiffs).toEqual([]);
     // Snapping to the grid must not change what the engine measures. (It did, for 1 plan in 110,
     // before furnishing counted a fit within a millimetre as a fit.)
     expect(dt.snapSensitive).toEqual([]);

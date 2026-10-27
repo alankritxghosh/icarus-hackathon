@@ -13,6 +13,7 @@ import {
   type PlanRoom,
 } from "./types";
 
+export { arrangementOf } from "./arrangement";
 export { rng } from "./search";
 export { snapPlanToMm } from "./snap";
 export * from "./types";

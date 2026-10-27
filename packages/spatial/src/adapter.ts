@@ -38,7 +38,7 @@ interface RectSpace {
   y1: number;
   capacity?: number;
   targetAreaM2?: number;
-  locked: boolean;
+  lockAt?: { x: number; y: number };
 }
 
 type Atom = { o: "h" | "v"; c: number; a: number; b: number; left?: string; right?: string };
@@ -152,7 +152,9 @@ export function fromFloorPlan(
   const planned = new Map(
     (options.program ? expandRooms(options.program) : []).map((r) => [r.id, r]),
   );
-  const locked = new Set((options.program?.locks ?? []).map((l) => l.id));
+  const lockAt = new Map(
+    (options.program?.locks ?? []).map((l) => [l.id, { x: mm(l.x), y: mm(l.y) }]),
+  );
   const spaces: RectSpace[] = [
     ...plan.rooms.map((r) => ({
       id: r.id,
@@ -164,7 +166,7 @@ export function fromFloorPlan(
       y1: mm(r.rect.y + r.rect.h),
       capacity: planned.get(r.id)?.capacity,
       targetAreaM2: r.targetAreaM2,
-      locked: locked.has(r.id),
+      lockAt: lockAt.get(r.id),
     })),
     ...plan.circulation.map((c) => ({
       id: c.id,
@@ -174,7 +176,6 @@ export function fromFloorPlan(
       y0: mm(c.rect.y),
       x1: mm(c.rect.x + c.rect.w),
       y1: mm(c.rect.y + c.rect.h),
-      locked: false,
     })),
   ];
   const walls = wallsFrom(spaces, W, H, plan.shell.windows);
@@ -303,7 +304,8 @@ export function fromFloorPlan(
       name: s.name,
       boundary: { outer: ring(s), holes: [] },
       programme: { capacity: s.capacity, targetAreaM2: s.targetAreaM2 },
-      locked: s.locked,
+      locked: !!s.lockAt,
+      lockAt: s.lockAt,
       provenance: GENERATED,
     })),
     walls,

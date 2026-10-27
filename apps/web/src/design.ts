@@ -15,6 +15,7 @@ import {
   readBrief,
   type Scene,
 } from "@icarus/core";
+import { fromFloorPlan, type SpatialModel } from "@icarus/spatial/model";
 import type { ModelTrace } from "./designLoop";
 
 export interface Design {
@@ -44,6 +45,11 @@ export interface EditEntry {
 }
 
 export interface Built extends Design {
+  /**
+   * The building as the spatial model sees it. Changing the design by words works on this, not on
+   * the plan's stored row order, and gives a model back; the plan alongside is what is drawn.
+   */
+  model: SpatialModel;
   scene: Scene;
   evidence: EvidenceItem[];
   report: FurnishReport;
@@ -88,6 +94,7 @@ export function finish(design: Design, plannedMs: number): Built {
   const { scene, report } = furnish(design.plan, design.program);
   return {
     ...design,
+    model: fromFloorPlan(design.plan, { program: design.program }),
     scene,
     report,
     evidence: [...measurePlan(design.plan, design.program), ...furnishingEvidence(report)],
@@ -116,6 +123,7 @@ export function builtFromRefine(
     plan,
     seed,
     notes,
+    model: fromFloorPlan(plan, { program }),
     scene: furnished.scene,
     report: furnished.report,
     evidence: [...measurePlan(plan, program), ...furnishingEvidence(furnished.report)],
@@ -133,11 +141,17 @@ export function builtFromRefine(
 }
 
 /** A design after a spoken or typed change: the measured evaluation becomes the shown design, nothing is planned twice. */
-export function builtFromEvaluation(ev: Evaluation, base: Built, entry: EditEntry): Built {
+export function builtFromEvaluation(
+  ev: Evaluation,
+  base: Built,
+  entry: EditEntry,
+  model: SpatialModel = fromFloorPlan(ev.plan, { program: ev.program }),
+): Built {
   return {
     ...base,
     program: ev.program,
     plan: ev.plan,
+    model,
     seed: ev.seed,
     scene: ev.furnished.scene,
     report: ev.furnished.report,

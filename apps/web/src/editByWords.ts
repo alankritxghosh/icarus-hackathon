@@ -1,12 +1,5 @@
-import {
-  applyEdit,
-  centre,
-  type Edit,
-  EditSchema,
-  type Evaluation,
-  evaluateProgram,
-  understandEdit,
-} from "@icarus/core";
+import { centre, type Edit, EditSchema, type Evaluation, understandEdit } from "@icarus/core";
+import { editModel, evaluationOfModel } from "@icarus/spatial/model";
 import { type Built, builtFromEvaluation, type EditEntry } from "./design";
 
 type Fetch = typeof fetch;
@@ -23,12 +16,14 @@ export interface EditResult {
 const HELP =
   "I can move a room (“move the kitchen east”), make a room bigger or smaller (“make the kitchen bigger”), add or remove a meeting room (“add a meeting room”), swap two rooms (“swap the lounge and the kitchen”), change phone booths (“add a third phone booth”), and lock or unlock a room (“lock the kitchen”).";
 
-/** The design as a measured evaluation, held at its current arrangement so nothing is searched again. */
+/**
+ * The design as a measured evaluation, worked out from the model alone: the rows of rooms are read
+ * back from its geometry and the locks from its spaces, so nothing the solver stored is needed.
+ */
 export function evaluationOf(built: Built): Evaluation {
-  return evaluateProgram(
-    { ...built.program, arrangement: built.plan.search.rows.map((row) => [...row]) },
-    { seeds: [built.seed] },
-  );
+  const r = evaluationOfModel({ program: built.program, model: built.model, seed: built.seed });
+  if (!r.ok) throw new Error(r.reason);
+  return r.evaluation;
 }
 
 async function askModel(
@@ -74,13 +69,19 @@ export async function editByWords(
   options: { fetcher?: Fetch; useModel?: boolean } = {},
 ): Promise<EditResult> {
   const fetcher = options.fetcher ?? fetch.bind(globalThis);
-  const ev = evaluationOf(built);
+  const state = { program: built.program, model: built.model, seed: built.seed };
+  const measured = evaluationOfModel(state);
+  const entry: EditEntry = { text, by: "rules", lines: [] };
+  if (!measured.ok) {
+    entry.lines.push({ status: "refused", text: measured.reason });
+    return { entry };
+  }
+  const ev = measured.evaluation;
   const said = understandEdit(text, {
     phoneBooths: ev.program.phoneBooths,
     meetingRooms: ev.plan.rooms.filter((r) => r.kind === "meeting_room").length,
     names: ev.plan.rooms.map((r) => r.name),
   });
-  const entry: EditEntry = { text, by: "rules", lines: [] };
   if (said.kind === "undo") return { entry, undo: true };
 
   let ops = said.kind === "edit" ? said.ops : [];
@@ -111,8 +112,13 @@ export async function editByWords(
   }
   if (ops.length === 0) return { entry };
 
-  const outcome = applyEdit(ev, ops);
-  for (const step of outcome.steps) entry.lines.push({ status: step.status, text: step.message });
-  if (!outcome.changed) return { entry };
-  return { entry, built: builtFromEvaluation(outcome.evaluation, built, entry) };
+  const edit = editModel(state, ops, { base: ev });
+  if (!edit.ok) {
+    entry.lines.push({ status: "refused", text: edit.reason });
+    return { entry };
+  }
+  for (const step of edit.outcome.steps)
+    entry.lines.push({ status: step.status, text: step.message });
+  if (!edit.outcome.changed) return { entry };
+  return { entry, built: builtFromEvaluation(edit.evaluation, built, entry, edit.state.model) };
 }

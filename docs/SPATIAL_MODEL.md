@@ -52,11 +52,23 @@ Checked in a real browser (Vite dev server, not just tests): an office built, bo
 
 DXF limits: walls are drawn as closed outlines of their thickness, curved walls as their centre line only, and doors and windows on curved walls are left out (reported in `skipped`). The format is AutoCAD release 12, chosen because every program reads it; it carries no 3D, no door swings and no furniture.
 
+## Editing by words, on the model
+
+`editModel(state, ops)` in `src/edit.ts` takes `{ program, model, seed }` and returns the same shape plus core's account of each operation. The app's "Change it with words" now goes through it, and each built office carries its model (`Built.model`).
+
+What moved: before, the edit engine was handed an evaluation held at the plan's stored row order (`plan.search.rows`, solver bookkeeping) and the locks in `Program.locks`. Now the row order is read back from the model's geometry (`arrangementOf` in core, which reverses the layout engine's frame), a lock is a flag plus an anchor on the space (`lockAt`, the room's position when locked, so drift stays bounded across edits), and the result comes back as a model. A model the row engine did not make (curves, columns, rooms moved by hand) is refused with a reason instead of being edited wrongly.
+
+What did not move: the measuring, the candidate search and the plain-language refusals are still core's `applyEdit`, unchanged. The model path is a different input and output for the same engine, which is why it can be gated on equality.
+
+The gate (`gate-run3.json`) checks that editing on the model equals editing directly: **all 158 requests** give identical step messages, changed flag, resulting plan (to a nanometre), cost, issues and resulting model; **72 chains of four requests** with locks and unlocks in them give identical results at every step; the rows read back from geometry equal the stored rows on every base and edited plan; and the model path starts with no stored row order at all. Core's tests (172 existing, plus 5 new for `arrangementOf`) pass; both evaluation sets reproduce exactly. Breaking `editModel` (dropping locks) made the gate fail with 74 differences; resetting the lock anchor, always replacing the state, and reading rows in the wrong order were each caught by tests.
+
+Checked in the browser: move, "already there", lock, a refused move of a locked room, and undo (the lock chip goes, the office returns), with the drawing check still passing on the edited model and no console errors.
+
+Limits: each edit still re-plans every candidate with the row engine, so a model can only be edited if the row engine could have made it; the word editor does not yet move rooms in an L-shape or around a column. Undo keeps whole snapshots of the office in memory, as before.
+
 ## Not done yet (deliberately)
 
 - `core` still uses its rectangle geometry. The polygon predicates agree with it on 2,000 random rectangle pairs each (overlap, shared wall, containment); replacing the callers is the next part of M1.
-- Editing by words still works on the old row arrangement, not the model. Moving it over is a large change (the edit engine is about 700 lines tied to rows) and should be its own step; nothing the person sees depends on it.
-- Locks are flags on spaces in the model, but the edit engine still reads `Program.locks` and `Program.arrangement`.
 - A building-shape picker (L-shape) waits for a layout engine that can design one; the model and kernel can hold it, the row engine cannot.
 - The wasm file has to be passed to `createKernel`. Node reads it from the package; the browser build has not been wired.
 - No exports (IFC, DXF, GLB) read the model yet.
