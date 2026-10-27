@@ -2,6 +2,7 @@ import type { Scene, Viewpoint } from "@icarus/core";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { surface } from "./textures";
 
@@ -160,6 +161,7 @@ export class OfficeView {
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.06;
     ground.receiveShadow = true;
+    ground.userData.noExport = true;
     this.content.add(ground);
 
     const { w, h } = scene.shell;
@@ -291,6 +293,19 @@ export class OfficeView {
     this.showCeiling = show;
     this.applyCeiling();
     this.requestRender();
+  }
+
+  /**
+   * The office as a binary glTF (.glb): what is on screen, without the ground, the plan-view labels
+   * or anything hidden. Opens in Blender, Windows 3D Viewer, macOS Quick Look and most CAD viewers.
+   */
+  async exportGlb(): Promise<ArrayBuffer> {
+    const out = new THREE.Group();
+    for (const child of this.content.children)
+      if (!child.userData.noExport && !(child instanceof THREE.Sprite)) out.add(child.clone());
+    const result = await new GLTFExporter().parseAsync(out, { binary: true, onlyVisible: true });
+    if (!(result instanceof ArrayBuffer)) throw new Error("The 3D file could not be made.");
+    return result;
   }
 
   /** A PNG of the current view, for the critique loop and for exports. */

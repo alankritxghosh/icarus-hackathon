@@ -41,9 +41,22 @@ Limits: this fixes the one knife-edge found. Other exact comparisons in the furn
 
 The web store (`apps/web/src/store.ts`) now upgrades every saved office on load and on save: it adds `version: 2` and a `model` derived from the plan. The model is regenerated each time, never trusted from storage, so it cannot go stale after an edit (a test fails if it does). The app still reads the plan. A save whose plan cannot be converted is kept as it was, without a model, instead of being dropped. The browser imports only `@icarus/spatial/model`, which leaves out the Clipper2 kernel; the production bundle contains none of it.
 
+### What the person sees
+
+Nothing new to learn: two lines join the existing "What was measured" list, and two buttons sit under Make it real and Edit.
+
+- **Drawing check** and **Where the sizes come from** (from `modelEvidence`). The first says whether the drawing is consistent (no overlaps, every door and window on its wall, every room reachable) and names the first problem if not. The second says "Designed by Icarus: exact in the drawing, nothing surveyed on site, wall structure not engineered", and would instead warn about estimates and unknown structure once a model holds scanned data. The Clipper2 kernel loads on first use (a 39 KB chunk and a 183 KB wasm file), so the page that asks for a brief does not download it.
+- **3D model (.glb)**: the office as seen, from the viewer (ground, plan-view labels and hidden parts left out). **Plan (.dxf)**: a CAD drawing built from the model, with layers for spaces, walls, doors, windows, columns and labels, in millimetres, upright.
+
+Checked in a real browser (Vite dev server, not just tests): an office built, both lines appeared (so the kernel and wasm loaded), both buttons produced files with the right names, no console errors. The DXF opened in `ezdxf` (a widely used CAD library) with zero audit errors, the right entity counts (13 spaces, 39 physical walls, 12 doors, 13 windows) and the right extents. The GLB is a valid glTF 2.0 file whose header length matches its size (520 nodes, 408 meshes, 35 materials, 26 images). It is large (about 14 MB, mostly embedded textures and the CC0 models); it was not validated with the Khronos validator or opened in a second 3D program.
+
+DXF limits: walls are drawn as closed outlines of their thickness, curved walls as their centre line only, and doors and windows on curved walls are left out (reported in `skipped`). The format is AutoCAD release 12, chosen because every program reads it; it carries no 3D, no door swings and no furniture.
+
 ## Not done yet (deliberately)
 
 - `core` still uses its rectangle geometry. The polygon predicates agree with it on 2,000 random rectangle pairs each (overlap, shared wall, containment); replacing the callers is the next part of M1.
+- Editing by words still works on the old row arrangement, not the model. Moving it over is a large change (the edit engine is about 700 lines tied to rows) and should be its own step; nothing the person sees depends on it.
 - Locks are flags on spaces in the model, but the edit engine still reads `Program.locks` and `Program.arrangement`.
+- A building-shape picker (L-shape) waits for a layout engine that can design one; the model and kernel can hold it, the row engine cannot.
 - The wasm file has to be passed to `createKernel`. Node reads it from the package; the browser build has not been wired.
 - No exports (IFC, DXF, GLB) read the model yet.

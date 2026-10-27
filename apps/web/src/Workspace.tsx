@@ -1,9 +1,12 @@
-import { type Suggestion, type Viewpoint, viewpoints } from "@icarus/core";
+import { type EvidenceItem, type Suggestion, type Viewpoint, viewpoints } from "@icarus/core";
+import { fromFloorPlan, toDxf } from "@icarus/spatial/model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DesignTrace } from "./DesignTrace";
 import type { Built, EditEntry } from "./design";
+import { fileStem, saveFile } from "./download";
 import { EditBox } from "./EditBox";
 import { EditPanel } from "./EditPanel";
+import { modelChecks } from "./modelChecks";
 import { OfficeView, type ViewMode } from "./officeView";
 import { Prompt } from "./Prompt";
 import { downscale } from "./photo";
@@ -63,6 +66,8 @@ export function Workspace({
   const [showAssumptions, setShowAssumptions] = useState(false);
   const [viewId, setViewId] = useState<string>();
   const [picture, setPicture] = useState<Picture>();
+  const [modelItems, setModelItems] = useState<EvidenceItem[]>([]);
+  const [fileError, setFileError] = useState<string>();
   const building = stage !== undefined;
 
   const views = useMemo(() => (built ? viewpoints(built.plan) : []), [built]);
@@ -140,6 +145,44 @@ export function Workspace({
     }
   };
 
+  // Findings from the spatial model, added to the list once the checker has loaded.
+  useEffect(() => {
+    if (!built) {
+      setModelItems([]);
+      return;
+    }
+    let alive = true;
+    void modelChecks(built).then((items) => {
+      if (alive) setModelItems(items);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [built]);
+
+  const downloadGlb = async () => {
+    if (!built) return;
+    setFileError(undefined);
+    try {
+      const bytes = await view.current?.exportGlb();
+      if (!bytes) throw new Error("The 3D view is not ready yet.");
+      saveFile(`${fileStem(built, brief)}.glb`, bytes, "model/gltf-binary");
+    } catch (error) {
+      setFileError(error instanceof Error ? error.message : "The 3D file could not be made.");
+    }
+  };
+
+  const downloadDxf = () => {
+    if (!built) return;
+    setFileError(undefined);
+    try {
+      const { dxf } = toDxf(fromFloorPlan(built.plan, { program: built.program, name: brief }));
+      saveFile(`${fileStem(built, brief)}.dxf`, dxf, "image/vnd.dxf");
+    } catch {
+      setFileError("The plan drawing could not be made.");
+    }
+  };
+
   const problems = built?.evidence.filter((e) => e.status === "fail" || e.status === "warn") ?? [];
   const shown = built
     ? [...problems, ...built.evidence.filter((e) => e.status !== "fail" && e.status !== "warn")]
@@ -207,6 +250,19 @@ export function Workspace({
                         Edit
                       </button>
                     </div>
+                    <div className="actions">
+                      <button type="button" className="ghost" onClick={() => void downloadGlb()}>
+                        ↓ 3D model (.glb)
+                      </button>
+                      <button type="button" className="ghost" onClick={downloadDxf}>
+                        ↓ Plan (.dxf)
+                      </button>
+                    </div>
+                    {fileError && (
+                      <p className="error" role="alert">
+                        {fileError}
+                      </p>
+                    )}
                     <EditBox
                       locked={built.program.locks.map((l) => ({
                         id: l.id,
@@ -228,7 +284,7 @@ export function Workspace({
                     <div className="panel-card">
                       <p className="eyebrow">WHAT WAS MEASURED</p>
                       <ul className="evidence">
-                        {shown.slice(0, 7).map((e) => (
+                        {[...shown.slice(0, 7), ...modelItems].map((e) => (
                           <li key={e.id} className={e.status}>
                             <b>{e.label}</b>
                             <span>{e.detail}</span>

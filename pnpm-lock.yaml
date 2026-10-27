@@ -48,6 +48,9 @@ importers:
       '@icarus/spatial':
         specifier: workspace:*
         version: link:../../packages/spatial
+      clipper2-wasm:
+        specifier: 0.2.1
+        version: 0.2.1
       react:
         specifier: 19.3.1
         version: 19.3.1

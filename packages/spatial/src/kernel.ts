@@ -1,3 +1,4 @@
+/// <reference path="./clipper.d.ts" />
 // The geometry kernel: boolean operations and offsetting on integer-millimetre regions, on
 // Clipper2 compiled to WebAssembly. Integer coordinates are the point: two walls that agree to the
 // millimetre are the same wall, with no tolerance to tune (a measured difference between this and
