@@ -2,7 +2,7 @@
 
 Design a whole office from scratch, in words.
 
-Tell Icarus about a company and show it a building shell. It plans the rooms and circulation, builds a complete walkable 3D office with furniture, lighting and materials, and then changes the design when you ask, by typing or speaking. It is built for the Meta Global AI Developer Hackathon (Indie developer track) on Muse Spark, SAM 3.1 and Muse Voice Transcribe.
+Tell Icarus about a company and show it a building shell. It plans the rooms and circulation, builds a complete walkable 3D office with furniture, lighting and materials, and then changes the design when you ask, by typing or speaking. It is built for the Meta Global AI Developer Hackathon (Indie developer track). Today the language model calls use Meta's Llama models (Llama 3.3 70B and Llama 4 Scout, through Cloudflare Workers AI); Muse Spark, SAM 3.1 and Muse Voice Transcribe are planned and **have not been tested or built yet**.
 
 Output is **concept design only**. It is not a building-code check, a structural design or a construction document, and Icarus says so wherever it matters. See [docs/DESIGN.md](docs/DESIGN.md) for exactly what it does and how.
 
@@ -16,4 +16,25 @@ Code in this repository was written with the help of an AI coding assistant (Cla
 
 ## Status
 
-Early build. See [docs/HACKATHON.md](docs/HACKATHON.md) for the plan and the daily log.
+Working build, not a finished product. What it does today and what it does not:
+
+- **Does:** designs a rectangular office from a typed brief, furnishes it, shows a floor plan, a 3D model and a walk-in view, checks its own plan and repairs problems, changes the design from typed requests (move, swap, resize, add or remove meeting rooms, booths, locks, undo), makes a photo-style picture of a view, exports the 3D view (.glb) and a CAD plan (.dxf).
+- **Does not:** design L-shaped buildings, columns or several floors in the app (a prototype for L-shapes is measured in [docs/NOTCHED_LAYOUT_SPIKE.md](docs/NOTCHED_LAYOUT_SPIKE.md)), check building codes, rebuild a real room from a photo, take voice input, or use Muse Spark yet.
+- **Not validated:** layouts are measured against our own rules; no architect has reviewed them. The photo-style pictures are illustrations.
+
+Plan and daily log: [docs/HACKATHON.md](docs/HACKATHON.md). Architecture and what was measured: [docs/ARCHITECTURE_ASSESSMENT.md](docs/ARCHITECTURE_ASSESSMENT.md), [docs/RESEARCH_ROUND_2.md](docs/RESEARCH_ROUND_2.md), [docs/SPATIAL_MODEL.md](docs/SPATIAL_MODEL.md).
+
+## Run it
+
+```
+pnpm install
+pnpm --filter @icarus/web dev      # the app; works without any key, using built-in rules
+pnpm --filter @icarus/edge dev     # optional: the Worker for the model and picture services
+pnpm verify                        # types, lint, tests
+```
+
+Model keys go in a local, uncommitted `.env` (see `.env.example`); nothing in this repository contains a secret.
+
+## Licences
+
+Code: MIT. Furniture models: CC0 from Poly Haven ([assets/LICENSES.md](assets/LICENSES.md)). Reference photos keep their own licences and credits ([apps/web/public/references/LICENSES.md](apps/web/public/references/LICENSES.md)).

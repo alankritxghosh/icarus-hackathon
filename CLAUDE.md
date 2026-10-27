@@ -4,7 +4,7 @@ This repository is a fresh build for the Meta Global AI Developer Hackathon, Ind
 
 ## Provenance rules (never break these)
 
-- Every file here is written new, after the kickoff on 26 Oct 2026 12:00 PM EDT. Do not copy files, code or tests from the earlier private prototype in `/Users/alankritghosh/Icarus-Follow That Dream`. Write from the design, not from the old source.
+- Every file here is written new, after the kickoff on 26 Oct 2026 12:00 PM EDT. Do not copy files, code or tests from the earlier private prototype (kept private, outside this repository). Write from the design, not from the old source.
 - Never rewrite Git history or set commit dates. Commit as the work happens.
 - The README provenance statement must stay true. Update `docs/HACKATHON.md` daily log as milestones land.
 
