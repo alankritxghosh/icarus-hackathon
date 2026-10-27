@@ -1,0 +1,14 @@
+{
+  "name": "icarus-research-spikes",
+  "private": true,
+  "type": "module",
+  "description": "Throwaway technical spikes. Not part of the product build and not in the pnpm workspace.",
+  "scripts": {},
+  "dependencies": {
+    "clipper2-wasm": "^0.2.1",
+    "jsdom": "^29.1.1",
+    "jsts": "^2.12.1",
+    "polygon-clipping": "^0.15.7",
+    "zod": "^4.6.7"
+  }
+}

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="382" height="299" viewBox="-10 -26 382 299" font-family="sans-serif" font-size="10">
+<text x="0" y="-10" font-size="12">startup 12 (tight) - CP-SAT L - FEASIBLE 30.0s</text>
+<polygon points="0.0,0.0 0.0,259.2 362.4,259.2 362.4,103.2 235.2,103.2 235.2,0.0 0.0,0.0" fill="#f6f3ec" stroke="#222" stroke-width="2"/>
+<rect x="105.6" y="0.0" width="129.6" height="160.8" fill="#d9c9a3" stroke="#333" stroke-width="1"/>
+<text x="170.4" y="80.4" text-anchor="middle">open workspace 36m²</text>
+<rect x="48.0" y="199.2" width="96.0" height="60.0" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="96.0" y="229.2" text-anchor="middle">meeting room 10m²</text>
+<rect x="235.2" y="103.2" width="127.2" height="57.6" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="298.8" y="132.0" text-anchor="middle">meeting room 13m²</text>
+<rect x="144.0" y="199.2" width="93.6" height="60.0" fill="#e0b98a" stroke="#333" stroke-width="1"/>
+<text x="190.8" y="229.2" text-anchor="middle">kitchen 10m²</text>
+<rect x="48.0" y="0.0" width="57.6" height="105.6" fill="#a9bcd0" stroke="#333" stroke-width="1"/>
+<text x="76.8" y="52.8" text-anchor="middle">reception 11m²</text>
+<rect x="48.0" y="105.6" width="57.6" height="55.2" fill="#bdbdb5" stroke="#333" stroke-width="1"/>
+<text x="76.8" y="133.2" text-anchor="middle">storage 6m²</text>
+<rect x="237.6" y="199.2" width="62.4" height="60.0" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="268.8" y="229.2" text-anchor="middle">restroom 6m²</text>
+<rect x="300.0" y="199.2" width="62.4" height="60.0" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="331.2" y="229.2" text-anchor="middle">restroom 6m²</text>
+</svg>

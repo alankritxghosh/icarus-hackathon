@@ -1,0 +1,177 @@
+{
+ "briefs": [
+  "demo studio",
+  "startup 12 (tight)",
+  "agency 40 (tight)",
+  "roomy 25",
+  "call centre 60",
+  "all-glass 30"
+ ],
+ "summary": {
+  "baseline rows (TS)": {
+   "plans": 6,
+   "meanAreaDev": 0.277,
+   "undersized/plan": 2.5,
+   "aspectViol/plan": 0.67,
+   "minSideViol/plan": 0.17,
+   "adjacencyMet%": 96,
+   "daylightLit%": 74,
+   "unreachable/plan": 0,
+   "maxTravelM": 22.6,
+   "freeFloor%": 19,
+   "overlap+outside m2": 0.0
+  },
+  "CP-SAT rect": {
+   "plans": 6,
+   "meanAreaDev": 0.081,
+   "undersized/plan": 1.5,
+   "aspectViol/plan": 1,
+   "minSideViol/plan": 2.33,
+   "adjacencyMet%": 100,
+   "daylightLit%": 55,
+   "unreachable/plan": 0,
+   "maxTravelM": 20.1,
+   "freeFloor%": 29,
+   "overlap+outside m2": 0.0
+  },
+  "subdivision rect": {
+   "plans": 6,
+   "meanAreaDev": 0.486,
+   "undersized/plan": 1.5,
+   "aspectViol/plan": 0.83,
+   "minSideViol/plan": 2,
+   "adjacencyMet%": 62,
+   "daylightLit%": 66,
+   "unreachable/plan": 1.67,
+   "maxTravelM": 20.1,
+   "freeFloor%": 19,
+   "overlap+outside m2": 0.0
+  },
+  "CP-SAT L": {
+   "plans": 6,
+   "meanAreaDev": 0.09,
+   "undersized/plan": 2.33,
+   "aspectViol/plan": 0.17,
+   "minSideViol/plan": 0.83,
+   "adjacencyMet%": 96,
+   "daylightLit%": 68,
+   "unreachable/plan": 0,
+   "maxTravelM": 22.1,
+   "freeFloor%": 29,
+   "overlap+outside m2": 0.0
+  },
+  "subdivision L": {
+   "plans": 6,
+   "meanAreaDev": 0.342,
+   "undersized/plan": 2.83,
+   "aspectViol/plan": 2,
+   "minSideViol/plan": 3.17,
+   "adjacencyMet%": 60,
+   "daylightLit%": 53,
+   "unreachable/plan": 0.17,
+   "maxTravelM": 22.0,
+   "freeFloor%": 47,
+   "overlap+outside m2": 0.0
+  }
+ },
+ "cpsatStatus": {
+  "demo studio": {
+   "rect": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 204138.0,
+    "bestBound": 73920.0
+   },
+   "L": {
+    "status": "OPTIMAL",
+    "seconds": 1.2,
+    "objective": -61146.0,
+    "bestBound": -61146.0
+   }
+  },
+  "startup 12 (tight)": {
+   "rect": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 3406298.0,
+    "bestBound": 720615.0
+   },
+   "L": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 4062050.0,
+    "bestBound": 833731.0
+   }
+  },
+  "agency 40 (tight)": {
+   "rect": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 3867624.0,
+    "bestBound": 991662.0
+   },
+   "L": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 4145898.0,
+    "bestBound": 1042071.0
+   }
+  },
+  "roomy 25": {
+   "rect": {
+    "status": "OPTIMAL",
+    "seconds": 1.1,
+    "objective": -278057.0,
+    "bestBound": -278057.0
+   },
+   "L": {
+    "status": "OPTIMAL",
+    "seconds": 0.4,
+    "objective": -277593.0,
+    "bestBound": -277593.0
+   }
+  },
+  "small studio (no shell)": {
+   "rect": {
+    "status": "INFEASIBLE",
+    "seconds": 0.0,
+    "objective": null,
+    "bestBound": null
+   },
+   "L": {
+    "status": "INFEASIBLE",
+    "seconds": 0.0,
+    "objective": null,
+    "bestBound": null
+   }
+  },
+  "call centre 60": {
+   "rect": {
+    "status": "OPTIMAL",
+    "seconds": 0.5,
+    "objective": -62320.0,
+    "bestBound": -62320.0
+   },
+   "L": {
+    "status": "OPTIMAL",
+    "seconds": 0.4,
+    "objective": -85561.0,
+    "bestBound": -85561.0
+   }
+  },
+  "all-glass 30": {
+   "rect": {
+    "status": "OPTIMAL",
+    "seconds": 1.9,
+    "objective": -282520.0,
+    "bestBound": -282520.0
+   },
+   "L": {
+    "status": "OPTIMAL",
+    "seconds": 0.8,
+    "objective": -305384.0,
+    "bestBound": -305384.0
+   }
+  }
+ }
+}

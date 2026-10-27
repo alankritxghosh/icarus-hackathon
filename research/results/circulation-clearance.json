@@ -1,0 +1,34 @@
+[
+ {
+  "case": "corridor 1.6 m",
+  "note": "rooms either side of a 1.6 m corridor, open end at x=12",
+  "topologicallyReachable": true,
+  "clearRouteWidthM": 1.4,
+  "passes0.9m": true,
+  "passes1.2m": true
+ },
+ {
+  "case": "corridor 1.2 m",
+  "note": "same rooms, 1.2 m corridor",
+  "topologicallyReachable": true,
+  "clearRouteWidthM": 1.1,
+  "passes0.9m": true,
+  "passes1.2m": false
+ },
+ {
+  "case": "0.7 m neck",
+  "note": "two cupboards narrow the corridor to 0.7 m for 1 m; every room still has a door",
+  "topologicallyReachable": true,
+  "clearRouteWidthM": 0.5,
+  "passes0.9m": false,
+  "passes1.2m": false
+ },
+ {
+  "case": "column 0.5 m from a door",
+  "note": "a column-sized obstacle in front of room a's doorway narrows the approach",
+  "topologicallyReachable": true,
+  "clearRouteWidthM": 0.8,
+  "passes0.9m": false,
+  "passes1.2m": false
+ }
+]

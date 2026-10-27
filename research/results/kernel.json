@@ -1,0 +1,216 @@
+{
+  "generated": "2026-10-27T13:10:57.312Z",
+  "node": "v24.11.0",
+  "libs": [
+    {
+      "name": "polygon-clipping",
+      "version": "0.15.7",
+      "license": "MIT"
+    },
+    {
+      "name": "jsts",
+      "version": "2.12.1",
+      "license": "EDL-1.0 OR EPL-1.0"
+    },
+    {
+      "name": "clipper2-wasm",
+      "version": "0.2.1",
+      "license": "BSL-1.0"
+    }
+  ],
+  "loadMs": 9,
+  "tests": {
+    "T1 random rectangle pairs (3000): worst area error in mm2": {
+      "polygon-clipping": {
+        "worstErrorMm2": 0,
+        "exceptions": 0
+      },
+      "jsts": {
+        "worstErrorMm2": 0,
+        "exceptions": 0
+      },
+      "clipper2-wasm": {
+        "worstErrorMm2": 0,
+        "exceptions": 0
+      }
+    },
+    "T2 36 abutting rooms union: expect 1 polygon, 4 vertices": {
+      "polygon-clipping": {
+        "polygons": 1,
+        "vertices": 4,
+        "area": 324000000,
+        "expectedArea": 324000000
+      },
+      "jsts": {
+        "polygons": 1,
+        "vertices": 24,
+        "area": 324000000,
+        "expectedArea": 324000000
+      },
+      "clipper2-wasm": {
+        "polygons": 1,
+        "vertices": 24,
+        "area": 324000000,
+        "expectedArea": 324000000
+      }
+    },
+    "T3 shared wall vs 1 mm gap: polygon counts after union": {
+      "polygon-clipping": {
+        "touching": 1,
+        "oneMmGap": 2
+      },
+      "jsts": {
+        "touching": 1,
+        "oneMmGap": 2
+      },
+      "clipper2-wasm": {
+        "touching": 1,
+        "oneMmGap": 2
+      }
+    },
+    "T3b shared wall with 1e-6 mm of float noise: polygons after union (want 1)": {
+      "polygon-clipping": {
+        "polygons": 2
+      },
+      "jsts": {
+        "polygons": 2
+      },
+      "clipper2-wasm": {
+        "polygons": 1
+      }
+    },
+    "T4b room minus a 1 m column: area and ring count (want 35e6, 2 rings)": {
+      "polygon-clipping": {
+        "area": 35000000,
+        "rings": 2
+      },
+      "jsts": {
+        "area": 35000000,
+        "rings": 2
+      },
+      "clipper2-wasm": {
+        "area": 35000000,
+        "rings": 2
+      }
+    },
+    "T4 degenerate input": {
+      "polygon-clipping": {
+        "duplicate vertex": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "collinear vertex": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "zero-width spike": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "bow-tie (self-crossing)": {
+          "area": 6000000,
+          "expected": 6000000
+        },
+        "two polygons touching at a point": {
+          "area": 15000000,
+          "expected": 15000000
+        }
+      },
+      "jsts": {
+        "duplicate vertex": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "collinear vertex": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "zero-width spike": {
+          "error": "found non-noded intersection between LINESTRING ( 4000 3000, 2000 3000 ) and LIN"
+        },
+        "bow-tie (self-crossing)": {
+          "error": "found non-noded intersection between LINESTRING ( 0 0, 4000 3000 ) and LINESTRIN"
+        },
+        "two polygons touching at a point": {
+          "area": 15000000,
+          "expected": 15000000
+        }
+      },
+      "clipper2-wasm": {
+        "duplicate vertex": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "collinear vertex": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "zero-width spike": {
+          "area": 12000000,
+          "expected": 12000000
+        },
+        "bow-tie (self-crossing)": {
+          "area": 6000000,
+          "expected": 6000000
+        },
+        "two polygons touching at a point": {
+          "area": 15000000,
+          "expected": 15000000
+        }
+      }
+    },
+    "T5 offset an L-shaped room by 100 mm": {
+      "polygon-clipping": {
+        "supported": false
+      },
+      "jsts": {
+        "outwardArea": 59640000,
+        "expectedOutward": 59640000,
+        "inwardArea": 52440000,
+        "expectedInward": 52440000,
+        "thinStripDeflateIsEmpty": true
+      },
+      "clipper2-wasm": {
+        "outwardArea": 59640000,
+        "expectedOutward": 59640000,
+        "inwardArea": 52440000,
+        "expectedInward": 52440000,
+        "thinStripDeflateIsEmpty": true
+      }
+    },
+    "T6 speed": {
+      "polygon-clipping": {
+        "rectIntersect20000Ms": 139,
+        "lShapeMinusRoom5000Ms": 70,
+        "offsetStar400x200Ms": "n/a"
+      },
+      "jsts": {
+        "rectIntersect20000Ms": 470,
+        "lShapeMinusRoom5000Ms": 131,
+        "offsetStar400x200Ms": 247
+      },
+      "clipper2-wasm": {
+        "rectIntersect20000Ms": 158,
+        "lShapeMinusRoom5000Ms": 74,
+        "offsetStar400x200Ms": 207
+      }
+    },
+    "T7 grid fuzz (1500 shape pairs): inclusion-exclusion violations / exceptions": {
+      "polygon-clipping": {
+        "violations": 0,
+        "exceptions": 0
+      },
+      "jsts": {
+        "violations": 0,
+        "exceptions": 0
+      },
+      "clipper2-wasm": {
+        "violations": 0,
+        "exceptions": 0
+      }
+    }
+  },
+  "footprintBytes": {
+    "clipper2-wasm (wasm + js loader)": 235798
+  }
+}

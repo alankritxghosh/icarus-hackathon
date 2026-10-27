@@ -7,6 +7,7 @@
       "!**/node_modules",
       "!**/.venv",
       "!**/.wrangler",
+      "!research",
       "!**/*.md",
       "!pnpm-lock.yaml"
     ]

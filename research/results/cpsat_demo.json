@@ -1,0 +1,341 @@
+[
+ {
+  "name": "demo studio",
+  "baseline": {
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.238,
+    "undersizedRooms": 1,
+    "aspectViolations": 1,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "3/7",
+    "daylightMetres": 36.4,
+    "adjacencyMet": "8/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 21.6,
+    "meanTravelM": 12.6,
+    "freeFloorShare": 0.175,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 11.72
+  },
+  "rect": {
+   "solver": {
+    "status": "FEASIBLE",
+    "seconds": 8.0,
+    "objective": 324042.0,
+    "bestBound": 65720.0,
+    "variables": 414,
+    "constraints": 620,
+    "bbox": [
+     24.0,
+     16.0
+    ],
+    "notch": null
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.029,
+    "undersizedRooms": 1,
+    "aspectViolations": 1,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "2/7",
+    "daylightMetres": 33.6,
+    "adjacencyMet": "9/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 19.7,
+    "meanTravelM": 8.0,
+    "freeFloorShare": 0.264,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "rooms": [
+    {
+     "id": "open_workspace.1",
+     "kind": "open_workspace",
+     "rect": {
+      "x": 3.6,
+      "y": 8.8,
+      "w": 20.4,
+      "h": 7.2
+     }
+    },
+    {
+     "id": "meeting_room.1",
+     "kind": "meeting_room",
+     "rect": {
+      "x": 9.1,
+      "y": 1.6,
+      "w": 2.7,
+      "h": 5.6
+     }
+    },
+    {
+     "id": "meeting_room.2",
+     "kind": "meeting_room",
+     "rect": {
+      "x": 11.8,
+      "y": 1.6,
+      "w": 2.7,
+      "h": 5.6
+     }
+    },
+    {
+     "id": "meeting_room.3",
+     "kind": "meeting_room",
+     "rect": {
+      "x": 14.5,
+      "y": 2.2,
+      "w": 3.0,
+      "h": 5.0
+     }
+    },
+    {
+     "id": "kitchen.1",
+     "kind": "kitchen",
+     "rect": {
+      "x": 17.5,
+      "y": 0.4,
+      "w": 3.0,
+      "h": 6.8
+     }
+    },
+    {
+     "id": "lounge.1",
+     "kind": "lounge",
+     "rect": {
+      "x": 20.5,
+      "y": 1.2,
+      "w": 3.5,
+      "h": 6.0
+     }
+    },
+    {
+     "id": "reception.1",
+     "kind": "reception",
+     "rect": {
+      "x": 2.0,
+      "y": 0.0,
+      "w": 4.0,
+      "h": 3.5
+     }
+    },
+    {
+     "id": "storage.1",
+     "kind": "storage",
+     "rect": {
+      "x": 2.0,
+      "y": 8.8,
+      "w": 1.6,
+      "h": 5.0
+     }
+    },
+    {
+     "id": "server_room.1",
+     "kind": "server_room",
+     "rect": {
+      "x": 2.0,
+      "y": 3.9,
+      "w": 2.0,
+      "h": 3.0
+     }
+    },
+    {
+     "id": "restroom.1",
+     "kind": "restroom",
+     "rect": {
+      "x": 4.0,
+      "y": 3.7,
+      "w": 3.0,
+      "h": 3.5
+     }
+    },
+    {
+     "id": "restroom.2",
+     "kind": "restroom",
+     "rect": {
+      "x": 7.0,
+      "y": 2.2,
+      "w": 2.1,
+      "h": 5.0
+     }
+    }
+   ],
+   "geo": {
+    "W": 24.0,
+    "D": 16.0,
+    "notch": null,
+    "windows": [
+     "south",
+     "east"
+    ]
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 0.8,
+    "objective": -61146.0,
+    "bestBound": -61146.0,
+    "variables": 414,
+    "constraints": 622,
+    "bbox": [
+     25.9,
+     17.3
+    ],
+    "notch": [
+     16.8,
+     0.0,
+     25.9,
+     6.9
+    ]
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.02,
+    "undersizedRooms": 1,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "5/7",
+    "daylightMetres": 18.3,
+    "adjacencyMet": "9/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 23.0,
+    "meanTravelM": 13.0,
+    "freeFloorShare": 0.215,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "rooms": [
+    {
+     "id": "open_workspace.1",
+     "kind": "open_workspace",
+     "rect": {
+      "x": 2.0,
+      "y": 0.0,
+      "w": 14.8,
+      "h": 11.3
+     }
+    },
+    {
+     "id": "meeting_room.1",
+     "kind": "meeting_room",
+     "rect": {
+      "x": 5.5,
+      "y": 12.9,
+      "w": 3.4,
+      "h": 4.4
+     }
+    },
+    {
+     "id": "meeting_room.2",
+     "kind": "meeting_room",
+     "rect": {
+      "x": 8.9,
+      "y": 12.9,
+      "w": 3.4,
+      "h": 4.4
+     }
+    },
+    {
+     "id": "meeting_room.3",
+     "kind": "meeting_room",
+     "rect": {
+      "x": 12.3,
+      "y": 12.9,
+      "w": 3.4,
+      "h": 4.4
+     }
+    },
+    {
+     "id": "kitchen.1",
+     "kind": "kitchen",
+     "rect": {
+      "x": 15.7,
+      "y": 12.9,
+      "w": 4.6,
+      "h": 4.4
+     }
+    },
+    {
+     "id": "lounge.1",
+     "kind": "lounge",
+     "rect": {
+      "x": 16.8,
+      "y": 7.1,
+      "w": 5.0,
+      "h": 4.2
+     }
+    },
+    {
+     "id": "reception.1",
+     "kind": "reception",
+     "rect": {
+      "x": 2.0,
+      "y": 13.3,
+      "w": 3.5,
+      "h": 4.0
+     }
+    },
+    {
+     "id": "storage.1",
+     "kind": "storage",
+     "rect": {
+      "x": 21.8,
+      "y": 7.3,
+      "w": 2.0,
+      "h": 4.0
+     }
+    },
+    {
+     "id": "server_room.1",
+     "kind": "server_room",
+     "rect": {
+      "x": 23.8,
+      "y": 8.3,
+      "w": 2.0,
+      "h": 3.0
+     }
+    },
+    {
+     "id": "restroom.1",
+     "kind": "restroom",
+     "rect": {
+      "x": 20.3,
+      "y": 12.9,
+      "w": 2.5,
+      "h": 4.2
+     }
+    },
+    {
+     "id": "restroom.2",
+     "kind": "restroom",
+     "rect": {
+      "x": 22.8,
+      "y": 12.9,
+      "w": 2.5,
+      "h": 4.2
+     }
+    }
+   ],
+   "geo": {
+    "W": 25.9,
+    "D": 17.3,
+    "notch": [
+     168,
+     0,
+     259,
+     69
+    ],
+    "windows": [
+     "south",
+     "east"
+    ]
+   }
+  }
+ }
+]

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="596" height="424" viewBox="-10 -26 596 424" font-family="sans-serif" font-size="10">
+<text x="0" y="-10" font-size="12">demo studio - CP-SAT rect - FEASIBLE 30.0s</text>
+<polygon points="576.0,0.0 576.0,384.0 0.0,384.0 0.0,0.0 576.0,0.0" fill="#f6f3ec" stroke="#222" stroke-width="2"/>
+<rect x="48.0" y="211.2" width="528.0" height="172.8" fill="#d9c9a3" stroke="#333" stroke-width="1"/>
+<text x="312.0" y="297.6" text-anchor="middle">open workspace 158m²</text>
+<rect x="228.0" y="38.4" width="64.8" height="134.4" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="260.4" y="105.6" text-anchor="middle">meeting room 15m²</text>
+<rect x="292.8" y="38.4" width="64.8" height="134.4" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="325.2" y="105.6" text-anchor="middle">meeting room 15m²</text>
+<rect x="357.6" y="38.4" width="64.8" height="134.4" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="390.0" y="105.6" text-anchor="middle">meeting room 15m²</text>
+<rect x="422.4" y="4.8" width="69.6" height="168.0" fill="#e0b98a" stroke="#333" stroke-width="1"/>
+<text x="457.2" y="88.8" text-anchor="middle">kitchen 20m²</text>
+<rect x="492.0" y="28.8" width="84.0" height="144.0" fill="#c9a08a" stroke="#333" stroke-width="1"/>
+<text x="534.0" y="100.8" text-anchor="middle">lounge 21m²</text>
+<rect x="48.0" y="84.0" width="91.2" height="88.8" fill="#a9bcd0" stroke="#333" stroke-width="1"/>
+<text x="93.6" y="128.4" text-anchor="middle">reception 14m²</text>
+<rect x="48.0" y="0.0" width="120.0" height="38.4" fill="#bdbdb5" stroke="#333" stroke-width="1"/>
+<text x="108.0" y="19.2" text-anchor="middle">storage 8m²</text>
+<rect x="139.2" y="93.6" width="43.2" height="79.2" fill="#b0b0c0" stroke="#333" stroke-width="1"/>
+<text x="160.8" y="133.2" text-anchor="middle">server room 6m²</text>
+<rect x="48.0" y="38.4" width="132.0" height="45.6" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="114.0" y="61.2" text-anchor="middle">restroom 10m²</text>
+<rect x="182.4" y="40.8" width="45.6" height="132.0" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="205.2" y="106.8" text-anchor="middle">restroom 10m²</text>
+</svg>

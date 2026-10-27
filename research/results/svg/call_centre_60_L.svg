@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="901" height="558" viewBox="-10 -26 901 558" font-family="sans-serif" font-size="10">
+<text x="0" y="-10" font-size="12">call centre 60 - CP-SAT L - OPTIMAL 1.1s</text>
+<polygon points="0.0,0.0 0.0,518.4 880.8,518.4 880.8,206.4 573.6,206.4 573.6,0.0 0.0,0.0" fill="#f6f3ec" stroke="#222" stroke-width="2"/>
+<rect x="48.0" y="0.0" width="525.6" height="343.2" fill="#d9c9a3" stroke="#333" stroke-width="1"/>
+<text x="310.8" y="171.6" text-anchor="middle">open workspace 313m²</text>
+<rect x="144.0" y="381.6" width="72.0" height="120.0" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="180.0" y="441.6" text-anchor="middle">meeting room 15m²</text>
+<rect x="343.2" y="381.6" width="120.0" height="72.0" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="403.2" y="417.6" text-anchor="middle">meeting room 15m²</text>
+<rect x="463.2" y="381.6" width="122.4" height="136.8" fill="#e0b98a" stroke="#333" stroke-width="1"/>
+<text x="524.4" y="450.0" text-anchor="middle">kitchen 29m²</text>
+<rect x="48.0" y="434.4" width="96.0" height="84.0" fill="#a9bcd0" stroke="#333" stroke-width="1"/>
+<text x="96.0" y="476.4" text-anchor="middle">reception 14m²</text>
+<rect x="273.6" y="381.6" width="48.0" height="96.0" fill="#bdbdb5" stroke="#333" stroke-width="1"/>
+<text x="297.6" y="429.6" text-anchor="middle">storage 8m²</text>
+<rect x="631.2" y="381.6" width="120.0" height="62.4" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="691.2" y="412.8" text-anchor="middle">restroom 13m²</text>
+<rect x="715.2" y="218.4" width="60.0" height="124.8" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="745.2" y="280.8" text-anchor="middle">restroom 13m²</text>
+<rect x="751.2" y="381.6" width="60.0" height="124.8" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="781.2" y="444.0" text-anchor="middle">restroom 13m²</text>
+<rect x="820.8" y="381.6" width="60.0" height="124.8" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="850.8" y="444.0" text-anchor="middle">restroom 13m²</text>
+</svg>

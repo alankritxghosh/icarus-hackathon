@@ -1,0 +1,32 @@
+{
+ "p01": {
+  "brief": "demo studio",
+  "A": "cpsat",
+  "B": "baseline"
+ },
+ "p02": {
+  "brief": "startup 12 (tight)",
+  "A": "baseline",
+  "B": "cpsat"
+ },
+ "p03": {
+  "brief": "agency 40 (tight)",
+  "A": "cpsat",
+  "B": "baseline"
+ },
+ "p04": {
+  "brief": "roomy 25",
+  "A": "cpsat",
+  "B": "baseline"
+ },
+ "p05": {
+  "brief": "call centre 60",
+  "A": "baseline",
+  "B": "cpsat"
+ },
+ "p06": {
+  "brief": "all-glass 30",
+  "A": "baseline",
+  "B": "cpsat"
+ }
+}

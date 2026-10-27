@@ -1,0 +1,122 @@
+[
+ {
+  "brief": "demo studio",
+  "errors": [],
+  "warnings": 0,
+  "walls": 40,
+  "openings": 12,
+  "spaces": 13,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "startup 12 (tight)",
+  "errors": [],
+  "warnings": 0,
+  "walls": 31,
+  "openings": 9,
+  "spaces": 10,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "consultancy offices",
+  "errors": [],
+  "warnings": 0,
+  "walls": 52,
+  "openings": 15,
+  "spaces": 17,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "agency 40 (tight)",
+  "errors": [],
+  "warnings": 0,
+  "walls": 40,
+  "openings": 12,
+  "spaces": 13,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "east entrance",
+  "errors": [],
+  "warnings": 0,
+  "walls": 37,
+  "openings": 11,
+  "spaces": 12,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "roomy 25",
+  "errors": [],
+  "warnings": 0,
+  "walls": 34,
+  "openings": 10,
+  "spaces": 11,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "law firm (no shell)",
+  "errors": [],
+  "warnings": 0,
+  "walls": 34,
+  "openings": 9,
+  "spaces": 11,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "software 50",
+  "errors": [],
+  "warnings": 0,
+  "walls": 49,
+  "openings": 14,
+  "spaces": 16,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "small studio (no shell)",
+  "errors": [],
+  "warnings": 0,
+  "walls": 25,
+  "openings": 7,
+  "spaces": 8,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "call centre 60",
+  "errors": [],
+  "warnings": 0,
+  "walls": 37,
+  "openings": 11,
+  "spaces": 12,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "agency 22 north",
+  "errors": [],
+  "warnings": 0,
+  "walls": 40,
+  "openings": 11,
+  "spaces": 13,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ },
+ {
+  "brief": "all-glass 30",
+  "errors": [],
+  "warnings": 0,
+  "walls": 37,
+  "openings": 11,
+  "spaces": 12,
+  "unreachable": [],
+  "uncoveredFloorM2": 0
+ }
+]

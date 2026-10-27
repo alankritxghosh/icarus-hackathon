@@ -1,0 +1,388 @@
+[
+ {
+  "name": "demo studio",
+  "rect": {
+   "search": {
+    "seconds": 10.1,
+    "candidatesTried": 61,
+    "validRectangularCandidates": 61,
+    "cost": 86.7
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.178,
+    "undersizedRooms": 1,
+    "aspectViolations": 1,
+    "minSideViolations": 1,
+    "daylightRoomsLit": "3/7",
+    "daylightMetres": 20.5,
+    "adjacencyMet": "4/9",
+    "unreachableRooms": 4,
+    "unreachableIds": [
+     "lounge.1",
+     "restroom.2",
+     "reception.1",
+     "server_room.1"
+    ],
+    "maxTravelM": 19.7,
+    "meanTravelM": 7.7,
+    "freeFloorShare": 0.175,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 48,
+    "validRectangularCandidates": 48,
+    "cost": 87.88
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.2,
+    "undersizedRooms": 2,
+    "aspectViolations": 3,
+    "minSideViolations": 4,
+    "daylightRoomsLit": "6/7",
+    "daylightMetres": 25.6,
+    "adjacencyMet": "7/9",
+    "unreachableRooms": 1,
+    "unreachableIds": [
+     "reception.1"
+    ],
+    "maxTravelM": 21.0,
+    "meanTravelM": 9.8,
+    "freeFloorShare": 0.454,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "startup 12 (tight)",
+  "rect": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 201,
+    "validRectangularCandidates": 201,
+    "cost": 83.08
+   },
+   "metrics": {
+    "rooms": 8,
+    "meanAreaDeviation": 0.228,
+    "undersizedRooms": 3,
+    "aspectViolations": 0,
+    "minSideViolations": 5,
+    "daylightRoomsLit": "4/5",
+    "daylightMetres": 18.6,
+    "adjacencyMet": "2/5",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 11.4,
+    "meanTravelM": 5.3,
+    "freeFloorShare": 0.28,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 161,
+    "validRectangularCandidates": 161,
+    "cost": 121.42
+   },
+   "metrics": {
+    "rooms": 8,
+    "meanAreaDeviation": 0.423,
+    "undersizedRooms": 4,
+    "aspectViolations": 4,
+    "minSideViolations": 5,
+    "daylightRoomsLit": "1/5",
+    "daylightMetres": 4.4,
+    "adjacencyMet": "5/5",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 11.3,
+    "meanTravelM": 5.4,
+    "freeFloorShare": 0.542,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "agency 40 (tight)",
+  "rect": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 75,
+    "validRectangularCandidates": 75,
+    "cost": 100.42
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.202,
+    "undersizedRooms": 5,
+    "aspectViolations": 0,
+    "minSideViolations": 3,
+    "daylightRoomsLit": "4/8",
+    "daylightMetres": 23.9,
+    "adjacencyMet": "8/10",
+    "unreachableRooms": 3,
+    "unreachableIds": [
+     "kitchen.1",
+     "lounge.1",
+     "storage.1"
+    ],
+    "maxTravelM": 18.4,
+    "meanTravelM": 8.2,
+    "freeFloorShare": 0.195,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "search": {
+    "seconds": 10.1,
+    "candidatesTried": 60,
+    "validRectangularCandidates": 60,
+    "cost": 139.66
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.542,
+    "undersizedRooms": 6,
+    "aspectViolations": 0,
+    "minSideViolations": 6,
+    "daylightRoomsLit": "4/8",
+    "daylightMetres": 22.7,
+    "adjacencyMet": "6/10",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 18.0,
+    "meanTravelM": 7.3,
+    "freeFloorShare": 0.472,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "roomy 25",
+  "rect": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 66,
+    "validRectangularCandidates": 66,
+    "cost": 72.84
+   },
+   "metrics": {
+    "rooms": 9,
+    "meanAreaDeviation": 0.694,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "6/6",
+    "daylightMetres": 42.8,
+    "adjacencyMet": "4/8",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 20.8,
+    "meanTravelM": 8.6,
+    "freeFloorShare": 0.169,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "search": {
+    "seconds": 10.1,
+    "candidatesTried": 53,
+    "validRectangularCandidates": 53,
+    "cost": 38.86
+   },
+   "metrics": {
+    "rooms": 9,
+    "meanAreaDeviation": 0.127,
+    "undersizedRooms": 1,
+    "aspectViolations": 1,
+    "minSideViolations": 1,
+    "daylightRoomsLit": "5/6",
+    "daylightMetres": 19.2,
+    "adjacencyMet": "4/8",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 23.3,
+    "meanTravelM": 12.0,
+    "freeFloorShare": 0.451,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "small studio (no shell)",
+  "rect": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 446,
+    "validRectangularCandidates": 446,
+    "cost": 95.18
+   },
+   "metrics": {
+    "rooms": 6,
+    "meanAreaDeviation": 0.47,
+    "undersizedRooms": 5,
+    "aspectViolations": 0,
+    "minSideViolations": 3,
+    "daylightRoomsLit": "1/4",
+    "daylightMetres": 4.1,
+    "adjacencyMet": "2/2",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 7.5,
+    "meanTravelM": 3.5,
+    "freeFloorShare": 0.376,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 362,
+    "validRectangularCandidates": 362,
+    "cost": 140.44
+   },
+   "metrics": {
+    "rooms": 6,
+    "meanAreaDeviation": 0.613,
+    "undersizedRooms": 4,
+    "aspectViolations": 2,
+    "minSideViolations": 6,
+    "daylightRoomsLit": "1/4",
+    "daylightMetres": 9.3,
+    "adjacencyMet": "1/2",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 5.7,
+    "meanTravelM": 3.3,
+    "freeFloorShare": 0.629,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "call centre 60",
+  "rect": {
+   "search": {
+    "seconds": 10.2,
+    "candidatesTried": 38,
+    "validRectangularCandidates": 38,
+    "cost": 156.16
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 1.11,
+    "undersizedRooms": 0,
+    "aspectViolations": 2,
+    "minSideViolations": 1,
+    "daylightRoomsLit": "1/5",
+    "daylightMetres": 14.2,
+    "adjacencyMet": "7/7",
+    "unreachableRooms": 3,
+    "unreachableIds": [
+     "restroom.1",
+     "restroom.3",
+     "storage.1"
+    ],
+    "maxTravelM": 26.5,
+    "meanTravelM": 10.8,
+    "freeFloorShare": 0.134,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "search": {
+    "seconds": 10.2,
+    "candidatesTried": 30,
+    "validRectangularCandidates": 30,
+    "cost": 91.08
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.635,
+    "undersizedRooms": 2,
+    "aspectViolations": 2,
+    "minSideViolations": 1,
+    "daylightRoomsLit": "3/5",
+    "daylightMetres": 17.1,
+    "adjacencyMet": "6/7",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 31.9,
+    "meanTravelM": 12.8,
+    "freeFloorShare": 0.421,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "all-glass 30",
+  "rect": {
+   "search": {
+    "seconds": 10.0,
+    "candidatesTried": 60,
+    "validRectangularCandidates": 60,
+    "cost": 76.86
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.506,
+    "undersizedRooms": 0,
+    "aspectViolations": 2,
+    "minSideViolations": 2,
+    "daylightRoomsLit": "7/7",
+    "daylightMetres": 58.7,
+    "adjacencyMet": "5/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 23.6,
+    "meanTravelM": 10.5,
+    "freeFloorShare": 0.17,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "search": {
+    "seconds": 10.2,
+    "candidatesTried": 48,
+    "validRectangularCandidates": 48,
+    "cost": 66.06
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.125,
+    "undersizedRooms": 2,
+    "aspectViolations": 2,
+    "minSideViolations": 2,
+    "daylightRoomsLit": "1/7",
+    "daylightMetres": 32.2,
+    "adjacencyMet": "1/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 26.7,
+    "meanTravelM": 11.2,
+    "freeFloorShare": 0.457,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ }
+]

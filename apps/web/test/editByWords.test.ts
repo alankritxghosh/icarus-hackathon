@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { type Built, builtFromRefine } from "../src/design";
 import { designFromBrief } from "../src/designLoop";
 import { editByWords, evaluationOf } from "../src/editByWords";
@@ -27,6 +27,12 @@ async function built(): Promise<Built> {
 }
 
 describe("editByWords", () => {
+  // The first call runs the whole design loop (about 4 s on a quiet machine, more under load), so
+  // it gets its own budget instead of eating the first test's 5 s.
+  beforeAll(async () => {
+    await built();
+  }, 60_000);
+
   it("applies a typed request with no model and records what happened", async () => {
     const base = await built();
     const net = fakeFetch(() => ok({}));

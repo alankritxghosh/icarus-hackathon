@@ -1,0 +1,612 @@
+[
+ {
+  "name": "demo studio",
+  "baseline": {
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.238,
+    "undersizedRooms": 1,
+    "aspectViolations": 1,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "3/7",
+    "daylightMetres": 36.4,
+    "adjacencyMet": "8/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 21.6,
+    "meanTravelM": 12.6,
+    "freeFloorShare": 0.175,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 11.72
+  },
+  "rect": {
+   "solver": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 204138.0,
+    "bestBound": 73920.0,
+    "variables": 414,
+    "constraints": 620,
+    "bbox": [
+     24.0,
+     16.0
+    ],
+    "notch": null
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.027,
+    "undersizedRooms": 1,
+    "aspectViolations": 1,
+    "minSideViolations": 3,
+    "daylightRoomsLit": "2/7",
+    "daylightMetres": 13.2,
+    "adjacencyMet": "9/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 19.6,
+    "meanTravelM": 8.9,
+    "freeFloorShare": 0.234,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 1.2,
+    "objective": -61146.0,
+    "bestBound": -61146.0,
+    "variables": 414,
+    "constraints": 622,
+    "bbox": [
+     25.9,
+     17.3
+    ],
+    "notch": [
+     16.8,
+     0.0,
+     25.9,
+     6.9
+    ]
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.02,
+    "undersizedRooms": 1,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "5/7",
+    "daylightMetres": 18.3,
+    "adjacencyMet": "9/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 23.0,
+    "meanTravelM": 13.1,
+    "freeFloorShare": 0.215,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "startup 12 (tight)",
+  "baseline": {
+   "metrics": {
+    "rooms": 8,
+    "meanAreaDeviation": 0.342,
+    "undersizedRooms": 6,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "5/5",
+    "daylightMetres": 18.5,
+    "adjacencyMet": "5/5",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 11.5,
+    "meanTravelM": 6.0,
+    "freeFloorShare": 0.28,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 85.58
+  },
+  "rect": {
+   "solver": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 3406298.0,
+    "bestBound": 720615.0,
+    "variables": 287,
+    "constraints": 428,
+    "bbox": [
+     14.0,
+     10.0
+    ],
+    "notch": null
+   },
+   "metrics": {
+    "rooms": 8,
+    "meanAreaDeviation": 0.233,
+    "undersizedRooms": 5,
+    "aspectViolations": 0,
+    "minSideViolations": 3,
+    "daylightRoomsLit": "5/5",
+    "daylightMetres": 20.6,
+    "adjacencyMet": "5/5",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 10.2,
+    "meanTravelM": 4.3,
+    "freeFloorShare": 0.28,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 4062050.0,
+    "bestBound": 833731.0,
+    "variables": 287,
+    "constraints": 430,
+    "bbox": [
+     15.1,
+     10.8
+    ],
+    "notch": [
+     9.8,
+     0.0,
+     15.1,
+     4.3
+    ]
+   },
+   "metrics": {
+    "rooms": 8,
+    "meanAreaDeviation": 0.269,
+    "undersizedRooms": 8,
+    "aspectViolations": 1,
+    "minSideViolations": 4,
+    "daylightRoomsLit": "4/5",
+    "daylightMetres": 15.7,
+    "adjacencyMet": "5/5",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 11.7,
+    "meanTravelM": 5.5,
+    "freeFloorShare": 0.303,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "agency 40 (tight)",
+  "baseline": {
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.381,
+    "undersizedRooms": 8,
+    "aspectViolations": 1,
+    "minSideViolations": 1,
+    "daylightRoomsLit": "6/8",
+    "daylightMetres": 23.6,
+    "adjacencyMet": "9/10",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 21.6,
+    "meanTravelM": 10.6,
+    "freeFloorShare": 0.195,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 88.83
+  },
+  "rect": {
+   "solver": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 3867624.0,
+    "bestBound": 991662.0,
+    "variables": 430,
+    "constraints": 647,
+    "bbox": [
+     22.0,
+     14.0
+    ],
+    "notch": null
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.204,
+    "undersizedRooms": 3,
+    "aspectViolations": 5,
+    "minSideViolations": 8,
+    "daylightRoomsLit": "7/8",
+    "daylightMetres": 26.7,
+    "adjacencyMet": "10/10",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 19.1,
+    "meanTravelM": 8.5,
+    "freeFloorShare": 0.195,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "FEASIBLE",
+    "seconds": 30.0,
+    "objective": 4145898.0,
+    "bestBound": 1042071.0,
+    "variables": 430,
+    "constraints": 649,
+    "bbox": [
+     23.7,
+     15.1
+    ],
+    "notch": [
+     15.4,
+     0.0,
+     23.7,
+     6.0
+    ]
+   },
+   "metrics": {
+    "rooms": 11,
+    "meanAreaDeviation": 0.236,
+    "undersizedRooms": 5,
+    "aspectViolations": 0,
+    "minSideViolations": 1,
+    "daylightRoomsLit": "6/8",
+    "daylightMetres": 25.4,
+    "adjacencyMet": "8/10",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 19.5,
+    "meanTravelM": 11.6,
+    "freeFloorShare": 0.23,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "roomy 25",
+  "baseline": {
+   "metrics": {
+    "rooms": 9,
+    "meanAreaDeviation": 0.361,
+    "undersizedRooms": 0,
+    "aspectViolations": 1,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "6/6",
+    "daylightMetres": 42.0,
+    "adjacencyMet": "8/8",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 23.9,
+    "meanTravelM": 11.0,
+    "freeFloorShare": 0.169,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 0.35
+  },
+  "rect": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 1.1,
+    "objective": -278057.0,
+    "bestBound": -278057.0,
+    "variables": 342,
+    "constraints": 513,
+    "bbox": [
+     26.0,
+     16.0
+    ],
+    "notch": null
+   },
+   "metrics": {
+    "rooms": 9,
+    "meanAreaDeviation": 0.001,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "3/6",
+    "daylightMetres": 27.8,
+    "adjacencyMet": "8/8",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 17.4,
+    "meanTravelM": 7.6,
+    "freeFloorShare": 0.393,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 0.4,
+    "objective": -277593.0,
+    "bestBound": -277593.0,
+    "variables": 342,
+    "constraints": 515,
+    "bbox": [
+     28.0,
+     17.3
+    ],
+    "notch": [
+     18.2,
+     0.0,
+     28.0,
+     6.9
+    ]
+   },
+   "metrics": {
+    "rooms": 9,
+    "meanAreaDeviation": 0.001,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "4/6",
+    "daylightMetres": 24.2,
+    "adjacencyMet": "8/8",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 22.9,
+    "meanTravelM": 11.4,
+    "freeFloorShare": 0.393,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "small studio (no shell)",
+  "baseline": {
+   "metrics": {
+    "rooms": 6,
+    "meanAreaDeviation": 0.498,
+    "undersizedRooms": 6,
+    "aspectViolations": 1,
+    "minSideViolations": 5,
+    "daylightRoomsLit": "3/4",
+    "daylightMetres": 8.5,
+    "adjacencyMet": "2/2",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 8.0,
+    "meanTravelM": 4.0,
+    "freeFloorShare": 0.376,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 189.91
+  },
+  "rect": {
+   "solver": {
+    "status": "INFEASIBLE",
+    "seconds": 0.0,
+    "objective": null,
+    "bestBound": null,
+    "variables": 196,
+    "constraints": 289,
+    "bbox": [
+     10.5,
+     7.0
+    ],
+    "notch": null
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "INFEASIBLE",
+    "seconds": 0.0,
+    "objective": null,
+    "bestBound": null,
+    "variables": 196,
+    "constraints": 291,
+    "bbox": [
+     11.3,
+     7.5
+    ],
+    "notch": [
+     7.3,
+     0.0,
+     11.3,
+     3.0
+    ]
+   }
+  }
+ },
+ {
+  "name": "call centre 60",
+  "baseline": {
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.195,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "1/5",
+    "daylightMetres": 32.0,
+    "adjacencyMet": "7/7",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 32.9,
+    "meanTravelM": 18.2,
+    "freeFloorShare": 0.134,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 0.1
+  },
+  "rect": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 0.5,
+    "objective": -62320.0,
+    "bestBound": -62320.0,
+    "variables": 380,
+    "constraints": 582,
+    "bbox": [
+     34.0,
+     20.0
+    ],
+    "notch": null
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.018,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "1/5",
+    "daylightMetres": 32.0,
+    "adjacencyMet": "7/7",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 30.7,
+    "meanTravelM": 16.0,
+    "freeFloorShare": 0.371,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 0.4,
+    "objective": -85561.0,
+    "bestBound": -85561.0,
+    "variables": 380,
+    "constraints": 584,
+    "bbox": [
+     36.7,
+     21.6
+    ],
+    "notch": [
+     23.9,
+     0.0,
+     36.7,
+     8.6
+    ]
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.013,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "2/5",
+    "daylightMetres": 9.1,
+    "adjacencyMet": "7/7",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 28.3,
+    "meanTravelM": 15.5,
+    "freeFloorShare": 0.346,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ },
+ {
+  "name": "all-glass 30",
+  "baseline": {
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.144,
+    "undersizedRooms": 0,
+    "aspectViolations": 1,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "7/7",
+    "daylightMetres": 59.7,
+    "adjacencyMet": "9/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 24.0,
+    "meanTravelM": 11.0,
+    "freeFloorShare": 0.17,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   },
+   "issueScoreTS": 0.08
+  },
+  "rect": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 1.9,
+    "objective": -282520.0,
+    "bestBound": -282520.0,
+    "variables": 414,
+    "constraints": 622,
+    "bbox": [
+     28.0,
+     15.0
+    ],
+    "notch": null
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.003,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "3/7",
+    "daylightMetres": 41.7,
+    "adjacencyMet": "9/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 23.6,
+    "meanTravelM": 10.9,
+    "freeFloorShare": 0.291,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  },
+  "L": {
+   "solver": {
+    "status": "OPTIMAL",
+    "seconds": 0.8,
+    "objective": -305384.0,
+    "bestBound": -305384.0,
+    "variables": 414,
+    "constraints": 624,
+    "bbox": [
+     30.2,
+     16.2
+    ],
+    "notch": [
+     19.6,
+     0.0,
+     30.2,
+     6.5
+    ]
+   },
+   "metrics": {
+    "rooms": 10,
+    "meanAreaDeviation": 0.002,
+    "undersizedRooms": 0,
+    "aspectViolations": 0,
+    "minSideViolations": 0,
+    "daylightRoomsLit": "5/7",
+    "daylightMetres": 33.4,
+    "adjacencyMet": "9/9",
+    "unreachableRooms": 0,
+    "unreachableIds": [],
+    "maxTravelM": 27.0,
+    "meanTravelM": 13.9,
+    "freeFloorShare": 0.278,
+    "overlapM2": 0.0,
+    "outsideShellM2": 0.0
+   }
+  }
+ }
+]

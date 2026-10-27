@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="596" height="424" viewBox="-10 -26 596 424" font-family="sans-serif" font-size="10">
+<text x="0" y="-10" font-size="12">demo studio - subdivision rect</text>
+<polygon points="576.0,0.0 576.0,384.0 0.0,384.0 0.0,0.0 576.0,0.0" fill="#f6f3ec" stroke="#222" stroke-width="2"/>
+<rect x="48.0" y="0.0" width="528.0" height="172.8" fill="#d9c9a3" stroke="#333" stroke-width="1"/>
+<text x="312.0" y="86.4" text-anchor="middle">open workspace 158m²</text>
+<rect x="48.0" y="211.2" width="96.3" height="105.1" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="96.1" y="263.7" text-anchor="middle">meeting room 18m²</text>
+<rect x="144.3" y="211.2" width="96.3" height="105.1" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="192.4" y="263.7" text-anchor="middle">meeting room 18m²</text>
+<rect x="240.5" y="211.2" width="96.3" height="105.1" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="288.7" y="263.7" text-anchor="middle">meeting room 18m²</text>
+<rect x="48.0" y="316.3" width="79.7" height="67.7" fill="#bdbdb5" stroke="#333" stroke-width="1"/>
+<text x="87.8" y="350.1" text-anchor="middle">storage 9m²</text>
+<rect x="127.7" y="316.3" width="209.1" height="67.7" fill="#c9a08a" stroke="#333" stroke-width="1"/>
+<text x="232.2" y="350.1" text-anchor="middle">lounge 25m²</text>
+<rect x="336.8" y="211.2" width="157.7" height="86.8" fill="#e0b98a" stroke="#333" stroke-width="1"/>
+<text x="415.6" y="254.6" text-anchor="middle">kitchen 24m²</text>
+<rect x="494.4" y="211.2" width="81.6" height="86.8" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="535.2" y="254.6" text-anchor="middle">restroom 12m²</text>
+<rect x="336.8" y="298.0" width="82.4" height="86.0" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="378.0" y="341.0" text-anchor="middle">restroom 12m²</text>
+<rect x="419.1" y="298.0" width="109.8" height="86.0" fill="#a9bcd0" stroke="#333" stroke-width="1"/>
+<text x="474.0" y="341.0" text-anchor="middle">reception 16m²</text>
+<rect x="528.9" y="298.0" width="47.1" height="86.0" fill="#b0b0c0" stroke="#333" stroke-width="1"/>
+<text x="552.5" y="341.0" text-anchor="middle">server room 7m²</text>
+</svg>

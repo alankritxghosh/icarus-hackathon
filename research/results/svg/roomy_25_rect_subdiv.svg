@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="644" height="424" viewBox="-10 -26 644 424" font-family="sans-serif" font-size="10">
+<text x="0" y="-10" font-size="12">roomy 25 - subdivision rect</text>
+<polygon points="624.0,0.0 624.0,384.0 0.0,384.0 0.0,0.0 624.0,0.0" fill="#f6f3ec" stroke="#222" stroke-width="2"/>
+<rect x="48.0" y="0.0" width="60.2" height="93.8" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="78.1" y="46.9" text-anchor="middle">restroom 10m²</text>
+<rect x="48.0" y="93.8" width="60.2" height="79.0" fill="#bdbdb5" stroke="#333" stroke-width="1"/>
+<text x="78.1" y="133.3" text-anchor="middle">storage 8m²</text>
+<rect x="108.2" y="0.0" width="515.8" height="172.8" fill="#d9c9a3" stroke="#333" stroke-width="1"/>
+<text x="366.1" y="86.4" text-anchor="middle">open workspace 155m²</text>
+<rect x="48.0" y="211.2" width="113.4" height="172.8" fill="#e0b98a" stroke="#333" stroke-width="1"/>
+<text x="104.7" y="297.6" text-anchor="middle">kitchen 34m²</text>
+<rect x="161.4" y="211.2" width="101.3" height="172.8" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="212.1" y="297.6" text-anchor="middle">meeting room 30m²</text>
+<rect x="262.7" y="211.2" width="101.3" height="172.8" fill="#9fb8a0" stroke="#333" stroke-width="1"/>
+<text x="313.4" y="297.6" text-anchor="middle">meeting room 30m²</text>
+<rect x="364.0" y="211.2" width="64.2" height="172.8" fill="#c0d4d6" stroke="#333" stroke-width="1"/>
+<text x="396.1" y="297.6" text-anchor="middle">restroom 19m²</text>
+<rect x="428.2" y="211.2" width="94.5" height="172.8" fill="#a9bcd0" stroke="#333" stroke-width="1"/>
+<text x="475.4" y="297.6" text-anchor="middle">reception 28m²</text>
+<rect x="522.7" y="211.2" width="101.3" height="172.8" fill="#c9a08a" stroke="#333" stroke-width="1"/>
+<text x="573.4" y="297.6" text-anchor="middle">lounge 30m²</text>
+</svg>
