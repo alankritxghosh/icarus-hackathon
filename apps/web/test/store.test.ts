@@ -1,7 +1,7 @@
 import { layoutOffice, ProgramSchema } from "@icarus/core";
 import { fromFloorPlan, SAVED_VERSION } from "@icarus/spatial/model";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadBuilds, saveBuilds } from "../src/store";
+import { loadBuilds, loadDrawings, saveBuilds, saveDrawings } from "../src/store";
 
 const saved = (program: unknown) => ({
   id: "a",
@@ -79,6 +79,56 @@ describe("saved offices carry the spatial model", () => {
     const [b] = loadBuilds();
     expect(b?.id).toBe("a");
     expect(b?.model).toBeUndefined();
+  });
+
+  it("restores the conversation and prior versions needed for chat undo", () => {
+    const { p, plan } = office();
+    const store = write(undefined);
+    const conversation = [
+      { id: "one", role: "you" as const, text: "Move the kitchen" },
+      { id: "two", role: "icarus" as const, text: "Done." },
+      { id: "working", role: "icarus" as const, text: "", working: true },
+    ];
+    saveBuilds([
+      {
+        ...saved(p),
+        plan,
+        conversation,
+        history: [{ program: p, plan, seed: 1, notes: [] }],
+      },
+    ]);
+    expect(store["icarus.builds.v1"]).toBeDefined();
+    const [restored] = loadBuilds();
+    expect(restored?.conversation?.map((m) => m.text)).toEqual(["Move the kitchen", "Done."]);
+    expect(restored?.history?.[0]?.plan).toEqual(plan);
+  });
+});
+
+describe("saved drawings", () => {
+  it("restores a drawing model and its conversation", () => {
+    const { p, plan } = (() => {
+      const p = ProgramSchema.parse(program);
+      return { p, plan: layoutOffice(p, { seed: 1 }) };
+    })();
+    const store: Record<string, string> = {};
+    vi.stubGlobal("localStorage", {
+      getItem: (key: string) => store[key] ?? null,
+      setItem: (key: string, value: string) => {
+        store[key] = value;
+      },
+    });
+    const model = fromFloorPlan(plan, { program: p });
+    saveDrawings([
+      {
+        id: "drawing-1",
+        title: "Plan",
+        model,
+        editedAt: 10,
+        conversation: [{ id: "one", role: "you", text: "Here is my plan" }],
+      },
+    ]);
+    expect(loadDrawings()[0]?.model).toEqual(model);
+    expect(loadDrawings()[0]?.conversation[0]?.text).toBe("Here is my plan");
   });
 });
 

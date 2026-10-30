@@ -55,8 +55,54 @@ describe("editByWords", () => {
     expect(["applied", "unchanged", "refused"]).toContain(step?.status);
     if (step?.status === "applied") {
       expect(result.built?.program.arrangement).toBeDefined();
-      expect(step.text).toContain("Score");
+      expect(step.text).not.toContain("Score");
     } else expect(result.built).toBeUndefined();
+  });
+
+  it("treats keep everything else as a hard constraint, not a room named all", async () => {
+    const base = await built();
+    const result = await editByWords(
+      "move the kitchen west and keep everything else where it is",
+      base,
+      {
+        useModel: false,
+      },
+    );
+    expect(result.entry.lines.map((line) => line.text).join(" ")).not.toContain(
+      "room called “all”",
+    );
+    if (result.built) {
+      const oldRooms = new Map(base.plan.rooms.map((room) => [room.id, room]));
+      for (const room of result.built.plan.rooms) {
+        if (room.id !== "kitchen.1") expect(room.rect).toEqual(oldRooms.get(room.id)?.rect);
+      }
+    } else {
+      expect(
+        result.entry.lines.some((line) => line.status === "refused" || line.status === "unchanged"),
+      ).toBe(true);
+    }
+  });
+
+  it("does not apply any part of a constrained edit when another room moves", async () => {
+    const base = await built();
+    const net = fakeFetch(() =>
+      ok({ edit: { ops: [{ op: "move_room", room: "kitchen", to: "west" }] } }),
+    );
+    const result = await editByWords(
+      "move the kitchen next to reception and keep everything else where it is",
+      base,
+      {
+        fetcher: net.fetcher,
+      },
+    );
+    expect(net.calls).toHaveLength(1);
+    expect((net.calls[0] as { text: string }).text).toBe("move the kitchen next to reception");
+    if (result.entry.lines[0]?.status === "refused") expect(result.built).toBeUndefined();
+    if (result.built)
+      for (const room of base.plan.rooms.filter((room) => room.id !== "kitchen.1"))
+        expect(result.built.plan.rooms.find((next) => next.id === room.id)?.rect).toEqual(
+          room.rect,
+        );
   });
 
   it("adds, resizes and removes meeting rooms from words, with no model", async () => {
@@ -65,6 +111,7 @@ describe("editByWords", () => {
     const added = await editByWords("add a meeting room for 10", base, { useModel: false });
     expect(["applied", "refused"]).toContain(added.entry.lines[0]?.status);
     if (added.built) {
+      expect(added.entry.lines.map((line) => line.text).join(" ")).not.toContain("Score");
       expect(added.built.plan.rooms.filter((r) => r.kind === "meeting_room")).toHaveLength(
         before + 1,
       );

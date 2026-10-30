@@ -16,6 +16,29 @@ export interface EditResult {
 const HELP =
   "I can move a room (“move the kitchen east”), make a room bigger or smaller (“make the kitchen bigger”), add or remove a meeting room (“add a meeting room”), swap two rooms (“swap the lounge and the kitchen”), change phone booths (“add a third phone booth”), and lock or unlock a room (“lock the kitchen”).";
 
+/** A promise about unchanged rooms is a constraint on the whole edit, never another operation. */
+function separateKeepRequest(text: string): { request: string; keepOthers: boolean } {
+  const constraint =
+    /(?:\s*(?:,|;)?\s*\b(?:and\s+)?(?:(?:keep|leave)\s+(?:everything|anything|all(?:\s+the)?\s+other\s+rooms?|the\s+(?:other\s+rooms?|rest)|every\s+other\s+room)\s+(?:else\s+)?(?:where\s+(?:it|they)\s+(?:is|are)|in\s+place|unchanged|the\s+same|as\s+(?:it|they)\s+(?:is|are))|(?:do\s+not|don't)\s+(?:move|change)\s+(?:anything|everything)\s+else)\s*[.!?]*)$/i;
+  const match = constraint.exec(text);
+  if (!match && /^only\s+(?:move|put|shift|relocate|place|resize|make|swap|switch)\b/i.test(text))
+    return { request: text.replace(/^only\s+/i, ""), keepOthers: true };
+  return match
+    ? { request: text.slice(0, match.index).trim(), keepOthers: true }
+    : { request: text, keepOthers: false };
+}
+
+function changedOtherRooms(before: Built, after: Built, allowed: Set<string>): string[] {
+  const next = new Map(after.plan.rooms.map((room) => [room.id, room]));
+  return before.plan.rooms
+    .filter((room) => !allowed.has(room.id))
+    .filter((room) => {
+      const now = next.get(room.id);
+      return !now || JSON.stringify(now.rect) !== JSON.stringify(room.rect);
+    })
+    .map((room) => room.name);
+}
+
 /**
  * The design as a measured evaluation, worked out from the model alone: the rows of rooms are read
  * back from its geometry and the locks from its spaces, so nothing the solver stored is needed.
@@ -68,6 +91,15 @@ export async function editByWords(
   built: Built,
   options: { fetcher?: Fetch; useModel?: boolean } = {},
 ): Promise<EditResult> {
+  const { request, keepOthers } = separateKeepRequest(text);
+  if (keepOthers && !request)
+    return {
+      entry: {
+        text,
+        by: "rules",
+        lines: [{ status: "refused", text: "Tell me which room to change." }],
+      },
+    };
   const fetcher = options.fetcher ?? fetch.bind(globalThis);
   const state = { program: built.program, model: built.model, seed: built.seed };
   const measured = evaluationOfModel(state);
@@ -77,7 +109,7 @@ export async function editByWords(
     return { entry };
   }
   const ev = measured.evaluation;
-  const said = understandEdit(text, {
+  const said = understandEdit(request, {
     phoneBooths: ev.program.phoneBooths,
     meetingRooms: ev.plan.rooms.filter((r) => r.kind === "meeting_room").length,
     names: ev.plan.rooms.map((r) => r.name),
@@ -92,7 +124,7 @@ export async function editByWords(
       entry.lines.push({ status: "refused", text: `I did not understand that. ${HELP}` });
       return { entry };
     }
-    const asked = await askModel(fetcher, text, ev);
+    const asked = await askModel(fetcher, request, ev);
     if (!asked.edit) {
       entry.lines.push({
         status: "refused",
@@ -112,13 +144,58 @@ export async function editByWords(
   }
   if (ops.length === 0) return { entry };
 
+  // The constraint is meaningful only when we know which existing rooms may change.
+  const allowed = new Set<string>();
+  if (keepOthers) {
+    const roomByName = (name: string) =>
+      ev.plan.rooms.find(
+        (room) =>
+          room.id.toLowerCase() === name.toLowerCase() ||
+          room.name.toLowerCase() === name.toLowerCase().replace(/^(?:the|my|our)\s+/, ""),
+      );
+    for (const op of ops) {
+      if (op.op === "move_room" || op.op === "resize_room") {
+        const room = roomByName(op.room);
+        if (room) allowed.add(room.id);
+      } else if (op.op === "swap_rooms") {
+        for (const name of [op.a, op.b]) {
+          const room = roomByName(name);
+          if (room) allowed.add(room.id);
+        }
+      } else if (op.op === "add_room" || op.op === "remove_room") {
+        entry.lines = [
+          {
+            status: "refused",
+            text: "Adding or removing a room would change the others. I left this design alone.",
+          },
+        ];
+        return { entry };
+      }
+    }
+  }
+
   const edit = editModel(state, ops, { base: ev });
   if (!edit.ok) {
     entry.lines.push({ status: "refused", text: edit.reason });
     return { entry };
   }
+  if (keepOthers && edit.outcome.changed) {
+    const changed = changedOtherRooms(built, { ...built, plan: edit.evaluation.plan }, allowed);
+    if (changed.length) {
+      entry.lines = [
+        {
+          status: "refused",
+          text: `That would also move ${changed.slice(0, 3).join(", ")}. I left the design alone.`,
+        },
+      ];
+      return { entry };
+    }
+  }
   for (const step of edit.outcome.steps)
-    entry.lines.push({ status: step.status, text: step.message });
+    entry.lines.push({
+      status: step.status,
+      text: step.message.replace(/\s*Score -?\d+(?:\.\d+)? → -?\d+(?:\.\d+)?\./g, ""),
+    });
   if (!edit.outcome.changed) return { entry };
   return { entry, built: builtFromEvaluation(edit.evaluation, built, entry, edit.state.model) };
 }

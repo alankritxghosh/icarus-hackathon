@@ -1,5 +1,5 @@
 import type { Scene, Viewpoint } from "@icarus/core";
-import { useEffect, useRef, useState } from "react";
+import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { viewCommand } from "./chatCommands";
 import { saveFile } from "./download";
 import { OfficeView, type RealState, type ViewMode } from "./officeView";
@@ -9,8 +9,8 @@ export interface Reply {
   lines?: string[];
 }
 
-interface Message {
-  id: number;
+export interface Message {
+  id: string;
   role: "you" | "icarus";
   text: string;
   lines?: string[];
@@ -25,9 +25,8 @@ interface Props {
   title?: string;
   builds: { id: string; title: string }[];
   activeId?: string;
-  /** Changes when a different project is opened, so the conversation starts over. */
-  resetKey: string;
-  intro?: string;
+  messages: Message[];
+  setMessages: Dispatch<SetStateAction<Message[]>>;
   starts: { label: string; text: string }[];
   onSend: (text: string, file: File | undefined, live: (lines: string[]) => void) => Promise<Reply>;
   onNew: () => void;
@@ -41,8 +40,6 @@ const slug = (s: string) =>
     .replace(/^-|-$/g, "")
     .slice(0, 40) || "building";
 
-let nextId = 1;
-
 export function Studio(props: Props) {
   const {
     scene,
@@ -51,8 +48,8 @@ export function Studio(props: Props) {
     title,
     builds,
     activeId,
-    resetKey,
-    intro,
+    messages,
+    setMessages,
     starts,
     onSend,
     onNew,
@@ -61,7 +58,6 @@ export function Studio(props: Props) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<OfficeView>(null);
   const thread = useRef<HTMLDivElement>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
   const [file, setFile] = useState<File>();
   const [busy, setBusy] = useState(false);
@@ -86,18 +82,13 @@ export function Studio(props: Props) {
     view.current?.setLabels(labels);
   }, [scene, labels]);
 
-  useEffect(() => {
-    setMessages(intro ? [{ id: nextId++, role: "icarus", text: intro }] : []);
-    void resetKey;
-  }, [resetKey, intro]);
-
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to the newest message whenever the list changes
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
   }, [messages]);
 
   const say = (m: Omit<Message, "id">) => {
-    const id = nextId++;
+    const id = crypto.randomUUID();
     setMessages((all) => [...all, { ...m, id }]);
     return id;
   };

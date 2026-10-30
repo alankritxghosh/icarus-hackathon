@@ -36,5 +36,5 @@ export {
   reviewAgainstPrinciples,
 } from "./principles";
 export { type DrawnScene, sceneFromModel } from "./sceneFromModel";
-export type { SpatialModel } from "./schema";
+export { SpatialModel } from "./schema";
 export { estimateUnitMm, extractEvidenceAuto, type ScaleEstimate } from "./sheetScale";

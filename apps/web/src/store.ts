@@ -1,5 +1,13 @@
 import { type FloorPlan, type Program, ProgramSchema } from "@icarus/core";
-import { type SpatialModel, upgradeSaved } from "@icarus/spatial/model";
+import { SpatialModel, upgradeSaved } from "@icarus/spatial/model";
+import type { Message } from "./Studio";
+
+export interface SavedRevision {
+  program: Program;
+  plan: FloorPlan;
+  seed: number;
+  notes: string[];
+}
 
 export interface SavedBuild {
   id: string;
@@ -18,6 +26,29 @@ export interface SavedBuild {
    * a saved office is already in the format later features will use.
    */
   model?: SpatialModel;
+  conversation?: Message[];
+  history?: SavedRevision[];
+}
+
+export interface SavedDrawing {
+  id: string;
+  title: string;
+  model: SpatialModel;
+  editedAt: number;
+  conversation: Message[];
+}
+
+function messages(value: unknown): Message[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (m): m is Message =>
+      !!m &&
+      typeof m === "object" &&
+      typeof m.id === "string" &&
+      (m.role === "you" || m.role === "icarus") &&
+      typeof m.text === "string" &&
+      !m.working,
+  );
 }
 
 /** The build with a fresh model. A plan that cannot be converted keeps the build as it was. */
@@ -40,7 +71,23 @@ export function loadBuilds(): SavedBuild[] {
     // defaults instead of breaking the page; one that no longer parses is dropped.
     return all.flatMap((b) => {
       const program = ProgramSchema.safeParse(b.program);
-      return program.success ? [withModel({ ...b, program: program.data })] : [];
+      return program.success
+        ? [
+            withModel({
+              ...b,
+              program: program.data,
+              conversation: messages(b.conversation),
+              history: Array.isArray(b.history)
+                ? b.history.flatMap((h) => {
+                    const parsed = ProgramSchema.safeParse(h.program);
+                    return parsed.success && h.plan && typeof h.seed === "number"
+                      ? [{ ...h, program: parsed.data }]
+                      : [];
+                  })
+                : [],
+            }),
+          ]
+        : [];
     });
   } catch {
     return [];
@@ -49,9 +96,61 @@ export function loadBuilds(): SavedBuild[] {
 
 export function saveBuilds(builds: SavedBuild[]) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(builds.slice(0, 24).map(withModel)));
+    localStorage.setItem(
+      KEY,
+      JSON.stringify(
+        builds.slice(0, 24).map((b) =>
+          withModel({
+            ...b,
+            conversation: messages(b.conversation),
+            history: b.history?.slice(-20),
+          }),
+        ),
+      ),
+    );
   } catch {
     // Storage can be blocked or full; the app works without it.
+  }
+}
+
+const DRAWINGS_KEY = "icarus.drawings.v1";
+
+export function loadDrawings(): SavedDrawing[] {
+  try {
+    const raw = localStorage.getItem(DRAWINGS_KEY);
+    const all: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(all)) return [];
+    return all.flatMap((d) => {
+      if (!d || typeof d !== "object") return [];
+      const entry = d as Record<string, unknown>;
+      const model = SpatialModel.safeParse(entry.model);
+      return model.success && typeof entry.id === "string" && typeof entry.title === "string"
+        ? [
+            {
+              id: entry.id,
+              title: entry.title,
+              model: model.data,
+              editedAt: typeof entry.editedAt === "number" ? entry.editedAt : 0,
+              conversation: messages(entry.conversation),
+            },
+          ]
+        : [];
+    });
+  } catch {
+    return [];
+  }
+}
+
+export function saveDrawings(drawings: SavedDrawing[]) {
+  try {
+    localStorage.setItem(
+      DRAWINGS_KEY,
+      JSON.stringify(
+        drawings.slice(0, 24).map((d) => ({ ...d, conversation: messages(d.conversation) })),
+      ),
+    );
+  } catch {
+    // The current session still works when local storage is unavailable.
   }
 }
 

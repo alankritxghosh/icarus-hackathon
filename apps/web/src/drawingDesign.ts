@@ -1,4 +1,5 @@
 import type { Scene, Viewpoint } from "@icarus/core";
+import type { SpatialModel } from "@icarus/spatial/model";
 import {
   extractEvidence,
   extractEvidenceAuto,
@@ -55,6 +56,7 @@ export function scaleInText(text: string): number | undefined {
 }
 
 export interface DrawnDesign {
+  model: SpatialModel;
   scene: Scene;
   labels: { name: string; x: number; y: number }[];
   viewpoints: Viewpoint[];
@@ -123,5 +125,12 @@ export async function designFromDrawing(
       ? `I furnished ${drawn.furnished.join(", ")} by what the sheet calls them. Every other room is as drawn, because a drawing's furniture is only lines.`
       : "I added no furniture, because a drawing's furniture is only lines.",
   );
-  return { scene: drawn.scene, labels: drawn.labels, viewpoints: drawn.viewpoints, name, lines };
+  return {
+    model,
+    scene: drawn.scene,
+    labels: drawn.labels,
+    viewpoints: drawn.viewpoints,
+    name,
+    lines,
+  };
 }

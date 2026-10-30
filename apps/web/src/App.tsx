@@ -1,22 +1,23 @@
-import { type Round, type Scene, type Viewpoint, viewpoints } from "@icarus/core";
-import type { AccountLesson } from "@icarus/spatial/model";
+import { type Scene, type Viewpoint, viewpoints } from "@icarus/core";
+import { type AccountLesson, sceneFromModel } from "@icarus/spatial/model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadLessons, saveLessons } from "./accountLessons";
-import {
-  type Built,
-  builtFromRefine,
-  PHOTO_STAGES,
-  readPhotoDesign,
-  rebuild,
-  STAGES,
-} from "./design";
+import { buildSummary } from "./buildSummary";
+import { type Built, builtFromRefine, finish, readPhotoDesign } from "./design";
 import { designFromBrief, refineProgram } from "./designLoop";
 import { DrawingError, type DrawnDesign, designFromDrawing } from "./drawingDesign";
 import { editByWords } from "./editByWords";
 import { RenderError, readPhoto } from "./photo";
 import type { Reference } from "./references";
-import { type Reply, Studio } from "./Studio";
-import { loadBuilds, type SavedBuild, saveBuilds } from "./store";
+import { type Message, type Reply, Studio } from "./Studio";
+import {
+  loadBuilds,
+  loadDrawings,
+  type SavedBuild,
+  type SavedRevision,
+  saveBuilds,
+  saveDrawings,
+} from "./store";
 import { applyTaught, learnFrom } from "./taught";
 
 interface Session {
@@ -48,20 +49,45 @@ const titleOf = (brief: string) => {
   return first.length > 38 ? `${first.slice(0, 36)}…` : first || "Untitled";
 };
 
+const revisionOf = (b: Built): SavedRevision => ({
+  program: b.program,
+  plan: b.plan,
+  seed: b.seed,
+  notes: b.notes,
+});
+
 type Source = { kind: "brief"; text: string } | { kind: "photo"; reference: Reference };
 
 export function App() {
   const [builds, setBuilds] = useState<SavedBuild[]>(loadBuilds);
+  const [drawings, setDrawings] = useState(loadDrawings);
+  const [conversation, setConversation] = useState<Message[]>([]);
   const [session, setSession] = useState<Session>();
   const [lessons, setLessons] = useState<AccountLesson[]>(() => loadLessons());
-  const [resetKey, setResetKey] = useState("start");
-  const [intro, setIntro] = useState<string>();
   const sessionRef = useRef<Session | undefined>(undefined);
   sessionRef.current = session;
 
   useEffect(() => saveBuilds(builds), [builds]);
+  useEffect(() => saveDrawings(drawings), [drawings]);
 
-  const remember = useCallback((id: string, brief: string, built: Built) => {
+  useEffect(() => {
+    if (!session) return;
+    const completed = conversation.filter((m) => !m.working);
+    if (session.built)
+      setBuilds((all) =>
+        all.map((b) =>
+          b.id === session.id
+            ? { ...b, conversation: completed, history: session.history.map(revisionOf) }
+            : b,
+        ),
+      );
+    if (session.drawing)
+      setDrawings((all) =>
+        all.map((d) => (d.id === session.id ? { ...d, conversation: completed } : d)),
+      );
+  }, [conversation, session]);
+
+  const remember = useCallback((id: string, brief: string, built: Built, history: Built[]) => {
     setBuilds((all) => [
       {
         id,
@@ -72,6 +98,8 @@ export function App() {
         seed: built.seed,
         notes: built.notes,
         editedAt: Date.now(),
+        conversation: all.find((b) => b.id === id)?.conversation ?? [],
+        history: history.map(revisionOf),
       },
       ...all.filter((b) => b.id !== id),
     ]);
@@ -84,50 +112,22 @@ export function App() {
       const history = previous?.built ? [...previous.history, previous.built] : [];
       const brief =
         source.kind === "brief" ? source.text : `An office like “${source.reference.title}”`;
-      const stages = source.kind === "photo" ? PHOTO_STAGES : STAGES;
-      const progress: string[] = [];
-      const show = (stage: number) =>
-        live([`${stages[Math.min(stage, stages.length - 1)]}…`, ...progress.slice(-4)]);
-      const roundLine = (r: Round) => {
-        if (r.source === "start")
-          progress.push(`First plan: ${r.open} open issue${r.open === 1 ? "" : "s"}`);
-        else
-          progress.push(
-            `${r.accepted ? "Kept" : "Not kept"} (${r.source}): ${r.description} → ${r.open} open`,
-          );
-      };
       const yieldToHost = () => new Promise<void>((r) => setTimeout(r, 0));
       const started = performance.now();
-      show(0);
+      live([source.kind === "photo" ? "Reading your photo…" : "Designing your office…"]);
       await pause(200);
       let outcome: Awaited<ReturnType<typeof designFromBrief>>;
       if (source.kind === "photo") {
         const result = await readPhoto(source.reference.src);
         const read = readPhotoDesign(result.read, result.measured);
-        show(1);
         outcome = await refineProgram(read.program, read.notes, {
           yieldToHost,
-          onRound: (r) => {
-            roundLine(r);
-            show(1);
-          },
         });
       } else {
         outcome = await designFromBrief(source.text, {
           yieldToHost,
-          onStage: (label) => {
-            const index = label.startsWith("Checking")
-              ? 1
-              : STAGES.indexOf(label as (typeof STAGES)[number]);
-            show(Math.max(0, index));
-          },
-          onRound: (r) => {
-            roundLine(r);
-            show(2);
-          },
         });
       }
-      show(3);
       const built = builtFromRefine(
         outcome.refine,
         outcome.notes,
@@ -135,7 +135,7 @@ export function App() {
         Math.round(performance.now() - started),
       );
       setSession({ id, brief, built, history });
-      remember(id, brief, built);
+      remember(id, brief, built, history);
       return built;
     },
     [remember],
@@ -144,14 +144,14 @@ export function App() {
   const change = (current: Session, built: Built) => {
     const history = current.built ? [...current.history, current.built] : current.history;
     setSession({ ...current, built, history });
-    remember(current.id, current.brief, built);
+    remember(current.id, current.brief, built, history);
   };
 
   const undo = (current: Session): boolean => {
     const last = current.history[current.history.length - 1];
     if (!last) return false;
     setSession({ ...current, built: last, history: current.history.slice(0, -1) });
-    remember(current.id, current.brief, last);
+    remember(current.id, current.brief, last, current.history.slice(0, -1));
     return true;
   };
 
@@ -176,7 +176,12 @@ export function App() {
       live(["Reading your drawing…"]);
       try {
         const drawn = await designFromDrawing(file, file.name.replace(/\.pdf$/i, ""), text);
-        setSession({ id: crypto.randomUUID(), brief: drawn.name, drawing: drawn, history: [] });
+        const id = crypto.randomUUID();
+        setSession({ id, brief: drawn.name, drawing: drawn, history: [] });
+        setDrawings((all) => [
+          { id, title: drawn.name, model: drawn.model, editedAt: Date.now(), conversation: [] },
+          ...all,
+        ]);
         return {
           text: `Here is ${drawn.name}, drawn in 3D from your plan. Say “make it real” to render it on your GPU.`,
           lines: drawn.lines,
@@ -199,6 +204,7 @@ export function App() {
         const built = await buildFrom({ kind: "photo", reference }, undefined, live);
         return {
           text: `Designed an office in the style of your photo: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m.`,
+          lines: buildSummary(built),
         };
       } catch (error) {
         return {
@@ -221,7 +227,7 @@ export function App() {
       const built = await buildFrom({ kind: "brief", text }, undefined, live);
       return {
         text: `Built it: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m. Tell me what to change, or say “make it real”.`,
-        lines: remembered,
+        lines: [...buildSummary(built), ...remembered],
       };
     }
 
@@ -252,17 +258,52 @@ export function App() {
 
   const open = (id: string) => {
     const saved = builds.find((b) => b.id === id);
-    if (!saved) return;
-    const built = rebuild(saved.program, saved.seed, saved.notes);
-    setSession({ id, brief: saved.brief, built, history: [] });
-    setIntro(`Opened “${saved.title}”. Tell me what to change.`);
-    setResetKey(`open-${id}-${Date.now()}`);
+    if (saved) {
+      const built = finish(
+        { program: saved.program, plan: saved.plan, seed: saved.seed, notes: saved.notes },
+        0,
+      );
+      const history = (saved.history ?? []).map((h) => finish(h, 0));
+      setSession({ id, brief: saved.brief, built, history });
+      setConversation(
+        saved.conversation?.length
+          ? saved.conversation
+          : [
+              {
+                id: crypto.randomUUID(),
+                role: "icarus",
+                text: `Opened “${saved.title}”. Tell me what to change.`,
+              },
+            ],
+      );
+      return;
+    }
+    const drawing = drawings.find((d) => d.id === id);
+    if (!drawing) return;
+    const shown = sceneFromModel(drawing.model);
+    setSession({
+      id,
+      brief: drawing.title,
+      drawing: {
+        model: drawing.model,
+        scene: shown.scene,
+        labels: shown.labels,
+        viewpoints: shown.viewpoints,
+        name: drawing.title,
+        lines: [],
+      },
+      history: [],
+    });
+    setConversation(
+      drawing.conversation.length
+        ? drawing.conversation
+        : [{ id: crypto.randomUUID(), role: "icarus", text: `Opened “${drawing.title}”.` }],
+    );
   };
 
   const fresh = () => {
     setSession(undefined);
-    setIntro(undefined);
-    setResetKey(`new-${Date.now()}`);
+    setConversation([]);
   };
 
   // What is on screen: the office or the drawing, with whatever the person has taught applied.
@@ -302,10 +343,12 @@ export function App() {
       labels={shown.labels}
       viewpoints={eye}
       title={session?.brief}
-      builds={builds.map((b) => ({ id: b.id, title: b.title }))}
+      builds={[...builds, ...drawings]
+        .sort((a, b) => b.editedAt - a.editedAt)
+        .map((b) => ({ id: b.id, title: b.title }))}
       activeId={session?.id}
-      resetKey={resetKey}
-      intro={intro}
+      messages={conversation}
+      setMessages={setConversation}
       starts={STARTS}
       onSend={respond}
       onNew={fresh}

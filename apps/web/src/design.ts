@@ -60,22 +60,6 @@ export interface Built extends Design {
   edits?: EditEntry[];
 }
 
-/** The stages shown while building. Each one does real work, in order. */
-export const STAGES = [
-  "Reading the brief",
-  "Asking the model what this office needs",
-  "Planning, checking and repairing",
-  "Building walls, furnishing and lighting",
-] as const;
-
-/** The stages shown when the office starts from a photograph. */
-export const PHOTO_STAGES = [
-  "Reading the photo",
-  "Planning, checking and repairing",
-  "Building walls, furnishing and lighting",
-  "Measuring the plan",
-] as const;
-
 export function readPhotoDesign(read: PhotoRead, measured: MeasuredColours, seed = 1) {
   const { program, notes } = programFromPhoto(read, measured);
   return { program, notes, seed };
