@@ -60,7 +60,7 @@ browser: extractEvidence -> alignEvidenceToModel -> auditAgainstDrawing -> "Chec
 - **Edge:** `apps/edge/src/drawing.ts` checks the file (PDF magic, 8 MB, page 1 to 50), forwards it with a token that
   never reaches the browser, validates the reply, and never echoes the worker's errors. Without
   `DRAWING_WORKER_URL` and `DRAWING_WORKER_TOKEN` it answers 503.
-- **Worker:** `workers/drawing/app.py`, CPU only. **Not deployed**; see its README for the three commands.
+- **Worker:** `workers/drawing/app.py`, CPU only. Deployed to Modal on 30 Oct 2026 and tested live; the production edge Worker is not deployed, so its two secrets are not set (see its README).
 - **Development:** `pnpm --filter @icarus/web dev` answers `/api/drawing/views` with poppler installed on the machine,
   so the panel works with no deployment. Without poppler the request goes on to the edge.
 
@@ -104,7 +104,7 @@ are written; none are invented here.
 
 ## Pending
 
-- deploying the Modal drawing worker and setting the two edge secrets (needs the author);
+- setting the two production edge secrets once the edge Worker is deployed (needs `wrangler login` and a go-ahead to deploy publicly);
 - reading a scale off the sheet (a printed scale bar or a known dimension) instead of asking for it;
 - a design built *from* the drawing, which is what makes the check meaningful end to end;
 - per-account lessons (the prototype taught each account its own rules);

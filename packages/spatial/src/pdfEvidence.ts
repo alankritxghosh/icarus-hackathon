@@ -96,6 +96,16 @@ function attrs(source: string): Record<string, string> {
   return out;
 }
 
+/** Attributes of a tag, with any `style="a:b;c:d"` declarations folded in (older poppler writes fills that way). */
+function paint(source: string): Record<string, string> {
+  const a = attrs(source);
+  for (const decl of (a.style ?? "").split(";")) {
+    const at = decl.indexOf(":");
+    if (at > 0) a[decl.slice(0, at).trim()] = decl.slice(at + 1).trim();
+  }
+  return a;
+}
+
 export function parseColour(value: string | undefined): Rgb | undefined {
   if (!value || value === "none") return undefined;
   const hex = /^#([0-9a-f]{6})$/i.exec(value);
@@ -318,6 +328,8 @@ export function filledRects(svg: string): {
   let notRectangle = 0;
   let hollow = 0;
   const stack: Matrix[] = [IDENTITY];
+  // The fill and opacity a group sets for the paths inside it, which have none of their own.
+  const inherited: { fill?: string; opacity?: string }[] = [{}];
   let skip = 0;
   for (const tag of svg.matchAll(/<(\/?)([a-zA-Z]+)([^>]*?)(\/?)>/g)) {
     const closing = tag[1] === "/";
@@ -337,18 +349,24 @@ export function filledRects(svg: string): {
     if (skip) continue;
     if (name === "g") {
       if (closing) {
-        if (stack.length > 1) stack.pop();
+        if (stack.length > 1) {
+          stack.pop();
+          inherited.pop();
+        }
       } else if (!selfClosing) {
-        const a = attrs(tag[3] as string);
+        const a = paint(tag[3] as string);
         stack.push(multiply(stack[stack.length - 1] as Matrix, parseTransform(a.transform)));
+        const up = inherited[inherited.length - 1] ?? {};
+        inherited.push({ fill: a.fill ?? up.fill, opacity: a["fill-opacity"] ?? up.opacity });
       }
       continue;
     }
     if (name !== "path" || closing) continue;
-    const a = attrs(tag[3] as string);
-    const colour = parseColour(a.fill);
-    if (!colour || !a.d || (a["fill-opacity"] !== undefined && Number(a["fill-opacity"]) < 0.5))
-      continue;
+    const a = paint(tag[3] as string);
+    const up = inherited[inherited.length - 1] ?? {};
+    const colour = parseColour(a.fill ?? up.fill);
+    const opacity = a["fill-opacity"] ?? up.opacity;
+    if (!colour || !a.d || (opacity !== undefined && Number(opacity) < 0.5)) continue;
     const parts = subpaths(a.d);
     if (!parts) {
       notRectangle++;

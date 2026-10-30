@@ -38,6 +38,25 @@ describe("reading shapes", () => {
     ]);
   });
 
+  it("reads the style-attribute form older poppler writes, with fills inherited from a group", () => {
+    const svg = svgOf(
+      `<g id="surface1"><path style="fill-rule:nonzero;fill:rgb(80.4%,41.2%,15.7%);fill-opacity:1;stroke:none;" d="${box(0, 0, 100, 10)}"/>` +
+        `<g style="fill:rgb(0%,0%,100%);fill-opacity:1;"><path d="${box(0, 20, 50, 40)}"/></g>` +
+        `<path style="stroke:none;" d="${box(0, 50, 10, 60)}"/></g>`,
+    );
+    const { rects } = filledRects(svg);
+    expect(rects.map((r) => [r.rect, r.colour])).toEqual([
+      [
+        [0, 0, 100, 10],
+        [205, 105, 40],
+      ],
+      [
+        [0, 20, 50, 40],
+        [0, 0, 255],
+      ],
+    ]);
+  });
+
   it("counts curves and slanted shapes as not read, and an outline with a hole as hollow", () => {
     const svg = svgOf(
       path(BROWN, "M 0 0 C 1 1 2 2 3 3 Z") +
