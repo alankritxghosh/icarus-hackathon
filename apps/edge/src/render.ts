@@ -7,6 +7,9 @@ export interface AiBinding {
 
 export interface Env {
   AI: AiBinding;
+  /** The Modal drawing worker (workers/drawing). Both are secrets; without them the drawing route says so. */
+  DRAWING_WORKER_URL?: string;
+  DRAWING_WORKER_TOKEN?: string;
 }
 
 /** Image-to-image: repaints a reference picture. */

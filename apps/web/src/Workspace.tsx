@@ -2,6 +2,7 @@ import { type EvidenceItem, type Suggestion, type Viewpoint, viewpoints } from "
 import { fromFloorPlan, toDxf } from "@icarus/spatial/model";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DesignTrace } from "./DesignTrace";
+import { DrawingCheck } from "./DrawingCheck";
 import type { Built, EditEntry } from "./design";
 import { fileStem, saveFile } from "./download";
 import { EditBox } from "./EditBox";
@@ -306,6 +307,7 @@ export function Workspace({
                         </ul>
                       )}
                     </div>
+                    <DrawingCheck built={built} />
                     <div className="actions">
                       <button type="button" className="ghost" disabled={!canUndo} onClick={onUndo}>
                         ↶ Undo this change

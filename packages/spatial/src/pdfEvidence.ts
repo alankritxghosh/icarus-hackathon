@@ -668,3 +668,32 @@ export function anchorEvidence(evidence: DrawingEvidence, dx: number, dy: number
     labels: evidence.labels.map((l) => ({ ...l, at: [l.at[0] + dx, l.at[1] + dy] as const })),
   };
 }
+
+/**
+ * Slides evidence so the walls' bounding box starts where the model's walls do. A drawing and a model share a scale
+ * but not an origin; this assumes both describe the same building and that the sheet and the model have the same
+ * outermost wall corner at their top left (the extractor puts the sheet's at 0, 0). Returns the shift it applied.
+ */
+export function alignEvidenceToModel(
+  evidence: DrawingEvidence,
+  model: {
+    walls: {
+      a: { x: number; y: number };
+      b: { x: number; y: number };
+      kind: string;
+      thicknessMm?: number;
+    }[];
+  },
+): { evidence: DrawingEvidence; shiftMm: [number, number] } {
+  const real = model.walls.filter((w) => w.kind !== "virtual");
+  if (!real.length || !evidence.wallRects.length) return { evidence, shiftMm: [0, 0] };
+  const mx = Math.min(...real.flatMap((w) => [w.a.x, w.b.x]));
+  const my = Math.min(...real.flatMap((w) => [w.a.y, w.b.y]));
+  // Wall centre lines lie half a wall inside the outline the sheet draws.
+  const ex = Math.min(...evidence.wallRects.map((r) => r[0]));
+  const ey = Math.min(...evidence.wallRects.map((r) => r[1]));
+  const half = Math.min(...real.map((w) => w.thicknessMm ?? 0)) / 2;
+  const dx = Math.round(mx - half - ex);
+  const dy = Math.round(my - half - ey);
+  return { evidence: anchorEvidence(evidence, dx, dy), shiftMm: [dx, dy] };
+}

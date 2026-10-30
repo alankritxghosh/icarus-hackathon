@@ -46,6 +46,31 @@ labels were read, 17 with their printed sizes. Auto-detecting the wall colour wo
 **Limits:** needs poppler; text read as outlines (not text objects) has no labels; walls drawn as lines instead of
 fills are not seen; only page 1 by default.
 
+### Where it runs
+
+```
+browser --PDF--> edge /api/drawing/views --PDF + bearer--> Modal workers/drawing (poppler) --svg + words--> browser
+browser: extractEvidence -> alignEvidenceToModel -> auditAgainstDrawing -> "Check against a drawing" panel
+```
+
+- **Browser:** the panel "CHECK AGAINST A DRAWING" (`apps/web/src/DrawingCheck.tsx`) takes a PDF and the scale it was
+  printed at (1:N; never guessed). It reads the views, extracts evidence, slides the sheet so its outer wall corner
+  meets the design's, audits, and lists what differs and what was not checked. The parsing stays in the browser so the
+  edge Worker does no heavy work and the rules live in one place.
+- **Edge:** `apps/edge/src/drawing.ts` checks the file (PDF magic, 8 MB, page 1 to 50), forwards it with a token that
+  never reaches the browser, validates the reply, and never echoes the worker's errors. Without
+  `DRAWING_WORKER_URL` and `DRAWING_WORKER_TOKEN` it answers 503.
+- **Worker:** `workers/drawing/app.py`, CPU only. **Not deployed**; see its README for the three commands.
+- **Development:** `pnpm --filter @icarus/web dev` answers `/api/drawing/views` with poppler installed on the machine,
+  so the panel works with no deployment. Without poppler the request goes on to the edge.
+
+Checked end to end in the running app on a real A3 CAD sheet: 53 wall shapes and 23 room labels read at 1:80. The
+generated 12-person office, which has nothing to do with that sheet, correctly failed against it (95 differences);
+the panel is for designs meant to follow a drawing, and says so.
+
+The audit does not judge what a room holds when the model places no items at all (as the generated office plans do
+today), and says so under "Not checked".
+
 ## 2. Lessons (`src/lessons.ts`)
 
 A correction from a person becomes a `Lesson`: their words, the rule, the reason, where it is enforced. `checkLessons`
@@ -79,7 +104,9 @@ are written; none are invented here.
 
 ## Pending
 
-- running the extractor in the app and the Modal worker (poppler must be in the image), and a UI to enter the sheet's scale;
+- deploying the Modal drawing worker and setting the two edge secrets (needs the author);
+- reading a scale off the sheet (a printed scale bar or a known dimension) instead of asking for it;
+- a design built *from* the drawing, which is what makes the check meaningful end to end;
 - per-account lessons (the prototype taught each account its own rules);
 - stair-detail and gym-equipment geometry for the scene builder, which this repo's furniture kits do not have;
 - the principle router.

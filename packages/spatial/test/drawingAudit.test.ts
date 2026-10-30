@@ -168,7 +168,7 @@ describe("auditAgainstDrawing", () => {
 
   it("flags a bedroom with no bed and a gym with no equipment", () => {
     const m = house();
-    m.items = [];
+    m.items = [item("rug1", "s_gym", "rug")];
     const a = auditAgainstDrawing(m, sheet());
     expect(
       a.findings
@@ -176,6 +176,14 @@ describe("auditAgainstDrawing", () => {
         .map((f) => f.ids[0])
         .sort(),
     ).toEqual(["s_bed", "s_gym"]);
+  });
+
+  it("does not call every room empty when the model places no items at all", () => {
+    const m = house();
+    m.items = [];
+    const a = auditAgainstDrawing(m, sheet());
+    expect(a.findings.filter((f) => f.code === "space_without_expected_item")).toEqual([]);
+    expect(a.notAudited.join(" ")).toMatch(/no placed items/);
   });
 
   it("says what it cannot check", () => {

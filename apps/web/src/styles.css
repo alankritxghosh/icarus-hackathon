@@ -1032,3 +1032,31 @@ fieldset.views {
 .chip:hover {
   border-color: var(--danger);
 }
+
+.panel-card .hint {
+  margin: 6px 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.panel-card .field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.panel-card .field input[type="number"] {
+  width: 72px;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--subtle);
+  color: var(--text);
+}
+.panel-card .field input[type="file"] {
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--muted);
+}

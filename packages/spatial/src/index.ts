@@ -23,6 +23,7 @@ export { checkLessons, LESSONS, type Lesson } from "./lessons";
 export { lockedSpaceIds, SAVED_VERSION, type SavedWithModel, upgradeSaved } from "./migrate";
 export { modelEvidence } from "./modelEvidence";
 export {
+  alignEvidenceToModel,
   anchorEvidence,
   type ExtractedEvidence,
   type ExtractionReport,

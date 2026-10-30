@@ -356,3 +356,26 @@ describe.skipIf(!hasPoppler)("extractEvidenceFromPdf (needs poppler)", () => {
     }
   });
 });
+
+import { alignEvidenceToModel } from "../src";
+
+describe("alignEvidenceToModel", () => {
+  it("moves the sheet's outer corner onto the model's, allowing for half a wall", () => {
+    const ev = {
+      schema: "icarus.drawing-evidence/0.1" as const,
+      source: "t",
+      wallRects: [[0, 0, 6000, 200]] as Rect[],
+      supportRects: [],
+      labels: [{ text: "A", at: [100, 100] as const, role: "room" as const }],
+    };
+    const model = {
+      walls: [
+        { a: { x: 1100, y: 2100 }, b: { x: 7000, y: 2100 }, kind: "exterior", thicknessMm: 200 },
+      ],
+    };
+    const out = alignEvidenceToModel(ev, model as never);
+    expect(out.shiftMm).toEqual([1000, 2000]);
+    expect(out.evidence.wallRects[0]).toEqual([1000, 2000, 7000, 2200]);
+    expect(out.evidence.labels[0]?.at).toEqual([1100, 2100]);
+  });
+});

@@ -195,8 +195,11 @@ export function auditAgainstDrawing(model: SpatialModel, evidence: DrawingEviden
     }
   }
 
-  // 4. A labelled space holds what that kind of space is for.
-  for (const space of model.spaces) {
+  // 4. A labelled space holds what that kind of space is for. A model that places no items at all (a floor plan with
+  // no furniture yet) cannot be judged on this, and saying every room is empty would be false.
+  if (model.items.length === 0)
+    notAudited.push("what each room holds: the model has no placed items");
+  for (const space of model.items.length === 0 ? [] : model.spaces) {
     for (const need of EXPECTED_CONTENTS) {
       if (!need.kind.test(space.kind)) continue;
       const has = model.items.some((i) => i.spaceId === space.id && need.anyOf.includes(i.kind));
