@@ -110,6 +110,29 @@ plants from an office.
 
 Item orientation is defined in `schema.ts`: rotation 0 faces +y (south on the plan), positive turns clockwise.
 
+### Per-account lessons (`src/accountLessons.ts`)
+
+An account teaches its own Icarus in a sentence from a closed set of phrasings ("never put plants in the kitchen", "always
+put a bin in the kitchen", "no carpet in the kitchen", "turn off L-gym-has-equipment"). A sentence becomes a validated rule
+of one of four kinds (forbid an item in a kind of space, require one, forbid a floor finish, switch off a built-in lesson),
+stored as data with the person's own words and the date, never as code. Built-in lessons marked mandatory (follow the
+drawing, keep stairs clear) cannot be switched off; trying says so. In the app the account is the browser (local storage,
+one key, every stored entry re-validated on load and bad ones dropped); a signed-in account would keep the same data. The
+rules run over the office's furniture, which the app reads from the 3D scene into the model's items, and a finding is
+shown once with a count.
+
+### The principle router (`src/principles.ts`)
+
+The twenty principles as records, and `reviewAgainstPrinciples(model)` decides for each: checked, does not apply, or cannot
+be judged from this model, with the reason. A model is held only against the principles it has data for, so an office is
+not scolded about climate when it has no location. Tiers: gates (7, 11, 16) never report a pass without evidence;
+measurable ones have checks; judgement ones are advisory and need the client's priorities. Every threshold comes from
+`packages/core/src/knowledge/office.v1.json`, which names its source and says it is a planning default (door clear width,
+room minimum sizes and proportions with 15% slack, neighbours within a corridor width, daylight where required); no number
+is invented and no jurisdiction is set. Checked today: 1 (when items exist), 3, 4, 5, 6, 11. Seven are gates or judgement
+principles that cannot be judged without location, materials, loads, services, acoustics or a brief. Findings are ranked
+(gates, then errors) and capped; the panel says how many were held back. It is concept-stage guidance, not a code check.
+
 ## Tests
 
 `test/drawingAudit.test.ts` holds a hand-made house and a hand-made sheet, so the expected findings are known without
@@ -127,8 +150,8 @@ are written; none are invented here.
 ## Pending
 
 - deploying the web app (only the edge Worker and the Modal worker are deployed);
+- accounts with sign-in (lessons live in the browser today);
+- thresholds for principles 6, 7, 10 and others once a jurisdiction and a qualified reviewer are named;
 - closing rooms on sheets whose outer walls are outlines (read stroked outlines as walls);
 - showing the model read from a drawing in the 3D view (the viewer builds from floor plans, not spatial models);
-- per-account lessons (the prototype taught each account its own rules);
 - stair-detail and gym-equipment geometry for the scene builder, which this repo's furniture kits do not have;
-- the principle router.

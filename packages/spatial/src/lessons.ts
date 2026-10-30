@@ -4,6 +4,7 @@
 //
 // A lesson is one of: a check run over the model here, an audit rule (drawingAudit.ts), or a test. The
 // scope says which buildings it concerns, so a taste about houses does not strip plants from an office.
+import { type AccountLesson, checkAccountLessons } from "./accountLessons";
 import type { SpatialModel } from "./schema";
 import type { Finding } from "./validate";
 
@@ -20,6 +21,8 @@ export interface Lesson {
   why: string;
   /** "residential": spaces whose kind starts "residential."; "any": every model. */
   scope: "any" | "residential";
+  /** Safety and fidelity rules that an account cannot switch off. */
+  mandatory?: boolean;
   enforcement: "check" | "audit" | "test";
   heldBy: string;
   check?: (model: SpatialModel) => Finding[];
@@ -52,6 +55,7 @@ export const LESSONS: readonly Lesson[] = [
     rule: "When a drawing is supplied it is the specification: draw every wall it draws and none it does not, keep open spaces open, name rooms as labelled, never invent.",
     why: "Walls added where the sheet had none, a missed wardrobe and a mis-turned bed were all improvisation.",
     scope: "any",
+    mandatory: true,
     enforcement: "audit",
     heldBy: "auditAgainstDrawing (drawingAudit.ts)",
   },
@@ -106,6 +110,7 @@ export const LESSONS: readonly Lesson[] = [
     rule: "Nothing stands on a stair, a lift lobby or within 150 mm of their footprint.",
     why: "Circulation comes before decoration; a stair must be usable and clear.",
     scope: "any",
+    mandatory: true,
     enforcement: "check",
     heldBy: "checkLessons: clear-stairs",
     check: (m) =>
@@ -137,9 +142,9 @@ export const LESSONS: readonly Lesson[] = [
     id: "L-sofa-faces-a-television",
     date: "2026-10-30",
     said: "the couch is facing a blank wall, there must be a television there",
-    rule: "Every sofa faces a television on a media unit, 1.5 to 6 m in front of it and roughly on its axis, turned back toward it.",
+    rule: "In a home every sofa faces a television on a media unit, 1.5 to 6 m in front of it and roughly on its axis, turned back toward it.",
     why: "A sofa facing a blank wall reads as an unfinished room.",
-    scope: "any",
+    scope: "residential",
     enforcement: "check",
     heldBy: "checkLessons: sofa-faces-a-television",
     check: (m) =>
@@ -180,9 +185,30 @@ export const LESSONS: readonly Lesson[] = [
 const concerns = (lesson: Lesson, m: SpatialModel) =>
   lesson.scope === "any" || m.spaces.some((s) => s.kind.startsWith("residential."));
 
-/** Runs every lesson that has a check and applies to this model. An empty result means nothing taught has been broken. */
-export function checkLessons(model: SpatialModel): Finding[] {
-  return LESSONS.filter((l) => l.check && concerns(l, model)).flatMap((l) =>
-    (l.check as NonNullable<Lesson["check"]>)(model),
+/**
+ * Runs every built-in lesson that has a check and applies to this model, then the account's own lessons. An account can
+ * switch off a built-in lesson unless it is mandatory; trying to is reported, not obeyed. An empty result means nothing
+ * taught has been broken.
+ */
+export function checkLessons(
+  model: SpatialModel,
+  account: readonly AccountLesson[] = [],
+): Finding[] {
+  const off = new Set(
+    account.flatMap((l) => (l.rule.type === "disable-built-in" ? [l.rule.lesson] : [])),
   );
+  const findings: Finding[] = [];
+  for (const lesson of LESSONS) {
+    if (off.has(lesson.id) && lesson.mandatory)
+      findings.push({
+        level: "warn",
+        code: "lesson_cannot_be_disabled",
+        message: `${lesson.id} protects safety or fidelity to a drawing, so it stays on`,
+        ids: [lesson.id],
+      });
+    if (!lesson.check || !concerns(lesson, model) || (off.has(lesson.id) && !lesson.mandatory))
+      continue;
+    findings.push(...lesson.check(model));
+  }
+  return [...findings, ...checkAccountLessons(model, account)];
 }

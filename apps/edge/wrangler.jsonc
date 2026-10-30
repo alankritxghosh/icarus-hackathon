@@ -4,6 +4,13 @@
   "compatibility_date": "2026-10-01",
   // Workers AI is the only binding: no API token ever reaches the browser or the repository.
   "ai": { "binding": "AI" },
+  // The built web app is served from the same Worker, so the browser has one origin: every /api path runs this Worker,
+  // everything else is a static file (and any unknown path falls back to the app's index.html).
+  "assets": {
+    "directory": "../web/dist",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
   // The drawing route runs a few seconds of Modal CPU per call. Counts are per Cloudflare location and approximate.
   "ratelimits": [
     {

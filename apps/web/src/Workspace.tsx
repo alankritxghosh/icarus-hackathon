@@ -1,6 +1,7 @@
 import { type EvidenceItem, type Suggestion, type Viewpoint, viewpoints } from "@icarus/core";
 import { fromFloorPlan, toDxf } from "@icarus/spatial/model";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { loadLessons, saveLessons } from "./accountLessons";
 import { DesignTrace } from "./DesignTrace";
 import { DrawingCheck } from "./DrawingCheck";
 import type { Built, EditEntry } from "./design";
@@ -9,10 +10,12 @@ import { EditBox } from "./EditBox";
 import { EditPanel } from "./EditPanel";
 import { modelChecks } from "./modelChecks";
 import { OfficeView, type ViewMode } from "./officeView";
+import { PrinciplesPanel } from "./PrinciplesPanel";
 import { Prompt } from "./Prompt";
 import { downscale } from "./photo";
 import type { Reference } from "./references";
 import { type MadeReal, makeItReal, RenderError, renderPrompt } from "./render";
+import { TeachPanel } from "./TeachPanel";
 
 interface Props {
   brief: string;
@@ -68,6 +71,7 @@ export function Workspace({
   const [viewId, setViewId] = useState<string>();
   const [picture, setPicture] = useState<Picture>();
   const [modelItems, setModelItems] = useState<EvidenceItem[]>([]);
+  const [lessons, setLessons] = useState(() => loadLessons());
   const [fileError, setFileError] = useState<string>();
   const building = stage !== undefined;
 
@@ -153,13 +157,13 @@ export function Workspace({
       return;
     }
     let alive = true;
-    void modelChecks(built).then((items) => {
+    void modelChecks(built, lessons).then((items) => {
       if (alive) setModelItems(items);
     });
     return () => {
       alive = false;
     };
-  }, [built]);
+  }, [built, lessons]);
 
   const downloadGlb = async () => {
     if (!built) return;
@@ -307,6 +311,14 @@ export function Workspace({
                         </ul>
                       )}
                     </div>
+                    <PrinciplesPanel built={built} />
+                    <TeachPanel
+                      lessons={lessons}
+                      onChange={(next) => {
+                        setLessons(next);
+                        saveLessons(next);
+                      }}
+                    />
                     <DrawingCheck built={built} />
                     <div className="actions">
                       <button type="button" className="ghost" disabled={!canUndo} onClick={onUndo}>

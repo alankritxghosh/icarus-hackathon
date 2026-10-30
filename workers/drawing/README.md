@@ -30,3 +30,6 @@ capped (8 MB, `max_containers=2`) and rate limited with Cloudflare's rate-limiti
 `retry-after: 60`, sent before the file is read. The counters are per Cloudflare location and approximate by design: in a live test
 of 25 rapid bad requests the first 429 came after 14 rather than 6, then they came and went, and a real PDF went through within
 seconds of the window clearing. It slows abuse; it is not an exact quota, and not a defence against a determined crowd.
+
+The edge Worker now also serves the built web app (`apps/web/dist`, via the `assets` setting in `apps/edge/wrangler.jsonc`), so
+the app and `/api/*` share one origin. Rebuild before deploying: `pnpm --filter @icarus/web build && cd apps/edge && wrangler deploy`.

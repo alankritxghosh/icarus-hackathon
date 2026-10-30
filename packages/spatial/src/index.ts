@@ -1,5 +1,14 @@
 export { snapPlanToMm } from "@icarus/core";
 export {
+  ACCOUNT_LESSONS_VERSION,
+  AccountLesson,
+  AccountLessons,
+  kindMatches,
+  parseAccountLessons,
+  ruleFromWords,
+  teach,
+} from "./accountLessons";
+export {
   type BackConversion,
   CIRCULATION,
   fromFloorPlan,
@@ -39,6 +48,13 @@ export {
 } from "./pdfEvidence";
 export { planDifferences } from "./planDiff";
 export { isInside, sharedBoundaryLength } from "./predicates";
+export {
+  type Decision,
+  type PrincipleReview,
+  type Profile,
+  profileOf,
+  reviewAgainstPrinciples,
+} from "./principles";
 export * from "./schema";
 export { estimateUnitMm, extractEvidenceAuto, type ScaleEstimate } from "./sheetScale";
 export { uncertaintySummary } from "./uncertainty";

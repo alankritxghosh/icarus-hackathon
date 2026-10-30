@@ -102,8 +102,8 @@ describe("lessons", () => {
     expect(lessonsOf(m)).toEqual(["L-clear-stairs"]);
   });
 
-  it("requires a television facing every sofa", () => {
-    const m = base();
+  it("requires a television facing every sofa in a home, and leaves an office lounge alone", () => {
+    const m = residential(base());
     const room = (m.spaces[0] as { id: string }).id;
     // Sofa at the origin facing +y (south); a TV 3 m south of it, turned 180 degrees to face back north.
     m.items.push(thing("sofa", room, "sofa", 4000, 2000, 0));
