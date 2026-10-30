@@ -8,51 +8,6 @@ const box = (
   extra: Partial<Part> = {},
 ): Part => ({ name, size, at, material, ...extra });
 
-/** A desk 0.75 m deep with an oak top and steel legs; the sitter is on the +z side. */
-export function desk(width: number): Item {
-  const d = 0.75;
-  return {
-    name: "desk",
-    w: width,
-    d,
-    parts: [
-      box("top", [width, 0.04, d], [0, 0.73, 0], "oak"),
-      box("leg", [0.05, 0.71, d - 0.08], [-(width / 2 - 0.06), 0.355, 0], "metal.black"),
-      box("leg", [0.05, 0.71, d - 0.08], [width / 2 - 0.06, 0.355, 0], "metal.black"),
-      box("modesty panel", [width - 0.2, 0.3, 0.02], [0, 0.55, -d / 2 + 0.06], "oak.dark"),
-    ],
-  };
-}
-
-/** A task chair facing +z, with its back at -z. */
-export function taskChair(): Item {
-  return {
-    name: "chair",
-    w: 0.56,
-    d: 0.56,
-    parts: [
-      box("base", [0.5, 0.04, 0.5], [0, 0.03, 0], "metal.black", { cylinder: true }),
-      box("stem", [0.06, 0.4, 0.06], [0, 0.24, 0], "metal.black", { cylinder: true }),
-      box("seat", [0.5, 0.07, 0.48], [0, 0.46, 0.02], "fabric.green"),
-      box("back", [0.46, 0.5, 0.06], [0, 0.76, -0.22], "fabric.green"),
-    ],
-  };
-}
-
-/** A meeting table sized for its seats. */
-export function table(width: number, depth: number): Item {
-  return {
-    name: "table",
-    w: width,
-    d: depth,
-    parts: [
-      box("top", [width, 0.05, depth], [0, 0.74, 0], "oak"),
-      box("leg", [0.08, 0.72, depth - 0.2], [-(width / 2 - 0.35), 0.36, 0], "metal.black"),
-      box("leg", [0.08, 0.72, depth - 0.2], [width / 2 - 0.35, 0.36, 0], "metal.black"),
-    ],
-  };
-}
-
 /** A wall screen for a meeting room, mounted on the wall at the item's back. */
 export function screen(): Item {
   return {
@@ -190,25 +145,6 @@ export function downlight(ceilingM: number): Item {
         type: "light",
         cylinder: true,
       }),
-    ],
-  };
-}
-
-/** A modern three-seat sofa in green fabric on an oak plinth, facing +z. */
-export function sofa(width: number): Item {
-  const d = 0.9;
-  return {
-    name: "sofa",
-    w: width,
-    d,
-    front: 0.8,
-    parts: [
-      box("plinth", [width - 0.1, 0.1, d - 0.1], [0, 0.05, 0], "oak.dark"),
-      box("base", [width, 0.3, d], [0, 0.25, 0], "fabric.green"),
-      box("seat cushion", [width - 0.34, 0.13, d - 0.25], [0, 0.465, 0.07], "fabric.green"),
-      box("back", [width, 0.5, 0.2], [0, 0.65, -d / 2 + 0.1], "fabric.green"),
-      box("left arm", [0.16, 0.6, d], [-width / 2 + 0.08, 0.4, 0], "fabric.green"),
-      box("right arm", [0.16, 0.6, d], [width / 2 - 0.08, 0.4, 0], "fabric.green"),
     ],
   };
 }

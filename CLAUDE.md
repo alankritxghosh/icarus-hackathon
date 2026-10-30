@@ -21,6 +21,10 @@ This repository is a fresh build for the Meta Global AI Developer Hackathon, Ind
 2. Every major engineering decision has evidence: real alternatives, trade-offs and an experiment. No technology is adopted because an AI agent says it is good.
 3. Every major subsystem has an independent test (known geometry, external architectural evaluation, measurable reference geometry, tests for unintended changes). "The demo looks right" is not a test. A check that reuses the code's own score is not independent.
 
+## The simplicity principle (founder, 30 Oct 2026)
+
+We choose simplicity in technology. Nothing unnecessary is used anywhere: no library, service, setting, abstraction, panel, button or line of copy that the product does not need today. Before adding anything, ask whether the product works without it, and prefer what is already here. When something stops being needed, delete it in the same change. This applies to code, infrastructure, the interface and what the customer is told: the customer sees a conversation and a model, not mechanics (no counters, no technical captions).
+
 ## Working rules
 
 - pnpm workspace: `packages/core` (program, layout, build, edits, evidence), `packages/meta`, `apps/server`, `apps/web`.

@@ -38,6 +38,7 @@ const CELL = 25;
 const kindFromName = (name: string): string => {
   const n = name.toLowerCase();
   if (/bed ?room/.test(n)) return "residential.bedroom";
+  if (/wardrobe|dressing/.test(n)) return "residential.wardrobe";
   if (/toilet|\bwc\b|powder|restroom/.test(n)) return "residential.toilet";
   if (/shower|bath/.test(n)) return "residential.shower";
   if (/kitchen|pantry/.test(n)) return "residential.kitchen";

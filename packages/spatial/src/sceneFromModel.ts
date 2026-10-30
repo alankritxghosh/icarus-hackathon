@@ -202,6 +202,159 @@ function furnishRoom(
       );
     return nodes;
   }
+
+  type Part = [string, [number, number, number], [number, number, number], string];
+  /** A piece made of boxes, in its own frame (x across, y up, z toward its front), placed and turned in the room. */
+  const group = (nm: string, parts: Part[], x: number, z: number, turn: number) => {
+    const c = Math.cos(turn);
+    const sn = Math.sin(turn);
+    for (const [, size, [px, py, pz], mat] of parts)
+      nodes.push({
+        id: `${id}.${nm}.${n++}`,
+        name: nm,
+        type: "furniture",
+        roomId: id,
+        geometry: { kind: "box", size },
+        position: [x + px * c + pz * sn, py, z - px * sn + pz * c],
+        rotationY: turn,
+        material: mat,
+        tags: ["furniture", nm],
+      });
+  };
+  const WHITE = "laminate.white";
+
+  if (kind === "residential.bedroom" && S >= 2.5 && L >= 2.6) {
+    const bw = Math.min(1.6, L - 1.2);
+    const bd = 2.0;
+    const [bx, bz] = along(0, bd / 2 + 0.05, true);
+    // The head is against the wall, between a bedside table on each side; the foot faces the room.
+    group(
+      "bed",
+      [
+        ["frame", [bw, 0.3, bd], [0, 0.15, 0], "oak.dark"],
+        ["mattress", [bw - 0.1, 0.22, bd - 0.12], [0, 0.41, 0.02], WHITE],
+        ["headboard", [bw, 0.9, 0.08], [0, 0.45, -bd / 2 + 0.04], "oak.dark"],
+        ["pillow", [0.55, 0.12, 0.35], [-bw / 4, 0.58, -bd / 2 + 0.4], WHITE],
+        ["pillow", [0.55, 0.12, 0.35], [bw / 4, 0.58, -bd / 2 + 0.4], WHITE],
+        ["blanket", [bw - 0.1, 0.05, bd * 0.55], [0, 0.55, bd * 0.2], "fabric.charcoal"],
+      ],
+      bx,
+      bz,
+      faceIn,
+    );
+    if (L >= bw + 1.3)
+      for (const sign of [-1, 1]) {
+        const [sx, sz] = along(sign * (bw / 2 + 0.38), 0.3, true);
+        put("sideTable", sx, sz, faceIn);
+      }
+    return nodes;
+  }
+  if (kind === "residential.wardrobe" && L >= 1.2 && S >= 1.0) {
+    const count = Math.max(1, Math.floor((L - 0.3) / 0.65));
+    for (let i = 0; i < Math.min(count, 5); i++)
+      put(
+        "bookcase",
+        ...along(
+          -((Math.min(count, 5) - 1) * 0.65) / 2 + i * 0.65,
+          ASSETS.bookcase.d / 2 + 0.05,
+          true,
+        ),
+        faceIn,
+      );
+    return nodes;
+  }
+  if (kind === "residential.toilet" && L >= 1.2 && S >= 1.2) {
+    const [tx, tz] = along(-0.3, 0.4, true);
+    group(
+      "toilet",
+      [
+        ["bowl", [0.38, 0.4, 0.5], [0, 0.2, 0.05], WHITE],
+        ["cistern", [0.38, 0.4, 0.18], [0, 0.6, -0.2], WHITE],
+      ],
+      tx,
+      tz,
+      faceIn,
+    );
+    if (L >= 1.8) {
+      const [bx, bz] = along(0.5, 0.3, true);
+      group(
+        "basin",
+        [
+          ["pedestal", [0.14, 0.78, 0.14], [0, 0.39, -0.05], WHITE],
+          ["bowl", [0.5, 0.12, 0.4], [0, 0.84, 0], WHITE],
+        ],
+        bx,
+        bz,
+        faceIn,
+      );
+    }
+    return nodes;
+  }
+  if (kind === "residential.shower" && L >= 1.0 && S >= 1.0) {
+    const [sx, sz] = along(-L / 2 + 0.55, 0.55, true);
+    group(
+      "shower",
+      [
+        ["tray", [0.9, 0.06, 0.9], [0, 0.03, 0], WHITE],
+        [
+          "screen",
+          long === "x" ? [0.9, 2.0, 0.02] : [0.02, 2.0, 0.9],
+          long === "x" ? [0, 1.0, 0.45] : [0.45, 1.0, 0],
+          "glass",
+        ],
+      ],
+      sx,
+      sz,
+      0,
+    );
+    return nodes;
+  }
+  if (kind === "residential.kitchen" && L >= 2.4 && S >= 1.8) {
+    put("cabinet", ...along(0, ASSETS.cabinet.d / 2 + 0.05, true), faceIn);
+    const [hx, hz] = along(0, 0.35, true);
+    group("hob", [["plate", [0.6, 0.03, 0.5], [0, 0.7, 0], "metal.black"]], hx, hz, faceIn);
+    const [fx, fz] = along(-ASSETS.cabinet.w / 2 - 0.45, 0.4, true);
+    group("fridge", [["body", [0.7, 1.8, 0.7], [0, 0.9, 0], "steel"]], fx, fz, faceIn);
+    return nodes;
+  }
+  if (kind === "residential.gym" && L >= 2.4 && S >= 2.2) {
+    const tread: Part[] = [
+      ["belt", [0.7, 0.14, 1.5], [0, 0.17, 0.12], "metal.black"],
+      ["hood", [0.8, 0.22, 0.32], [0, 0.22, -0.7], "oak.dark"],
+      ["upright", [0.05, 1.0, 0.05], [-0.36, 0.78, -0.7], "steel"],
+      ["upright", [0.05, 1.0, 0.05], [0.36, 0.78, -0.7], "steel"],
+      ["console", [0.7, 0.24, 0.12], [0, 1.18, -0.7], "metal.black"],
+    ];
+    const per = Math.min(2, Math.floor((L - 0.4) / 1.0));
+    for (let i = 0; i < per; i++)
+      group("treadmill", tread, ...along(-((per - 1) * 1.0) / 2 + i * 1.0, 1.0, true), faceIn);
+    // A bench with a barbell toward the front, and a dumbbell rack on the back wall at one end.
+    group(
+      "weight bench",
+      [
+        ["pad", [0.32, 0.09, 1.1], [0, 0.45, 0], "metal.black"],
+        ["leg", [0.08, 0.4, 1.0], [0, 0.22, 0], "steel"],
+        ["bar", [1.6, 0.03, 0.03], [0, 1.08, -0.5], "steel"],
+        ["stand", [0.06, 1.1, 0.06], [-0.7, 0.55, -0.5], "steel"],
+        ["stand", [0.06, 1.1, 0.06], [0.7, 0.55, -0.5], "steel"],
+      ],
+      ...along(0, S - 1.1, true),
+      faceIn,
+    );
+    if (L >= 3.4)
+      group(
+        "dumbbell rack",
+        [
+          ["shelf", [1.3, 0.04, 0.4], [0, 0.45, 0], "steel"],
+          ["shelf", [1.3, 0.04, 0.4], [0, 0.75, 0], "steel"],
+          ["weights", [1.2, 0.18, 0.2], [0, 0.56, 0], "metal.black"],
+          ["weights", [1.2, 0.18, 0.2], [0, 0.86, 0], "metal.black"],
+        ],
+        ...along(L / 2 - 0.9, 0.3, true),
+        faceIn,
+      );
+    return nodes;
+  }
   void name;
   void ceiling;
   return undefined;

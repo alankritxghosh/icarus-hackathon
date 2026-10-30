@@ -55,9 +55,14 @@ describe("sceneFromModel", () => {
     expect(viewpoints[0]?.position[1]).toBe(1.6);
   });
 
-  it("invents no furniture", () => {
-    expect(nodes("furniture")).toHaveLength(0);
+  it("furnishes only rooms whose names it recognises, and has no fixtures of its own", () => {
+    expect(nodes("furniture").length).toBeGreaterThan(0);
     expect(nodes("fixture")).toHaveLength(0);
+    const hall = sceneFromModel(
+      modelFromEvidence({ ...sheet(), labels: [{ text: "HALL", at: [1500, 2000], role: "room" }] })
+        .model,
+    );
+    expect(hall.furnished).toEqual([]);
   });
 
   it("places walls where the model has them, in metres from the building's corner", () => {
@@ -106,7 +111,7 @@ describe("furnishing the rooms a drawing encloses", () => {
   });
 
   it("leaves a room it does not recognise as the sheet drew it, and never plants anything indoors", () => {
-    const out = furnish(["WALK-IN WARDROBE", "LIVING ROOM"]);
+    const out = furnish(["TERRACE", "LIVING ROOM"]);
     expect(out.furnished).toEqual(["LIVING ROOM"]);
     expect(out.scene.nodes.some((n) => /plant|fern|calathea|anthurium/.test(n.name))).toBe(false);
   });
@@ -118,6 +123,71 @@ describe("furnishing the rooms a drawing encloses", () => {
       expect(n.position[0]).toBeLessThan(8.8);
       expect(n.position[2]).toBeGreaterThan(0.2);
       expect(n.position[2]).toBeLessThan(5.8);
+    }
+  });
+});
+
+describe("furnishing bedrooms, toilets, kitchens and gyms", () => {
+  const house = (names: [string, string]): DrawingEvidence => ({
+    schema: "icarus.drawing-evidence/0.1",
+    source: "h.pdf",
+    wallRects: [
+      [0, 0, 9000, 200],
+      [0, 5800, 9000, 6000],
+      [0, 0, 200, 6000],
+      [8800, 0, 9000, 6000],
+      [4400, 200, 4600, 2500],
+      [4400, 3500, 4600, 5800],
+    ],
+    supportRects: [],
+    labels: [
+      { text: names[0], at: [2200, 3000], role: "room" },
+      { text: names[1], at: [6700, 3000], role: "room" },
+    ],
+  });
+  const build = (names: [string, string]) => sceneFromModel(modelFromEvidence(house(names)).model);
+  const count = (out: ReturnType<typeof build>, name: string) =>
+    out.scene.nodes.filter((n) => n.name === name).length;
+
+  it("gives a bedroom a bed with its head to the wall and a table on each side", () => {
+    const out = build(["MASTER BEDROOM", "GYM ROOM"]);
+    expect(out.furnished.sort()).toEqual(["GYM ROOM", "MASTER BEDROOM"]);
+    expect(count(out, "bed")).toBe(6);
+    expect(count(out, "sideTable")).toBe(2);
+    const head = out.scene.nodes.find((n) => n.name === "bed" && n.id.includes(".bed.2"));
+    // The room is 4.2 m by 5.6 m, so its long wall is the west one and the headboard is against it.
+    expect(head?.position[0]).toBeLessThan(0.5);
+  });
+
+  it("gives a gym treadmills, a bench with a barbell and a dumbbell rack", () => {
+    const out = build(["BEDROOM", "GYM ROOM"]);
+    expect(count(out, "treadmill")).toBeGreaterThanOrEqual(10);
+    expect(count(out, "weight bench")).toBe(5);
+    expect(count(out, "dumbbell rack")).toBeGreaterThan(0);
+  });
+
+  it("gives a kitchen a counter, a hob and a fridge, and a toilet a toilet and a basin", () => {
+    const k = build(["KITCHEN", "TOILET 02"]);
+    expect(count(k, "cabinet")).toBe(1);
+    expect(count(k, "hob")).toBe(1);
+    expect(count(k, "fridge")).toBe(1);
+    expect(count(k, "toilet")).toBe(2);
+    expect(count(k, "basin")).toBe(2);
+  });
+
+  it("keeps everything inside the room and indoors green-free", () => {
+    for (const names of [
+      ["BEDROOM", "GYM"],
+      ["KITCHEN", "TOILET"],
+    ] as [string, string][]) {
+      const out = build(names);
+      for (const n of out.scene.nodes.filter((x) => x.type === "furniture")) {
+        expect(n.position[0], n.id).toBeGreaterThan(0.2);
+        expect(n.position[0], n.id).toBeLessThan(8.8);
+        expect(n.position[2], n.id).toBeGreaterThan(0.2);
+        expect(n.position[2], n.id).toBeLessThan(5.8);
+      }
+      expect(out.scene.nodes.some((n) => /plant|fern|calathea|anthurium/.test(n.name))).toBe(false);
     }
   });
 });

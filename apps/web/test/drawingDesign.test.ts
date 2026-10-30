@@ -54,11 +54,12 @@ describe("reading a drawing in the chat", () => {
     const d = await designFromDrawing(pdf, "house", "1:100", serve());
     expect(d.scene.shell.w).toBeCloseTo(6, 0);
     expect(d.scene.nodes.some((n) => n.type === "wall")).toBe(true);
-    expect(d.scene.nodes.some((n) => n.type === "furniture")).toBe(false);
+    expect(d.scene.nodes.some((n) => n.type === "furniture")).toBe(true);
     const said = d.lines.join(" ");
     expect(said).toMatch(/Scale 1:100, as you said/);
     expect(said).toMatch(/walls and 1 door or window/);
-    expect(said).toMatch(/added no furniture/);
+    expect(said).toMatch(/I furnished .*BEDROOM.*KITCHEN|I furnished .*KITCHEN.*BEDROOM/);
+    expect(said).toMatch(/Every other room is as drawn/);
     expect(d.viewpoints).toHaveLength(1);
   });
 
