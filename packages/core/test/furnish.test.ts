@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { furnish, layoutOffice, overlapArea, type Program, type Side } from "../src";
+import { furnish, layoutOffice, overlapArea, type Program, readBrief, type Side } from "../src";
 import { demoProgram, must, smallProgram } from "./fixtures";
 
 const sides: Side[] = ["north", "south", "east", "west"];
@@ -85,5 +85,18 @@ describe("furnish", () => {
     const small = must(smallProgram());
     const f = furnish(layoutOffice(small, { seed: 1 }), small);
     expect(f.report.seatsPlaced).toBeGreaterThan(0);
+  });
+
+  it("counts private desks against the headcount instead of hiding them from the report", () => {
+    const p = readBrief(
+      "A 20-person consultancy with six private offices, two meeting rooms, a kitchen and reception. 22 m by 14 m shell.",
+    ).program;
+    const f = furnish(layoutOffice(p, { seed: 1 }), p);
+    const actual = f.scene.nodes.filter(
+      (n) => n.roomKind === "private_office" && n.name === "desk" && n.geometry.kind === "asset",
+    ).length;
+    expect(f.report.privateDesksWanted).toBe(6);
+    expect(f.report.privateDesksPlaced).toBe(actual);
+    expect(f.report.seatsWanted + f.report.privateDesksWanted).toBe(20);
   });
 });

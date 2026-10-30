@@ -2,7 +2,7 @@ import type { Scene, Viewpoint } from "@icarus/core";
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { viewCommand } from "./chatCommands";
 import { saveFile } from "./download";
-import { OfficeView, type RealState, type ViewMode } from "./officeView";
+import type { OfficeView, RealState, ViewMode } from "./officeView";
 
 export interface Reply {
   text: string;
@@ -25,6 +25,7 @@ interface Props {
   title?: string;
   builds: { id: string; title: string }[];
   activeId?: string;
+  canEdit: boolean;
   messages: Message[];
   setMessages: Dispatch<SetStateAction<Message[]>>;
   starts: { label: string; text: string }[];
@@ -49,6 +50,7 @@ export function Studio(props: Props) {
     title,
     builds,
     activeId,
+    canEdit,
     messages,
     setMessages,
     starts,
@@ -65,20 +67,38 @@ export function Studio(props: Props) {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<ViewMode>("orbit");
   const [real, setReal] = useState<RealState>({ state: "off", samples: 0 });
-  const [canReal, setCanReal] = useState(true);
+  const [canReal, setCanReal] = useState(false);
   const [menu, setMenu] = useState(false);
+  const turnRef = useRef(0);
+  const pendingRef = useRef(false);
+  const latestScene = useRef(scene);
+  const latestLabels = useRef(labels);
+  const hasScene = Boolean(scene);
+  latestScene.current = scene;
+  latestLabels.current = labels;
 
   useEffect(() => {
-    if (!host.current) return;
-    const v = new OfficeView(host.current);
-    view.current = v;
-    setCanReal(v.supportsRealistic());
-    if (import.meta.env.DEV) Object.assign(window, { __icarusView: v });
+    if (!hasScene) return;
+    let closed = false;
+    void import("./officeView").then(({ OfficeView }) => {
+      if (closed || !host.current) return;
+      const v = new OfficeView(host.current);
+      view.current = v;
+      setCanReal(v.supportsRealistic());
+      if (latestScene.current) {
+        v.setScene(latestScene.current);
+        v.setLabels(latestLabels.current);
+      }
+      if (import.meta.env.DEV) Object.assign(window, { __icarusView: v });
+    });
     return () => {
-      v.dispose();
+      closed = true;
+      view.current?.dispose();
       view.current = null;
+      setCanReal(false);
     };
-  }, []);
+    // The viewer lives while a scene exists; later edits update it through the next effect.
+  }, [hasScene]);
 
   useEffect(() => {
     if (!scene) return;
@@ -111,6 +131,17 @@ export function Studio(props: Props) {
     } else view.current?.setMode(m);
   };
 
+  const leaveProject = () => {
+    turnRef.current++;
+    pendingRef.current = false;
+    setBusy(false);
+    setText("");
+    setFile(undefined);
+    setMenu(false);
+    setReality(false);
+    goto("orbit");
+  };
+
   const exportGlb = async (): Promise<string> => {
     try {
       const bytes = await view.current?.exportGlb();
@@ -126,6 +157,7 @@ export function Studio(props: Props) {
     const cmd = viewCommand(text);
     if (!cmd) return undefined;
     if (cmd.kind === "new") {
+      leaveProject();
       onNew();
       return "";
     }
@@ -157,7 +189,9 @@ export function Studio(props: Props) {
 
   const send = async (said: string) => {
     const t = said.trim();
-    if ((!t && !file) || busy) return;
+    if ((!t && !file) || pendingRef.current) return;
+    pendingRef.current = true;
+    const turn = turnRef.current;
     const attached = file;
     setText("");
     setFile(undefined);
@@ -168,17 +202,21 @@ export function Studio(props: Props) {
     });
     if (!attached) {
       const reply = await run(t);
+      if (turn !== turnRef.current) return;
       if (reply !== undefined) {
         if (reply) say({ role: "icarus", text: reply });
+        pendingRef.current = false;
         return;
       }
     }
     setBusy(true);
     const id = say({ role: "icarus", text: "", working: true, lines: ["Working on it…"] });
     try {
-      const reply = await onSend(t, attached, (lines) =>
-        setMessages((all) => all.map((m) => (m.id === id ? { ...m, lines } : m))),
-      );
+      const reply = await onSend(t, attached, (lines) => {
+        if (turn === turnRef.current)
+          setMessages((all) => all.map((m) => (m.id === id ? { ...m, lines } : m)));
+      });
+      if (turn !== turnRef.current) return;
       setMessages((all) =>
         all.map((m) =>
           m.id === id
@@ -192,6 +230,7 @@ export function Studio(props: Props) {
         ),
       );
     } catch {
+      if (turn !== turnRef.current) return;
       setMessages((all) =>
         all.map((m) =>
           m.id === id
@@ -204,7 +243,10 @@ export function Studio(props: Props) {
         ),
       );
     } finally {
-      setBusy(false);
+      if (turn === turnRef.current) {
+        pendingRef.current = false;
+        setBusy(false);
+      }
     }
   };
 
@@ -235,7 +277,7 @@ export function Studio(props: Props) {
                           type="button"
                           className={b.id === activeId ? "on" : ""}
                           onClick={() => {
-                            setMenu(false);
+                            leaveProject();
                             onOpen(b.id);
                           }}
                         >
@@ -247,7 +289,14 @@ export function Studio(props: Props) {
                 )}
               </div>
             )}
-            <button type="button" className="quiet-btn" onClick={onNew}>
+            <button
+              type="button"
+              className="quiet-btn"
+              onClick={() => {
+                leaveProject();
+                onNew();
+              }}
+            >
               New
             </button>
           </div>
@@ -305,7 +354,11 @@ export function Studio(props: Props) {
             value={text}
             rows={2}
             placeholder={
-              scene ? "Tell me what to change…" : "Describe a building, or attach a floor plan…"
+              scene
+                ? canEdit
+                  ? "Tell me what to change…"
+                  : "View or export this plan…"
+                : "Describe a building, or attach a floor plan…"
             }
             aria-label="Message Icarus"
             onChange={(e) => setText(e.target.value)}
@@ -335,7 +388,7 @@ export function Studio(props: Props) {
           </div>
         </form>
       </aside>
-      <section className="stage" aria-label="3D model">
+      <main className="stage" aria-label="3D model">
         <div className="viewport" ref={host} />
         {!scene && (
           <div className="empty">
@@ -374,10 +427,17 @@ export function Studio(props: Props) {
             </button>
           </div>
         )}
-        {real.state === "unsupported" && (
-          <p className="real-caption">Realistic view is not available on this device.</p>
+        {real.state === "preparing" && (
+          <p className="real-caption" role="status">
+            Preparing realistic view…
+          </p>
         )}
-      </section>
+        {real.state === "unsupported" && (
+          <p className="real-caption" role="status">
+            Realistic view is not available on this device.
+          </p>
+        )}
+      </main>
     </div>
   );
 }

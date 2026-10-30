@@ -55,6 +55,7 @@ export class OfficeView {
   // Realistic mode: progressive path tracing on the GPU of the person looking, in the browser, on the live model.
   private tracer?: WebGLPathTracer;
   private realistic = false;
+  private tracerPreparing = false;
   private tracerTimer = 0;
   private tracerFrame = 0;
   private tracerGeneration = 0;
@@ -572,7 +573,7 @@ export class OfficeView {
   }
 
   private draw() {
-    if (this.realistic && this.tracer && this.mode !== "plan") return;
+    if (this.realistic && this.tracer && !this.tracerPreparing && this.mode !== "plan") return;
     this.renderer.render(this.three, this.mode === "plan" ? this.ortho : this.perspective);
   }
 
@@ -648,6 +649,7 @@ export class OfficeView {
     if (on === this.realistic) return;
     this.realistic = on;
     if (!on) {
+      this.tracerPreparing = false;
       cancelAnimationFrame(this.tracerFrame);
       this.tracerFrame = 0;
       clearTimeout(this.tracerTimer);
@@ -693,6 +695,7 @@ export class OfficeView {
   private rebuildTracer() {
     if (!this.realistic) return;
     const generation = ++this.tracerGeneration;
+    this.tracerPreparing = true;
     this.onReal?.({ state: "preparing", samples: 0 });
     // Windows and ceilings and models are all in `content`; the path tracer reads the three.js scene as it stands.
     this.three.environment = this.skyTexture();
@@ -741,16 +744,19 @@ export class OfficeView {
     );
     tracer.pausePathTracing = true;
     this.perspective.updateMatrixWorld();
+    this.requestRender();
     void tracer
       .setSceneAsync(this.three, this.perspective)
       .then(() => {
         if (!this.realistic || generation !== this.tracerGeneration) return;
+        this.tracerPreparing = false;
         tracer.pausePathTracing = false;
         this.startTracing();
       })
       .catch((error) => {
         if (generation !== this.tracerGeneration) return;
         console.warn("realistic rendering could not start", error);
+        this.tracerPreparing = false;
         this.realistic = false;
         this.onReal?.({ state: "unsupported", samples: 0 });
         this.requestRender();

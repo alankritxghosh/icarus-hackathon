@@ -24,6 +24,8 @@ export interface FurnishReport {
   /** Desks wanted and placed in the open workspace. */
   seatsWanted: number;
   seatsPlaced: number;
+  privateDesksWanted: number;
+  privateDesksPlaced: number;
   phoneBoothsWanted: number;
   phoneBoothsPlaced: number;
   meetingSeatsWanted: number;
@@ -331,11 +333,12 @@ function restroom(space: Space) {
     if (space.line(basinCounter(0.9), side, { from: 0.1, max: 1 }) > 0) break;
 }
 
-function privateOffice(space: Space) {
+function privateOffice(space: Space, report: FurnishReport) {
   const f = frame(space.rect);
   const d = { ...desk(1.4), front: KNOWLEDGE.workstation.chairClearanceM };
   const [cx, cz] = f.xz(f.U * 0.5, f.V * 0.28);
   if (space.place(d, cx, cz, f.faceV)) {
+    report.privateDesksPlaced++;
     const [fx, fz] = front(f.faceV);
     space.force(taskChair(), cx + fx * CHAIR_OFFSET, cz + fz * CHAIR_OFFSET, f.faceV + Math.PI);
   }
@@ -396,7 +399,7 @@ export function furnishRoom(
       restroom(space);
       break;
     case "private_office":
-      privateOffice(space);
+      privateOffice(space, report);
       break;
   }
   if (room.kind !== "open_workspace" && room.kind !== "meeting_room") downlights(space);

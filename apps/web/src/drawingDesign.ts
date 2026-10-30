@@ -95,12 +95,15 @@ export async function designFromDrawing(
           : `I used the scale printed on the sheet (1:${Math.round(out.scale.unitMm / unitMmFromScale(1))}).`;
     }
   } catch (error) {
+    const message = error instanceof Error ? error.message : "";
     throw new DrawingError(
-      error instanceof Error && /scale could not be read/.test(error.message)
+      /scale could not be read/.test(message)
         ? "I could not read the scale from that drawing. Tell me the scale it was printed at, for example “1:100”, and attach it again."
-        : error instanceof Error
-          ? error.message
-          : "I could not read that drawing.",
+        : /no wall fill found/.test(message)
+          ? "I could not identify solid walls in that PDF. It may be a scan or use line-only walls, which I cannot read yet."
+          : error instanceof Error
+            ? message
+            : "I could not read that drawing.",
     );
   }
   const { model, report } = modelFromEvidence(evidence, { name });

@@ -66,6 +66,7 @@ export function App() {
   const [session, setSession] = useState<Session>();
   const [lessons, setLessons] = useState<AccountLesson[]>(() => loadLessons());
   const sessionRef = useRef<Session | undefined>(undefined);
+  const viewVersion = useRef(0);
   sessionRef.current = session;
 
   useEffect(() => saveBuilds(builds), [builds]);
@@ -109,6 +110,7 @@ export function App() {
   /** Designs an office from a brief or a photo, reporting each step as a line the person can read. */
   const buildFrom = useCallback(
     async (source: Source, previous: Session | undefined, live: (lines: string[]) => void) => {
+      const version = viewVersion.current;
       const id = previous?.id ?? crypto.randomUUID();
       const history = previous?.built ? [...previous.history, previous.built] : [];
       const brief =
@@ -135,6 +137,7 @@ export function App() {
         outcome.trace,
         Math.round(performance.now() - started),
       );
+      if (version !== viewVersion.current) return built;
       setSession({ id, brief, built, history });
       remember(id, brief, built, history);
       return built;
@@ -172,6 +175,7 @@ export function App() {
     live: (lines: string[]) => void,
   ): Promise<Reply> => {
     const current = sessionRef.current;
+    const version = viewVersion.current;
 
     if (
       file &&
@@ -182,6 +186,7 @@ export function App() {
       live(["Reading your drawing…"]);
       try {
         const drawn = await designFromDrawing(file, file.name.replace(/\.pdf$/i, ""), text);
+        if (version !== viewVersion.current) return { text: "" };
         const id = crypto.randomUUID();
         setSession({ id, brief: drawn.name, drawing: drawn, history: [] });
         setDrawings((all) => [
@@ -189,7 +194,7 @@ export function App() {
           ...all,
         ]);
         return {
-          text: `Here is ${drawn.name}, drawn in 3D from your plan. Say “make it real” to render it on your GPU.`,
+          text: `Here is ${drawn.name}, drawn in 3D from your plan. You can view or export it.`,
           lines: drawn.lines,
         };
       } catch (error) {
@@ -232,7 +237,7 @@ export function App() {
         return { text: "Noted. Now tell me what to build.", lines: remembered };
       const built = await buildFrom({ kind: "brief", text }, undefined, live);
       return {
-        text: `Built it: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m. Tell me what to change, or say “make it real”.`,
+        text: `Built it: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m. Tell me what to change.`,
         lines: [...buildSummary(built), ...remembered],
       };
     }
@@ -245,6 +250,7 @@ export function App() {
 
     live(["Working on it…"]);
     const result = await editByWords(text, current.built);
+    if (version !== viewVersion.current) return { text: "" };
     if (result.undo) {
       const done = undo(current);
       return { text: done ? "Undid the last change." : "There is nothing to undo." };
@@ -263,6 +269,7 @@ export function App() {
   };
 
   const open = (id: string) => {
+    viewVersion.current++;
     const saved = builds.find((b) => b.id === id);
     if (saved) {
       const built = finish(
@@ -308,6 +315,7 @@ export function App() {
   };
 
   const fresh = () => {
+    viewVersion.current++;
     setSession(undefined);
     setConversation([]);
   };
@@ -375,6 +383,7 @@ export function App() {
         .sort((a, b) => b.editedAt - a.editedAt)
         .map((b) => ({ id: b.id, title: b.title }))}
       activeId={session?.id}
+      canEdit={Boolean(session?.built)}
       messages={conversation}
       setMessages={setConversation}
       starts={STARTS}

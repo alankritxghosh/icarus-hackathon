@@ -21,12 +21,21 @@ export function buildSummary(built: Built): string[] {
       return count === 1 ? label : plural(count, label);
     });
   const lines = [`Rooms: ${rooms.join(", ")}.`];
-  const { seatsPlaced, seatsWanted, phoneBoothsPlaced, phoneBoothsWanted } = built.report;
+  const {
+    seatsPlaced,
+    seatsWanted,
+    privateDesksPlaced,
+    privateDesksWanted,
+    phoneBoothsPlaced,
+    phoneBoothsWanted,
+  } = built.report;
+  const desksPlaced = seatsPlaced + privateDesksPlaced;
+  const desksWanted = seatsWanted + privateDesksWanted;
   lines.push(
-    `${seatsPlaced} of ${seatsWanted} workstations and ${phoneBoothsPlaced} of ${phoneBoothsWanted} phone booths fit.`,
+    `${desksPlaced} of ${desksWanted} workstations and ${phoneBoothsPlaced} of ${phoneBoothsWanted} phone booths fit.`,
   );
   const missing = [
-    seatsWanted > seatsPlaced ? plural(seatsWanted - seatsPlaced, "workstation") : undefined,
+    desksWanted > desksPlaced ? plural(desksWanted - desksPlaced, "workstation") : undefined,
     phoneBoothsWanted > phoneBoothsPlaced
       ? plural(phoneBoothsWanted - phoneBoothsPlaced, "phone booth")
       : undefined,

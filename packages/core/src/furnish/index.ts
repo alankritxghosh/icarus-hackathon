@@ -26,6 +26,8 @@ export function furnish(plan: FloorPlan, program: Program): Furnished {
   const report: FurnishReport = {
     seatsWanted: 0,
     seatsPlaced: 0,
+    privateDesksWanted: 0,
+    privateDesksPlaced: 0,
     phoneBoothsWanted: 0,
     phoneBoothsPlaced: 0,
     meetingSeatsWanted: 0,
@@ -34,6 +36,7 @@ export function furnish(plan: FloorPlan, program: Program): Furnished {
   const offices = program.rooms
     .filter((r) => r.kind === "private_office")
     .reduce((n, r) => n + r.count, 0);
+  report.privateDesksWanted = offices;
   const seats = Math.max(1, program.company.headcount - offices);
   const capacity = new Map(expandRooms(program).map((r) => [r.id, r.capacity]));
   const checked: Furnished["checked"] = [];

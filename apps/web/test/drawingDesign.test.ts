@@ -71,6 +71,8 @@ describe("reading a drawing in the chat", () => {
   it("refuses a drawing with no walls", async () => {
     const empty = (async () =>
       Response.json({ svg: "<svg/>", bboxHtml: "<doc/>", page: 1 })) as unknown as typeof fetch;
-    await expect(designFromDrawing(pdf, "x", "1:100", empty)).rejects.toThrow(DrawingError);
+    await expect(designFromDrawing(pdf, "x", "1:100", empty)).rejects.toThrow(
+      /could not identify solid walls/,
+    );
   });
 });
