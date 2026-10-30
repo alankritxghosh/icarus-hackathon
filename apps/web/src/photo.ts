@@ -1,5 +1,12 @@
 import { dominantColours, type MeasuredColours, type PhotoRead } from "@icarus/core";
-import { RenderError } from "./render";
+export class RenderError extends Error {
+  constructor(
+    readonly kind: "limit" | "unavailable" | "failed",
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
 export interface ReadResult {
   read: PhotoRead;

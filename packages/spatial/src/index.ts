@@ -55,6 +55,7 @@ export {
   profileOf,
   reviewAgainstPrinciples,
 } from "./principles";
+export { type DrawnScene, sceneFromModel } from "./sceneFromModel";
 export * from "./schema";
 export { estimateUnitMm, extractEvidenceAuto, type ScaleEstimate } from "./sheetScale";
 export { uncertaintySummary } from "./uncertainty";

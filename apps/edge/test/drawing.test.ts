@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { handleDrawingViews } from "../src/drawing";
-import type { Env } from "../src/render";
+import type { Env } from "../src/env";
 
 const env: Env = {
   AI: { run: async () => ({}) },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { AiBinding } from "../src/env";
 import { handleReadPhoto, VISION_MODEL } from "../src/photo";
-import type { AiBinding } from "../src/render";
 
 const PNG = "data:image/png;base64,iVBORw0KGgo=";
 const GOOD = {

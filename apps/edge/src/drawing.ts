@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Env } from "./render";
+import type { Env } from "./env";
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
 const MAX_VIEW_BYTES = 24 * 1024 * 1024;

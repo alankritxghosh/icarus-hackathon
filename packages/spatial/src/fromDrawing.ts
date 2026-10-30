@@ -14,10 +14,17 @@ export interface FromDrawingOptions {
   levelHeightMm?: number;
   /** Positional tolerance to record on everything measured, millimetres. Default 50. */
   toleranceMm?: number;
+  /**
+   * Close the building's outline where the sheet draws no wall along it (many sheets draw the outer wall as a line,
+   * not a fill). The added walls are marked inferred and counted in the report. Default true.
+   */
+  closeOutline?: boolean;
 }
 
 export interface FromDrawingReport {
   walls: number;
+  /** Outer wall pieces added to close the outline where the sheet drew none, millimetres of wall. */
+  closedMm: number;
   openings: number;
   spaces: number;
   /** Room labels whose room the walls do not enclose, so no space was made for them. */
@@ -124,13 +131,84 @@ export function modelFromEvidence(
     }
   }
 
+  // Close the outline: along each edge of the walls' bounding box, add a wall for every stretch with none.
+  const extra: Rect[] = [];
+  let closedMm = 0;
+  if (opts.closeOutline !== false) {
+    const edgeT = Math.round(
+      [...walls]
+        .filter((w) => w.kind === "exterior")
+        .map((w) => w.thicknessMm)
+        .sort((a, b) => a - b)[0] ?? 200,
+    );
+    const covered = (horizontal: boolean, at: number) =>
+      rects
+        .filter((r) => (horizontal ? r[2] - r[0] >= r[3] - r[1] : r[3] - r[1] > r[2] - r[0]))
+        .filter((r) => {
+          const c = horizontal ? (r[1] + r[3]) / 2 : (r[0] + r[2]) / 2;
+          return Math.abs(c - at) <= thickness(r) / 2 + tol + 1;
+        })
+        .map((r) =>
+          horizontal ? ([r[0], r[2]] as [number, number]) : ([r[1], r[3]] as [number, number]),
+        )
+        .sort((a, b) => a[0] - b[0]);
+    const edges: { horizontal: boolean; at: number; lo: number; hi: number }[] = [
+      { horizontal: true, at: by0 + edgeT / 2, lo: bx0, hi: bx1 },
+      { horizontal: true, at: by1 - edgeT / 2, lo: bx0, hi: bx1 },
+      { horizontal: false, at: bx0 + edgeT / 2, lo: by0, hi: by1 },
+      { horizontal: false, at: bx1 - edgeT / 2, lo: by0, hi: by1 },
+    ];
+    for (const e of edges) {
+      let at = e.lo;
+      const gaps: [number, number][] = [];
+      for (const [a, b] of covered(e.horizontal, e.at)) {
+        if (a > at + 300) gaps.push([at, a]);
+        at = Math.max(at, b);
+      }
+      if (e.hi > at + 300) gaps.push([at, e.hi]);
+      for (const [a, b] of gaps) {
+        const id = `w${++n}`;
+        walls.push({
+          id,
+          levelId: "L1",
+          a: e.horizontal
+            ? { x: Math.round(a), y: Math.round(e.at) }
+            : { x: Math.round(e.at), y: Math.round(a) },
+          b: e.horizontal
+            ? { x: Math.round(b), y: Math.round(e.at) }
+            : { x: Math.round(e.at), y: Math.round(b) },
+          thicknessMm: edgeT,
+          kind: "exterior",
+          structural: "unknown",
+          glazed: false,
+          provenance: {
+            source: "inferred",
+            toleranceMm: tol,
+            confidence: 0.3,
+            evidence: prov.evidence,
+          },
+        });
+        extra.push(
+          e.horizontal
+            ? [a, e.at - edgeT / 2, b, e.at + edgeT / 2]
+            : [e.at - edgeT / 2, a, e.at + edgeT / 2, b],
+        );
+        closedMm += b - a;
+      }
+    }
+    if (closedMm > 0)
+      assumptions.push(
+        `${Math.round(closedMm / 1000)} m of outer wall was added where the sheet draws no wall along the outline (marked inferred)`,
+      );
+  }
+
   // Rooms: flood the free space around each label on a grid of the walls, closing doorways by growing the walls.
   const gx = Math.ceil((bx1 - bx0) / CELL) + 2;
   const gy = Math.ceil((by1 - by0) / CELL) + 2;
   const wall = new Uint8Array(gx * gy);
   const cellOf = (x: number, y: number) =>
     [Math.floor((x - bx0) / CELL) + 1, Math.floor((y - by0) / CELL) + 1] as const;
-  for (const r of rects) {
+  for (const r of [...rects, ...extra]) {
     const [x0, y0] = cellOf(r[0], r[1]);
     const [x1, y1] = cellOf(r[2] - 1, r[3] - 1);
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) wall[y * gx + x] = 1;
@@ -303,6 +381,7 @@ export function modelFromEvidence(
     model,
     report: {
       walls: walls.length,
+      closedMm: Math.round(closedMm),
       openings: openings.length,
       spaces: spaces.length,
       unplaced,

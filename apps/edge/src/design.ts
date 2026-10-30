@@ -24,7 +24,7 @@ import {
   providerFromEnv,
 } from "@icarus/meta";
 import { z } from "zod";
-import type { AiBinding } from "./render";
+import type { AiBinding } from "./env";
 import { FallbackMeta, WORKERS_AI_MODEL, WorkersAiMeta } from "./workersAi";
 
 /** Where the model comes from, kept behind an interface so tests use a scripted fake. */

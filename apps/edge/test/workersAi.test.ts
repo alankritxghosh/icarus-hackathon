@@ -2,7 +2,7 @@ import { PatchSchema, ProposalSchema } from "@icarus/core";
 import { FakeMeta, MetaError } from "@icarus/meta";
 import { describe, expect, it } from "vitest";
 import { handlePropose, modelFromEnv } from "../src/design";
-import type { AiBinding } from "../src/render";
+import type { AiBinding } from "../src/env";
 import { FallbackMeta, WORKERS_AI_MODEL, WorkersAiMeta } from "../src/workersAi";
 
 const PROPOSAL = {

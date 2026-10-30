@@ -1,6 +1,6 @@
 import { PHOTO_READ_INSTRUCTIONS, type PhotoRead, PhotoReadSchema } from "@icarus/core";
 import { z } from "zod";
-import type { Env } from "./render";
+import type { Env } from "./env";
 
 /** Meta's multimodal Llama 4 on Workers AI: free within the daily allowance. */
 export const VISION_MODEL = "@cf/meta/llama-4-scout-17b-16e-instruct";

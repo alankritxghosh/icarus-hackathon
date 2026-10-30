@@ -6,7 +6,7 @@ import {
   type RespondResult,
   validateStructured,
 } from "@icarus/meta";
-import type { AiBinding } from "./render";
+import type { AiBinding } from "./env";
 
 /** Meta's Llama 3.3 70B on Workers AI: a second free route, billed against the daily free allowance. */
 export const WORKERS_AI_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";

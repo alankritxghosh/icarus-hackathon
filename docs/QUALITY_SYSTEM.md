@@ -1,5 +1,11 @@
 # Quality system: audit against the drawing, and lessons
 
+> **Update 30 Oct, later:** the web app no longer has panels for these (no "Check against a drawing", "Teach Icarus",
+> "What was measured", "Design principles" or "How this was designed"). The app is one conversation beside the 3D model.
+> A drawing is attached in the message box and built in 3D; preferences typed in ordinary messages are learned and applied
+> silently; the principle router and the drawing audit remain in `packages/spatial` as libraries and are not shown to the
+> person. Rendering realism is in `docs/REALISTIC_RENDERING.md`.
+
 Written 30 Oct 2026. Two ideas that came out of the author's earlier private prototype, rebuilt here from the
 design, not from its source (see the README provenance statement). Both live in `packages/spatial`.
 
