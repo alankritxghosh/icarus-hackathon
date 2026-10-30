@@ -28,6 +28,13 @@ describe("what a person can ask of the view in words", () => {
     for (const t of ["export", "export for blender", "download the model", "give me the glb"])
       expect(viewCommand(t), t).toEqual({ kind: "export" });
     expect(viewCommand("start over")).toEqual({ kind: "new" });
+    for (const t of [
+      "export plan",
+      "download the floor plan",
+      "export dxf",
+      "give me the CAD file",
+    ])
+      expect(viewCommand(t), t).toEqual({ kind: "export_plan" });
   });
 
   it("leaves a design request alone, even when it uses the same words", () => {

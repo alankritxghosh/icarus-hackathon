@@ -51,6 +51,8 @@ describe("sceneFromModel", () => {
 
   it("names rooms where they are and gives one place to stand", () => {
     expect(labels.map((l) => l.name).sort()).toEqual(["BEDROOM", "KITCHEN"]);
+    expect(labels.find((l) => l.name === "BEDROOM")?.w).toBeCloseTo(2.7, 1);
+    expect(labels.find((l) => l.name === "BEDROOM")?.h).toBeCloseTo(3.6, 1);
     expect(viewpoints).toHaveLength(1);
     expect(viewpoints[0]?.position[1]).toBe(1.6);
   });

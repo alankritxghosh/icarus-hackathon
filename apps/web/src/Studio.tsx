@@ -20,7 +20,7 @@ export interface Message {
 
 interface Props {
   scene?: Scene;
-  labels: { name: string; x: number; y: number }[];
+  labels: { name: string; x: number; y: number; w: number; h: number }[];
   viewpoints: Viewpoint[];
   title?: string;
   builds: { id: string; title: string }[];
@@ -31,6 +31,7 @@ interface Props {
   onSend: (text: string, file: File | undefined, live: (lines: string[]) => void) => Promise<Reply>;
   onNew: () => void;
   onOpen: (id: string) => void;
+  onExportPlan: () => string;
 }
 
 const slug = (s: string) =>
@@ -54,6 +55,7 @@ export function Studio(props: Props) {
     onSend,
     onNew,
     onOpen,
+    onExportPlan,
   } = props;
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<OfficeView>(null);
@@ -63,12 +65,14 @@ export function Studio(props: Props) {
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<ViewMode>("orbit");
   const [real, setReal] = useState<RealState>({ state: "off", samples: 0 });
+  const [canReal, setCanReal] = useState(true);
   const [menu, setMenu] = useState(false);
 
   useEffect(() => {
     if (!host.current) return;
     const v = new OfficeView(host.current);
     view.current = v;
+    setCanReal(v.supportsRealistic());
     if (import.meta.env.DEV) Object.assign(window, { __icarusView: v });
     return () => {
       v.dispose();
@@ -128,6 +132,8 @@ export function Studio(props: Props) {
     if (!scene)
       return "There is nothing to look at yet. Describe a building or attach a floor plan first.";
     if (cmd.kind === "real") {
+      if (cmd.on && !canReal)
+        return "This device cannot show the realistic view. You can still use 3D and Plan.";
       setReality(cmd.on);
       return cmd.on
         ? "Making it real: the model is being rendered on your GPU. You can still orbit and walk it."
@@ -145,6 +151,7 @@ export function Studio(props: Props) {
       view.current?.setCeiling(cmd.show);
       return cmd.show ? "Ceiling on." : "Ceiling off.";
     }
+    if (cmd.kind === "export_plan") return onExportPlan();
     return exportGlb();
   };
 
@@ -337,13 +344,15 @@ export function Studio(props: Props) {
         )}
         {scene && (
           <div className="stage-tools">
-            <button
-              type="button"
-              className={`real${real.state !== "off" && real.state !== "unsupported" ? " on" : ""}`}
-              onClick={() => setReality(real.state === "off" || real.state === "unsupported")}
-            >
-              ✦ Make it real
-            </button>
+            {canReal && (
+              <button
+                type="button"
+                className={`real${real.state !== "off" && real.state !== "unsupported" ? " on" : ""}`}
+                onClick={() => setReality(real.state === "off" || real.state === "unsupported")}
+              >
+                ✦ Make it real
+              </button>
+            )}
             <fieldset className="seg" aria-label="View">
               {(["orbit", "plan", "eye"] as const).map((m) => (
                 <button

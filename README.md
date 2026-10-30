@@ -20,7 +20,7 @@ Code in this repository was written with the help of an AI coding assistant (Cla
 
 Working build, not a finished product. What it does today and what it does not:
 
-- **Does:** designs a rectangular office from a typed brief, furnishes it, shows a floor plan, a 3D model and a walk-in view, checks its own plan and repairs problems, and accepts a closed set of typed edits (move, swap, resize, meeting rooms, phone booths, locks, undo). It reports what rooms and workstations fit, saves office and drawing projects in this browser, renders the 3D model on a supported GPU, and exports the view as GLB for Blender. A vector PDF can be read into a 3D building.
+- **Does:** designs a rectangular office from a typed brief, furnishes it, shows a floor plan, a 3D model and a walk-in view, checks its own plan and repairs problems, and accepts a closed set of typed edits (move, swap, resize, meeting rooms, phone booths, locks, undo). It reports what rooms and workstations fit, saves office and drawing projects in this browser, renders the 3D model on a supported GPU, exports GLB for Blender, and exports a DXF plan when asked in chat. A vector PDF can be read into a 3D building.
 - **Does not:** edit rooms read from a drawing, design L-shaped or multi-floor offices in the app (a prototype for L-shapes is measured in [docs/NOTCHED_LAYOUT_SPIKE.md](docs/NOTCHED_LAYOUT_SPIKE.md)), check building codes, reconstruct a real room from a photo, take voice input, or use Muse Spark yet. Projects saved in one browser do not sync to another device.
 - **Not validated:** layouts are measured against our own rules; no architect has reviewed them. Realistic rendering has been measured on one Apple M1, not across devices or against photographs.
 

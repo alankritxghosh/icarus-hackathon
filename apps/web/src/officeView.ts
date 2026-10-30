@@ -587,6 +587,13 @@ export class OfficeView {
 
   // ---- Realistic mode ----
 
+  supportsRealistic(): boolean {
+    return (
+      this.renderer.capabilities.isWebGL2 &&
+      !!this.renderer.getContext().getExtension("EXT_color_buffer_float")
+    );
+  }
+
   /**
    * A daylight sky as a high-dynamic-range equirectangular picture: blue zenith, pale horizon, a ground, and a sun
    * disc far brighter than the sky, so the path tracer lights the rooms by the sun through the windows. The sun sits
@@ -656,8 +663,7 @@ export class OfficeView {
       this.resize();
       return;
     }
-    const gl = this.renderer.getContext();
-    if (!this.renderer.capabilities.isWebGL2 || !gl.getExtension("EXT_color_buffer_float")) {
+    if (!this.supportsRealistic()) {
       this.realistic = false;
       this.onReal?.({ state: "unsupported", samples: 0 });
       return;
@@ -839,7 +845,7 @@ export class OfficeView {
    * Name each room on the floor plan, so a request like "move the kitchen east" can be checked by
    * eye. Labels show only in the plan view; they are part of the content and go with the scene.
    */
-  setLabels(rooms: { name: string; x: number; y: number }[]) {
+  setLabels(rooms: { name: string; x: number; y: number; w: number; h: number }[]) {
     for (const child of [...this.content.children])
       if (child.userData.type === "label") {
         this.content.remove(child);
@@ -849,6 +855,15 @@ export class OfficeView {
         }
       }
     for (const room of rooms) {
+      const width = Math.max(0.65, Math.min(3, room.w * 0.82));
+      const height = Math.max(0.35, Math.min(0.6, room.h * 0.38));
+      const name =
+        width < 2
+          ? room.name
+              .replace(/^restroom\s*/i, "WC ")
+              .replace(/^meeting room\s*/i, "Meet ")
+              .replace(/^open workspace$/i, "Workspace")
+          : room.name;
       const canvas = document.createElement("canvas");
       canvas.width = 256;
       canvas.height = 64;
@@ -862,7 +877,7 @@ export class OfficeView {
       ctx.font = "600 26px system-ui, sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(room.name, 128, 33, 232);
+      ctx.fillText(name, 128, 33, 232);
       const sprite = new THREE.Sprite(
         new THREE.SpriteMaterial({
           map: new THREE.CanvasTexture(canvas),
@@ -870,7 +885,7 @@ export class OfficeView {
           transparent: true,
         }),
       );
-      sprite.scale.set(4, 1, 1);
+      sprite.scale.set(width, height, 1);
       sprite.position.set(room.x, 3, room.y);
       sprite.renderOrder = 10;
       sprite.userData = { type: "label" };

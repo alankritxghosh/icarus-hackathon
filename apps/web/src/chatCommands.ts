@@ -7,6 +7,7 @@ export type ViewCommand =
   | { kind: "mode"; mode: "orbit" | "plan" | "eye" }
   | { kind: "ceiling"; show: boolean }
   | { kind: "export" }
+  | { kind: "export_plan" }
   | { kind: "new" };
 
 const t = (s: string) =>
@@ -51,6 +52,12 @@ export function viewCommand(text: string): ViewCommand | undefined {
     return { kind: "ceiling", show: true };
   if (/^(hide|remove|take off|turn off)( the)? ceiling$/.test(s))
     return { kind: "ceiling", show: false };
+  if (
+    /^(export|download|save)( the| my| this)? (plan|floor ?plan|cad (file|drawing)|dxf)( (as|for) (dxf|cad))?$|^(give me|get) (the|my)? ?(cad (file|drawing)|dxf)$/.test(
+      s,
+    )
+  )
+    return { kind: "export_plan" };
   if (
     /^(export|download|save)( it| this| the model| the 3d model)?( (for|to|into|as|in) (blender|a file|glb|gltf|\.glb))?$|^(export|download|open) (for|in|to) blender$|^(give me|get) (the )?(glb|3d file)$/.test(
       s,

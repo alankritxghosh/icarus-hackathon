@@ -58,7 +58,7 @@ export function scaleInText(text: string): number | undefined {
 export interface DrawnDesign {
   model: SpatialModel;
   scene: Scene;
-  labels: { name: string; x: number; y: number }[];
+  labels: { name: string; x: number; y: number; w: number; h: number }[];
   viewpoints: Viewpoint[];
   name: string;
   /** What Icarus tells the person about what it read, one line each. */

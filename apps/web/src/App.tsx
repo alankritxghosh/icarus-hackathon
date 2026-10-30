@@ -1,10 +1,11 @@
 import { type Scene, type Viewpoint, viewpoints } from "@icarus/core";
-import { type AccountLesson, sceneFromModel } from "@icarus/spatial/model";
+import { type AccountLesson, sceneFromModel, toDxf } from "@icarus/spatial/model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadLessons, saveLessons } from "./accountLessons";
 import { buildSummary } from "./buildSummary";
 import { type Built, builtFromRefine, finish, readPhotoDesign } from "./design";
 import { designFromBrief, refineProgram } from "./designLoop";
+import { saveFile } from "./download";
 import { DrawingError, type DrawnDesign, designFromDrawing } from "./drawingDesign";
 import { editByWords } from "./editByWords";
 import { RenderError, readPhoto } from "./photo";
@@ -306,6 +307,26 @@ export function App() {
     setConversation([]);
   };
 
+  const exportPlan = (): string => {
+    const current = sessionRef.current;
+    const model = current?.built?.model ?? current?.drawing?.model;
+    if (!model) return "There is no plan to export yet.";
+    try {
+      const { dxf, skipped } = toDxf(model);
+      const stem = (current?.brief ?? "building")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+        .slice(0, 40);
+      saveFile(`icarus-${stem || "building"}-plan.dxf`, dxf, "application/dxf");
+      return skipped.length
+        ? `Downloaded a CAD plan (.dxf). Some parts were left out: ${skipped.slice(0, 2).join("; ")}.`
+        : "Downloaded a CAD plan (.dxf).";
+    } catch {
+      return "I could not export this plan just now.";
+    }
+  };
+
   // What is on screen: the office or the drawing, with whatever the person has taught applied.
   const shown = useMemo(() => {
     if (session?.built) {
@@ -317,6 +338,8 @@ export function App() {
           name: r.name,
           x: r.rect.x + r.rect.w / 2,
           y: r.rect.y + r.rect.h / 2,
+          w: r.rect.w,
+          h: r.rect.h,
         })),
         views: viewpoints(plan) as Viewpoint[],
       };
@@ -353,6 +376,7 @@ export function App() {
       onSend={respond}
       onNew={fresh}
       onOpen={open}
+      onExportPlan={exportPlan}
     />
   );
 }

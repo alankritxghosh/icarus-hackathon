@@ -12,7 +12,7 @@ const DOOR_HEAD = 2.1;
 export interface DrawnScene {
   scene: Scene;
   /** Room names at their centres, in scene metres, for the plan view. */
-  labels: { name: string; x: number; y: number }[];
+  labels: { name: string; x: number; y: number; w: number; h: number }[];
   viewpoints: Viewpoint[];
   /** Rooms that were furnished, by name, so the person can be told what Icarus added. */
   furnished: string[];
@@ -520,7 +520,13 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
       (Math.min(...xs) + Math.max(...xs)) / 2,
       (Math.min(...ys) + Math.max(...ys)) / 2,
     );
-    return { name: s.name, x, y };
+    return {
+      name: s.name,
+      x,
+      y,
+      w: (Math.max(...xs) - Math.min(...xs)) * M,
+      h: (Math.max(...ys) - Math.min(...ys)) * M,
+    };
   });
   // One place to stand: the middle of the largest room, or of the building when no room is closed.
   const biggest = [...model.spaces].sort(
