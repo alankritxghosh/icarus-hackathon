@@ -12,7 +12,53 @@ const post = (body: BodyInit, query = "") =>
   new Request(`https://x/api/drawing/views${query}`, { method: "POST", body });
 const GOOD = { svg: "<svg/>", bboxHtml: "<doc/>", page: 1 };
 
+const limiter = (allow: boolean, seen: string[] = []) => ({
+  async limit({ key }: { key: string }) {
+    seen.push(key);
+    return { success: allow };
+  },
+});
+
 describe("POST /api/drawing/views", () => {
+  it("limits per caller and across everyone, before reading the file or calling the worker", async () => {
+    let called = false;
+    const never = (async () => {
+      called = true;
+      return Response.json(GOOD);
+    }) as never;
+    const keys: string[] = [];
+    const req = () =>
+      new Request("https://x/api/drawing/views", {
+        method: "POST",
+        body: pdf(),
+        headers: { "cf-connecting-ip": "203.0.113.9" },
+      });
+    // A caller over their own limit.
+    let res = await handleDrawingViews(
+      req(),
+      { ...env, DRAWING_LIMIT_CALLER: limiter(false, keys), DRAWING_LIMIT_ALL: limiter(true) },
+      never,
+    );
+    expect(res.status).toBe(429);
+    expect(res.headers.get("retry-after")).toBe("60");
+    expect(keys).toEqual(["203.0.113.9"]);
+    // Everyone over the shared limit.
+    res = await handleDrawingViews(
+      req(),
+      { ...env, DRAWING_LIMIT_CALLER: limiter(true), DRAWING_LIMIT_ALL: limiter(false) },
+      never,
+    );
+    expect(res.status).toBe(429);
+    expect(called).toBe(false);
+    // Both under their limits: the call goes through.
+    res = await handleDrawingViews(
+      req(),
+      { ...env, DRAWING_LIMIT_CALLER: limiter(true), DRAWING_LIMIT_ALL: limiter(true) },
+      (async () => Response.json(GOOD)) as never,
+    );
+    expect(res.status).toBe(200);
+  });
+
   it("sends the PDF to the worker with the token and returns the validated views", async () => {
     const seen: { url: string; init: RequestInit }[] = [];
     const res = await handleDrawingViews(post(pdf(), "?page=2"), env, (async (

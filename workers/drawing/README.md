@@ -24,6 +24,9 @@ The worker's poppler (Debian package) is older than a current Homebrew build and
 instead of `fill="rgb(...)"`; the extractor reads both. On the same sheet both give 53 wall shapes with identical
 bounds; the older one read 23 labels with 15 printed sizes, the newer 22 with 17.
 
-**Abuse:** the edge route takes any PDF from anyone who finds the address, and each call costs a few seconds of Modal CPU. It
-is capped (8 MB, `max_containers=2`), but there is no per-caller rate limit yet; add a Cloudflare rate-limiting rule before
-the address is public.
+**Abuse:** the edge route takes any PDF from anyone who finds the address, and each call costs a few seconds of Modal CPU. It is
+capped (8 MB, `max_containers=2`) and rate limited with Cloudflare's rate-limiting bindings declared in `apps/edge/wrangler.jsonc`:
+6 calls a minute per caller (`cf-connecting-ip`) and 60 a minute across everyone; over the limit the reply is 429 with
+`retry-after: 60`, sent before the file is read. The counters are per Cloudflare location and approximate by design: in a live test
+of 25 rapid bad requests the first 429 came after 14 rather than 6, then they came and went, and a real PDF went through within
+seconds of the window clearing. It slows abuse; it is not an exact quota, and not a defence against a determined crowd.

@@ -58,7 +58,7 @@ browser: extractEvidence -> alignEvidenceToModel -> auditAgainstDrawing -> "Chec
   meets the design's, audits, and lists what differs and what was not checked. The parsing stays in the browser so the
   edge Worker does no heavy work and the rules live in one place.
 - **Edge:** `apps/edge/src/drawing.ts` checks the file (PDF magic, 8 MB, page 1 to 50), forwards it with a token that
-  never reaches the browser, validates the reply, and never echoes the worker's errors. Without
+  never reaches the browser, rate limits per caller and overall, validates the reply, and never echoes the worker's errors. Without
   `DRAWING_WORKER_URL` and `DRAWING_WORKER_TOKEN` it answers 503.
 - **Worker:** `workers/drawing/app.py`, CPU only. Deployed to Modal on 30 Oct 2026 and tested live. The edge Worker `icarus-edge` is deployed too, with both secrets set, and the route was tested live end to end.
 - **Development:** `pnpm --filter @icarus/web dev` answers `/api/drawing/views` with poppler installed on the machine,
@@ -104,7 +104,6 @@ are written; none are invented here.
 
 ## Pending
 
-- a per-caller rate limit on the edge route before the address is shared;
 - deploying the web app (only the edge Worker and the Modal worker are deployed);
 - reading a scale off the sheet (a printed scale bar or a known dimension) instead of asking for it;
 - a design built *from* the drawing, which is what makes the check meaningful end to end;

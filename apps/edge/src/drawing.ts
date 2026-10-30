@@ -27,6 +27,21 @@ export async function handleDrawingViews(
   if (!env.DRAWING_WORKER_URL || !env.DRAWING_WORKER_TOKEN)
     return json({ error: "reading drawings is not set up on this server" }, 503);
 
+  // Before the body is read or anything is forwarded: one caller cannot spend the worker's time, and neither can a crowd.
+  const caller = request.headers.get("cf-connecting-ip") ?? "unknown";
+  const [mine, everyone] = await Promise.all([
+    env.DRAWING_LIMIT_CALLER?.limit({ key: caller }) ?? { success: true },
+    env.DRAWING_LIMIT_ALL?.limit({ key: "all" }) ?? { success: true },
+  ]);
+  if (!mine.success || !everyone.success)
+    return new Response(
+      JSON.stringify({ error: "too many drawings just now; try again in a minute" }),
+      {
+        status: 429,
+        headers: { "content-type": "application/json", "retry-after": "60" },
+      },
+    );
+
   const page = Number(new URL(request.url).searchParams.get("page") ?? "1");
   if (!Number.isInteger(page) || page < 1 || page > 50)
     return json({ error: "page must be 1 to 50" }, 400);
