@@ -3,7 +3,10 @@ import {
   alignEvidenceToModel,
   auditAgainstDrawing,
   extractEvidence,
+  extractEvidenceAuto,
   fromFloorPlan,
+  modelFromEvidence,
+  toDxf,
   unitMmFromScale,
 } from "@icarus/spatial/model";
 import type { Built } from "./design";
@@ -59,16 +62,21 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 export async function checkAgainstDrawing(
   file: Blob,
   name: string,
-  ratio: number,
+  ratio: number | undefined,
   built: Built,
   deps: { send?: typeof fetch } = {},
 ): Promise<EvidenceItem[]> {
-  if (!Number.isFinite(ratio) || ratio < 1 || ratio > 5000)
-    throw new DrawingError("Enter the scale the sheet was printed at, such as 100 for 1:100.");
+  if (ratio !== undefined && (!Number.isFinite(ratio) || ratio < 1 || ratio > 5000))
+    throw new DrawingError(
+      "Enter the scale the sheet was printed at, such as 100 for 1:100, or leave it empty.",
+    );
   const { svg, bboxHtml } = await readDrawingViews(file, 1, deps.send);
   let extracted: ReturnType<typeof extractEvidence>;
   try {
-    extracted = extractEvidence(svg, bboxHtml, name, { unitMm: unitMmFromScale(ratio) });
+    extracted =
+      ratio === undefined
+        ? extractEvidenceAuto(svg, bboxHtml, name)
+        : extractEvidence(svg, bboxHtml, name, { unitMm: unitMmFromScale(ratio) });
   } catch (error) {
     throw new DrawingError(
       error instanceof Error ? error.message : "The drawing could not be read.",
@@ -86,7 +94,7 @@ export async function checkAgainstDrawing(
       label: "What was read from the drawing",
       status: "info",
       detail:
-        `${plural(evidence.wallRects.length, "wall shape")} and ${plural(evidence.labels.length, "room label")} at 1:${ratio}. ${dropped ? `${plural(dropped, "shape")} (curves, slanted or hollow) were not read. ` : ""}${sentence(report.assumptions[0])}The drawing was moved ${Math.round(shiftMm[0])}, ${Math.round(shiftMm[1])} mm to sit on the design.`.trim(),
+        `${plural(evidence.wallRects.length, "wall shape")} and ${plural(evidence.labels.length, "room label")} ${ratio === undefined ? "" : ` at 1:${ratio}`}. ${dropped ? `${plural(dropped, "shape")} (curves, slanted or hollow) were not read. ` : ""}${sentence(report.assumptions[0])}The drawing was moved ${Math.round(shiftMm[0])}, ${Math.round(shiftMm[1])} mm to sit on the design.`.trim(),
     },
   ];
   const errors = audit.findings.filter((f) => f.level === "error");
@@ -122,4 +130,42 @@ export async function checkAgainstDrawing(
     detail: `${audit.notAudited.join("; ")}.`,
   });
   return items;
+}
+
+/**
+ * Reads a drawing into a model of its own (walls, doors and windows, and the rooms its walls enclose) and a DXF of it,
+ * for a person who wants the plan as a file they can edit. Rooms the walls do not close are listed, never guessed.
+ */
+export async function drawingAsModel(
+  file: Blob,
+  name: string,
+  ratio: number | undefined,
+  deps: { send?: typeof fetch } = {},
+): Promise<{ dxf: string; summary: EvidenceItem }> {
+  if (ratio !== undefined && (!Number.isFinite(ratio) || ratio < 1 || ratio > 5000))
+    throw new DrawingError(
+      "Enter the scale the sheet was printed at, such as 100 for 1:100, or leave it empty.",
+    );
+  const { svg, bboxHtml } = await readDrawingViews(file, 1, deps.send);
+  try {
+    const { evidence } =
+      ratio === undefined
+        ? extractEvidenceAuto(svg, bboxHtml, name)
+        : extractEvidence(svg, bboxHtml, name, { unitMm: unitMmFromScale(ratio) });
+    const { model, report } = modelFromEvidence(evidence, { name: name.replace(/\.pdf$/i, "") });
+    const labelled = report.spaces + report.unplaced.length;
+    return {
+      dxf: toDxf(model).dxf,
+      summary: {
+        id: "drawing-model",
+        label: "Plan read from the drawing",
+        status: report.unplaced.length ? "warn" : "ok",
+        detail: `${plural(report.walls, "wall")}, ${plural(report.openings, "door or window", "doors and windows")} and ${report.spaces} of ${plural(labelled, "labelled room")} that the walls enclose.${report.unplaced.length ? ` Left out because the drawn walls do not close them: ${report.unplaced.slice(0, 6).join(", ")}${report.unplaced.length > 6 ? ", …" : ""}.` : ""}`,
+      },
+    };
+  } catch (error) {
+    throw new DrawingError(
+      error instanceof Error ? error.message : "The drawing could not be read.",
+    );
+  }
 }

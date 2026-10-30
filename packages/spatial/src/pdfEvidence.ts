@@ -123,6 +123,52 @@ export function parseColour(value: string | undefined): Rgb | undefined {
 
 type Pt = [number, number];
 
+/** Like `subpaths`, but keeps open lines of two or more points (a dimension line is M x y L x y). */
+function subpathsOpen(d: string): Pt[][] | undefined {
+  const out: Pt[][] = [];
+  let cur: Pt[] = [];
+  let x = 0;
+  let y = 0;
+  const flush = () => {
+    if (cur.length >= 2) out.push(cur);
+    cur = [];
+  };
+  for (const seg of d.matchAll(/([MmLlHhVvZzCcSsQqTtAa])([^MmLlHhVvZzCcSsQqTtAa]*)/g)) {
+    const c = seg[1] as string;
+    const n = (seg[2] ?? "")
+      .trim()
+      .split(/[\s,]+/)
+      .filter(Boolean)
+      .map(Number);
+    if (/[CcSsQqTtAa]/.test(c)) {
+      flush();
+      return out.length ? out : undefined;
+    }
+    if (c === "Z" || c === "z") {
+      flush();
+      continue;
+    }
+    const rel = c === c.toLowerCase();
+    const k = c.toUpperCase();
+    if (k === "M" || k === "L") {
+      for (let i = 0; i + 1 < n.length; i += 2) {
+        if (k === "M" && i === 0) flush();
+        x = (rel ? x : 0) + (n[i] as number);
+        y = (rel ? y : 0) + (n[i + 1] as number);
+        cur.push([x, y]);
+      }
+    } else if (k === "H") {
+      x = (rel ? x : 0) + (n[n.length - 1] as number);
+      cur.push([x, y]);
+    } else if (k === "V") {
+      y = (rel ? y : 0) + (n[n.length - 1] as number);
+      cur.push([x, y]);
+    }
+  }
+  flush();
+  return out;
+}
+
 /** The closed subpaths of a path's `d`, as point lists; undefined if the path uses curves or arcs. */
 function subpaths(d: string): Pt[][] | undefined {
   const out: Pt[][] = [];
@@ -318,15 +364,14 @@ interface Filled {
   colour: Rgb;
 }
 
-/** Every filled axis-aligned rectangle in an SVG, in PDF units with y down, plus counts of what was not read. */
-export function filledRects(svg: string): {
-  rects: Filled[];
-  notRectangle: number;
-  hollow: number;
-} {
-  const rects: Filled[] = [];
-  let notRectangle = 0;
-  let hollow = 0;
+/**
+ * Calls `visit` for every path outside definitions, with its painted attributes (fill and opacity inherited from the
+ * groups around it) and the matrix that places it on the page.
+ */
+function walkPaths(
+  svg: string,
+  visit: (a: Record<string, string>, m: Matrix, up: { fill?: string; opacity?: string }) => void,
+) {
   const stack: Matrix[] = [IDENTITY];
   // The fill and opacity a group sets for the paths inside it, which have none of their own.
   const inherited: { fill?: string; opacity?: string }[] = [{}];
@@ -363,31 +408,67 @@ export function filledRects(svg: string): {
     }
     if (name !== "path" || closing) continue;
     const a = paint(tag[3] as string);
-    const up = inherited[inherited.length - 1] ?? {};
+    visit(
+      a,
+      multiply(stack[stack.length - 1] as Matrix, parseTransform(a.transform)),
+      inherited[inherited.length - 1] ?? {},
+    );
+  }
+}
+
+const place = (m: Matrix, pts: Pt[]): Pt[] =>
+  pts.map(([px, py]) => [m[0] * px + m[2] * py + m[4], m[1] * px + m[3] * py + m[5]] as Pt);
+
+/** Every axis-aligned stroked line segment in an SVG (dimension lines, extension lines, outlines), in page units. */
+export function strokedSegments(svg: string): { a: Pt; b: Pt }[] {
+  const out: { a: Pt; b: Pt }[] = [];
+  walkPaths(svg, (a, m) => {
+    const stroke = a.stroke;
+    if (!a.d || !stroke || stroke === "none") return;
+    const parts = subpathsOpen(a.d);
+    if (!parts) return;
+    for (const pts of parts) {
+      const placed = place(m, pts);
+      for (let i = 0; i + 1 < placed.length; i++) {
+        const p = placed[i] as Pt;
+        const q = placed[i + 1] as Pt;
+        if (Math.abs(p[0] - q[0]) < EPS || Math.abs(p[1] - q[1]) < EPS) out.push({ a: p, b: q });
+      }
+    }
+  });
+  return out;
+}
+
+/** Every filled axis-aligned rectangle in an SVG, in PDF units with y down, plus counts of what was not read. */
+export function filledRects(svg: string): {
+  rects: Filled[];
+  notRectangle: number;
+  hollow: number;
+} {
+  const rects: Filled[] = [];
+  let notRectangle = 0;
+  let hollow = 0;
+  walkPaths(svg, (a, m, up) => {
     const colour = parseColour(a.fill ?? up.fill);
     const opacity = a["fill-opacity"] ?? up.opacity;
-    if (!colour || !a.d || (opacity !== undefined && Number(opacity) < 0.5)) continue;
+    if (!colour || !a.d || (opacity !== undefined && Number(opacity) < 0.5)) return;
     const parts = subpaths(a.d);
     if (!parts) {
       notRectangle++;
-      continue;
+      return;
     }
-    const m = multiply(stack[stack.length - 1] as Matrix, parseTransform(a.transform));
-    const placed = parts.map((pts) =>
-      pts.map(([px, py]) => [m[0] * px + m[2] * py + m[4], m[1] * px + m[3] * py + m[5]] as Pt),
-    );
-    const { rects: rs, bad } = rectsOf(placed);
+    const { rects: rs, bad } = rectsOf(parts.map((pts) => place(m, pts)));
     if (bad) {
       notRectangle += bad;
-      continue;
+      return;
     }
     // One shape inside another within a single fill is an outline (a hole), not a solid: read none of it.
-    if (rs.some((r, i) => rs.some((s, j) => i !== j && inside(r, s)))) {
+    if (rs.some((r, i) => rs.some((q, j) => i !== j && inside(r, q)))) {
       hollow++;
-      continue;
+      return;
     }
     for (const rect of rs) rects.push({ rect, colour });
-  }
+  });
   return { rects, notRectangle, hollow };
 }
 
@@ -443,12 +524,12 @@ export function splitPrintedSize(text: string): { rest: string; size?: [number, 
     : { rest: t };
 }
 
-interface TextLine {
+export interface TextLine {
   text: string;
   box: Rect;
 }
 
-function textBlocks(bboxHtml: string): TextLine[][] {
+export function textBlocks(bboxHtml: string): TextLine[][] {
   const blocks: TextLine[][] = [];
   for (const b of bboxHtml.matchAll(/<block\b([^>]*)>([\s\S]*?)<\/block>/g)) {
     const lines: TextLine[] = [];

@@ -46,6 +46,28 @@ labels were read, 17 with their printed sizes. Auto-detecting the wall colour wo
 **Limits:** needs poppler; text read as outlines (not text objects) has no labels; walls drawn as lines instead of
 fills are not seen; only page 1 by default.
 
+### Reading the scale from the sheet (`src/sheetScale.ts`)
+
+`estimateUnitMm` finds the sheet's millimetres-per-unit with no input. CAD plans print lengths such as `11'-3"` beside
+dimension lines; each text gives a length in mm and the straight stroked lines under it give candidate lengths in sheet
+units. The ratio most texts agree on (at least 5, at least twice any rival ratio more than 5% away) is the scale.
+Failing that it takes a printed `SCALE 1:N`, and failing that it throws and the panel asks for the scale. It never invents one.
+
+On the real A3 sheet it read 28.09 mm per unit from 8 of 33 dimension strings (about 1:80; the earlier prototype's
+separately derived figure was 28.39, within 1.1%). An earlier approach, flooding rooms to match their printed sizes, failed
+on that sheet because its exterior walls are outlines, not fills, so no room closed; it was dropped.
+
+### A model from the drawing (`src/fromDrawing.ts`)
+
+`modelFromEvidence` turns evidence into a `SpatialModel`: walls (collinear pieces joined), the gaps in them as doors,
+windows or passages, and a space for each label whose room the walls actually enclose. Rooms the walls do not close are
+listed as unplaced and never guessed. Everything is marked `measured` with a tolerance; the level outline is the bounding
+box of the walls. The panel offers the result as a DXF. A model built from a sheet agrees with that sheet by construction,
+so this is not a test of the extractor; it is what makes the plan editable and exportable.
+
+On the real sheet: 24 walls, 18 openings, valid model, but only 5 of 23 labelled rooms placed, because its exterior walls
+are not drawn as filled shapes.
+
 ### Where it runs
 
 ```
@@ -105,8 +127,8 @@ are written; none are invented here.
 ## Pending
 
 - deploying the web app (only the edge Worker and the Modal worker are deployed);
-- reading a scale off the sheet (a printed scale bar or a known dimension) instead of asking for it;
-- a design built *from* the drawing, which is what makes the check meaningful end to end;
+- closing rooms on sheets whose outer walls are outlines (read stroked outlines as walls);
+- showing the model read from a drawing in the 3D view (the viewer builds from floor plans, not spatial models);
 - per-account lessons (the prototype taught each account its own rules);
 - stair-detail and gym-equipment geometry for the scene builder, which this repo's furniture kits do not have;
 - the principle router.

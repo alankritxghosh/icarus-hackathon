@@ -2,7 +2,12 @@ import { ProgramSchema } from "@icarus/core";
 import { fromFloorPlan } from "@icarus/spatial/model";
 import { describe, expect, it } from "vitest";
 import { rebuild } from "../src/design";
-import { checkAgainstDrawing, DrawingError, readDrawingViews } from "../src/drawingAuditClient";
+import {
+  checkAgainstDrawing,
+  DrawingError,
+  drawingAsModel,
+  readDrawingViews,
+} from "../src/drawingAuditClient";
 
 const program = ProgramSchema.parse({
   company: { headcount: 8 },
@@ -19,7 +24,23 @@ const built = rebuild(program, 1, []);
 // A "drawing" of the design itself, at 1:100 (35.2778 mm per unit): the wiring test, not a test of the extractor.
 const MM = (25.4 / 72) * 100;
 const BROWN = "rgb(80.39%, 41.18%, 15.68%)";
-function sheetOf(skipWall?: string) {
+// Dimension lines with their texts, so the scale can be read from the sheet (10, 15, 5, 20, 8 and 12 feet).
+function dimensionsAt(mmPerUnit: number) {
+  const feet = [10, 15, 5, 20, 8, 12];
+  const lines = feet.map((ft, i) => {
+    const len = (ft * 304.8) / mmPerUnit;
+    return `<path fill="none" stroke="rgb(0%, 0%, 0%)" d="M 20 ${700 + i * 30} L ${20 + len} ${700 + i * 30}"/>`;
+  });
+  const words = feet.map((ft, i) => {
+    const len = (ft * 304.8) / mmPerUnit;
+    const cx = 20 + len / 2;
+    const cy = 700 + i * 30 - 4;
+    return `<flow><block xMin="${cx - 10}" yMin="${cy - 3}" xMax="${cx + 10}" yMax="${cy + 3}"><line xMin="${cx - 10}" yMin="${cy - 3}" xMax="${cx + 10}" yMax="${cy + 3}"><word xMin="${cx - 10}" yMin="${cy - 3}" xMax="${cx + 10}" yMax="${cy + 3}">${ft}'</word></line></block></flow>`;
+  });
+  return { lines: lines.join(""), words: words.join("") };
+}
+
+function sheetOf(skipWall?: string, withDimensions = false) {
   const model = fromFloorPlan(built.plan, { program: built.program });
   const rect = (x0: number, y0: number, x1: number, y1: number) =>
     `M ${x0 / MM} ${y0 / MM} L ${x1 / MM} ${y0 / MM} L ${x1 / MM} ${y1 / MM} L ${x0 / MM} ${y1 / MM} Z`;
@@ -45,9 +66,10 @@ function sheetOf(skipWall?: string) {
       const text = s.name.replace(/&/g, "&amp;");
       return `<flow><block xMin="${cx - 10}" yMin="${cy - 3}" xMax="${cx + 10}" yMax="${cy + 3}"><line xMin="${cx - 10}" yMin="${cy - 3}" xMax="${cx + 10}" yMax="${cy + 3}"><word xMin="${cx - 10}" yMin="${cy - 3}" xMax="${cx + 10}" yMax="${cy + 3}">${text}</word></line></block></flow>`;
     });
+  const dims = withDimensions ? dimensionsAt(MM) : { lines: "", words: "" };
   return {
-    svg: `<svg xmlns="http://www.w3.org/2000/svg">${paths.join("")}</svg>`,
-    bboxHtml: `<doc><page>${words.join("")}</page></doc>`,
+    svg: `<svg xmlns="http://www.w3.org/2000/svg">${paths.join("")}${dims.lines}</svg>`,
+    bboxHtml: `<doc><page>${words.join("")}${dims.words}</page></doc>`,
   };
 }
 const serve = (views: { svg: string; bboxHtml: string }, status = 200) =>
@@ -99,6 +121,22 @@ describe("checkAgainstDrawing", () => {
     expect(items.map((i) => i.detail).join(" ")).toMatch(/not drawn on the sheet/);
   });
 
+  it("reads the scale from the sheet when it is left empty, and says how", async () => {
+    const items = await checkAgainstDrawing(file, "sheet.pdf", undefined, built, {
+      send: serve(sheetOf(undefined, true)),
+    });
+    expect(items.find((i) => i.id === "drawing-audit")?.status, JSON.stringify(items)).toBe("ok");
+    expect(items.find((i) => i.id === "drawing-read")?.detail).toMatch(
+      /Dimension strings|scale is .* mm per unit/i,
+    );
+  });
+
+  it("asks for the scale when the sheet gives none, instead of guessing", async () => {
+    await expect(
+      checkAgainstDrawing(file, "s.pdf", undefined, built, { send: serve(sheetOf()) }),
+    ).rejects.toThrow(/Enter the scale/);
+  });
+
   it("asks for a sensible scale and refuses a drawing with no walls", async () => {
     await expect(
       checkAgainstDrawing(file, "s.pdf", 0, built, { send: serve(sheetOf()) }),
@@ -107,6 +145,21 @@ describe("checkAgainstDrawing", () => {
       checkAgainstDrawing(file, "s.pdf", 100, built, {
         send: serve({ svg: "<svg/>", bboxHtml: "<doc/>" }),
       }),
+    ).rejects.toThrow(/no wall fill found/);
+  });
+});
+
+describe("drawingAsModel", () => {
+  it("reads a drawing into a DXF and says which rooms the walls did not close", async () => {
+    const out = await drawingAsModel(file, "sheet.pdf", 100, { send: serve(sheetOf()) });
+    expect(out.dxf).toContain("SECTION");
+    expect(out.summary.detail).toMatch(/\d+ walls?/);
+    expect(out.summary.id).toBe("drawing-model");
+  });
+
+  it("refuses a drawing with no walls", async () => {
+    await expect(
+      drawingAsModel(file, "s.pdf", 100, { send: serve({ svg: "<svg/>", bboxHtml: "<doc/>" }) }),
     ).rejects.toThrow(/no wall fill found/);
   });
 });
