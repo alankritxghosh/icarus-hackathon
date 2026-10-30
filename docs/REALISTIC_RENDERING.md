@@ -8,7 +8,7 @@ is. No image is generated and no server GPU is used.
 
 `apps/web/src/officeView.ts` (`setRealistic`) hands the scene to `three-gpu-pathtracer` 0.0.27 (MIT; peer `three-mesh-bvh`
 0.9.17), which traces light paths on the viewer's GPU: global illumination, soft shadows, light through the windows
-from a high-dynamic-range sky with a real sun, ceiling lights as area lights, the CC0 models with their own materials.
+from a photographed high-dynamic-range sky (Poly Haven Alps Field, 2k, CC0; a drawn sky stands in until it loads), ceiling lights as area lights, the CC0 models with their own materials.
 
 - The BVH of the building is built in a web worker, so the page stays usable while it is prepared.
 - While the camera moves it shows a quick low-resolution pass; the full image accumulates when it stops.
@@ -16,7 +16,7 @@ from a high-dynamic-range sky with a real sun, ceiling lights as area lights, th
 - It starts at 0.6 of screen resolution and shrinks to 0.4 if fewer than 3 samples a second arrive (not while the page is
   hidden, when the browser slows animation).
 - It stops at 600 samples so the GPU is left alone; any movement restarts it.
-- Without WebGL2 float rendering it says so and stays on the quick view.
+- Without WebGL2 float rendering it says so and stays on the quick view. Nothing about samples or progress is shown to the person.
 
 ## Why this and not the alternatives
 

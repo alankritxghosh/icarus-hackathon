@@ -1,7 +1,7 @@
 // Builds a 3D scene (the shape list the viewer draws and exports) from a spatial model: walls with their doors and
 // windows cut through, a floor, a ceiling and ceiling lights. It draws what the model holds and nothing more: no
 // furniture is invented for a model that has none. Floors inside the building are always tile or wood.
-import { MATERIALS, type Scene, type SceneNode, type Viewpoint } from "@icarus/core";
+import { ASSETS, MATERIALS, type Scene, type SceneNode, type Viewpoint } from "@icarus/core";
 import type { SpatialModel } from "./schema";
 
 const M = 1 / 1000;
@@ -14,6 +14,8 @@ export interface DrawnScene {
   /** Room names at their centres, in scene metres, for the plan view. */
   labels: { name: string; x: number; y: number }[];
   viewpoints: Viewpoint[];
+  /** Rooms that were furnished, by name, so the person can be told what Icarus added. */
+  furnished: string[];
 }
 
 type Ring = { x: number; y: number }[];
@@ -50,6 +52,159 @@ function rectangles(ring: Ring): [number, number, number, number][] {
       out.push([cuts[c] as number, y0, cuts[c + 1] as number, y1]);
   }
   return out.length ? out : [box];
+}
+
+type Key = keyof typeof ASSETS;
+const TURNS: Record<"north" | "south" | "west" | "east", number> = {
+  north: 0,
+  south: Math.PI,
+  west: Math.PI / 2,
+  east: -Math.PI / 2,
+};
+
+/**
+ * Furniture for a room the walls enclose, chosen by what the sheet calls it: a living room gets a sofa facing a media
+ * unit with a television, a study a desk and chair, a dining room a table and chairs, a store shelving. Other rooms are
+ * left empty rather than guessed at. Pieces are the CC0 models in the catalog, placed against the room's longest wall.
+ */
+function furnishRoom(
+  id: string,
+  name: string,
+  kind: string,
+  box: [number, number, number, number],
+  ceiling: number,
+): SceneNode[] | undefined {
+  const [x0, z0, x1, z1] = box;
+  const w = x1 - x0;
+  const d = z1 - z0;
+  const cx = (x0 + x1) / 2;
+  const cz = (z0 + z1) / 2;
+  const nodes: SceneNode[] = [];
+  let n = 0;
+  const put = (
+    key: Key,
+    x: number,
+    z: number,
+    turn: number,
+    o: { scale?: [number, number, number]; lift?: number } = {},
+  ) => {
+    const a = ASSETS[key];
+    const sc = o.scale ?? [1, 1, 1];
+    nodes.push({
+      id: `${id}.${key}.${n++}`,
+      name: key,
+      type: "furniture",
+      roomId: id,
+      geometry: {
+        kind: "asset",
+        id: a.id,
+        size: [a.w * sc[0], a.h * sc[1], a.d * sc[2]],
+        ...(o.scale ? { scale: o.scale } : {}),
+      },
+      position: [x, o.lift ?? 0, z],
+      rotationY: turn + (a.yaw ?? 0),
+      material: "oak",
+      tags: ["furniture", key],
+    });
+  };
+  const box3 = (
+    nm: string,
+    size: [number, number, number],
+    at: [number, number, number],
+    turn: number,
+    material: string,
+  ) =>
+    nodes.push({
+      id: `${id}.${nm}.${n++}`,
+      name: nm,
+      type: "furniture",
+      roomId: id,
+      geometry: { kind: "box", size },
+      position: at,
+      rotationY: turn,
+      material,
+      tags: ["furniture", nm],
+    });
+  // The room seen along its long axis: the longest wall is the back, the other direction runs into the room.
+  const long = w >= d ? "x" : "z";
+  const back = long === "x" ? "north" : "west";
+  const front = long === "x" ? "south" : "east";
+  const L = long === "x" ? w : d;
+  const S = long === "x" ? d : w;
+  const along = (u: number, v: number, fromBack: boolean): [number, number] => {
+    // u metres along the long wall from its middle, v metres in from the back (or the front) wall
+    const vv = fromBack ? v : S - v;
+    return long === "x" ? [cx + u, z0 + vv] : [x0 + vv, cz + u];
+  };
+  const faceIn = TURNS[back];
+  const faceOut = TURNS[front];
+  void L;
+  if (kind === "residential.living" && S >= 2.8 && L >= 3) {
+    const a = ASSETS.sofaSmall;
+    put("sofaSmall", ...along(0, a.d / 2 + 0.12, true), faceIn);
+    put("coffeeTableLong", ...along(0, a.d + 0.9, true), faceIn);
+    put("sideTable", ...along(a.w / 2 + 0.45, 0.35, true), faceIn);
+    put("vase", ...along(a.w / 2 + 0.45, 0.35, true), faceIn, { lift: 0.55 });
+    // A media unit on the wall opposite, with the television on it, both facing the sofa.
+    const [mx, mz] = along(0, 0.35, false);
+    put("cabinet", mx, mz, faceOut);
+    const tvY = ASSETS.cabinet.h;
+    box3(
+      "television",
+      long === "x" ? [1.1, 0.64, 0.05] : [0.05, 0.64, 1.1],
+      [mx, tvY + 0.34, mz],
+      0,
+      "screen",
+    );
+    return nodes;
+  }
+  if (kind === "residential.study" && S >= 2.2 && L >= 2.4) {
+    put("officeDesk", ...along(0, 0.5, true), faceIn);
+    put("swivelChair", ...along(0, 1.15, true), faceOut, { scale: [0.7, 0.7, 0.7] });
+    put("bookcase", ...along(L / 2 - 0.7, 0.3, false), faceOut);
+    return nodes;
+  }
+  if (kind === "residential.dining" && S >= 2.6 && L >= 2.6) {
+    const tw = Math.min(L - 1.6, 2.4);
+    const td = Math.min(S - 1.6, 1.1);
+    if (tw < 1.2 || td < 0.8) return undefined;
+    const a = ASSETS.meetingTable;
+    put("meetingTable", cx, cz, long === "x" ? 0 : Math.PI / 2, {
+      scale: [tw / a.w, 0.84, td / a.d],
+    });
+    const seats = Math.max(2, Math.floor(tw / 0.62));
+    for (let i = 0; i < seats; i++) {
+      const u = -((seats - 1) * 0.62) / 2 + i * 0.62;
+      for (const sign of [-1, 1]) {
+        const off = sign * (td / 2 + 0.12);
+        const [px, pz] = long === "x" ? [cx + u, cz + off] : [cx + off, cz + u];
+        put(
+          "diningChair",
+          px,
+          pz,
+          long === "x" ? (sign < 0 ? 0 : Math.PI) : sign < 0 ? Math.PI / 2 : -Math.PI / 2,
+        );
+      }
+    }
+    return nodes;
+  }
+  if (kind === "residential.storage" && L >= 1.2) {
+    const count = Math.max(1, Math.floor((L - 0.4) / 0.65));
+    for (let i = 0; i < Math.min(count, 5); i++)
+      put(
+        "steelShelves",
+        ...along(
+          -((Math.min(count, 5) - 1) * 0.65) / 2 + i * 0.65,
+          ASSETS.steelShelves.d / 2 + 0.05,
+          true,
+        ),
+        faceIn,
+      );
+    return nodes;
+  }
+  void name;
+  void ceiling;
+  return undefined;
 }
 
 const floorFor = (kind: string) =>
@@ -190,6 +345,21 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
       });
     }
 
+  // Furnish the rooms the walls enclose, by name; the rest stay as drawn.
+  const furnished: string[] = [];
+  for (const s of model.spaces) {
+    const xs = s.boundary.outer.map((p) => p.x);
+    const ys = s.boundary.outer.map((p) => p.y);
+    const [ax, ay] = at(Math.min(...xs), Math.min(...ys));
+    const [bx2, by2] = at(Math.max(...xs), Math.max(...ys));
+    // Keep a wall's thickness clear of the room edge.
+    const pieces = furnishRoom(s.id, s.name, s.kind, [ax + 0.1, ay + 0.1, bx2 - 0.1, by2 - 0.1], H);
+    if (pieces?.length) {
+      nodes.push(...pieces);
+      furnished.push(s.name);
+    }
+  }
+
   const labels = model.spaces.map((s) => {
     const xs = s.boundary.outer.map((p) => p.x);
     const ys = s.boundary.outer.map((p) => p.y);
@@ -220,6 +390,7 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
     scene: { ceilingM: H, nodes, materials: MATERIALS, shell: { w: W, h: D } },
     labels,
     viewpoints,
+    furnished,
   };
 }
 

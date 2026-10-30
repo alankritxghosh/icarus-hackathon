@@ -41,6 +41,14 @@ export const ASSETS = {
   greenArmchair: spec("GreenChair_01", 0.67, 1.06, 0.66),
   meetingTable: spec("dining_table", 2.26, 0.88, 1.39),
   bookcase: spec("Shelf_01", 1.0, 2.08, 0.26),
+  sideTable: spec("side_table_01", 0.55, 0.55, 0.45),
+  vase: spec("ceramic_vase_02", 0.22, 0.31, 0.22),
+  stationery: spec("stationery_supplies", 0.3, 0.16, 0.08),
+  steelShelves: spec("steel_frame_shelves_02", 0.59, 2.14, 0.5),
+  // Large low garden plants, used outside the building only.
+  anthurium: spec("anthurium_botany_01", 2.8, 0.5, 1.8),
+  calathea: spec("calathea_orbifolia_01", 2.49, 0.42, 1.19),
+  fern: spec("fern_02", 1.97, 0.43, 1.72),
 } as const satisfies Record<string, AssetSpec>;
 
 export type AssetKey = keyof typeof ASSETS;

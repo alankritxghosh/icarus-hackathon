@@ -118,6 +118,10 @@ export async function designFromDrawing(
     lines.push(
       `I did not guess the rest (${report.unplaced.slice(0, 5).join(", ")}${report.unplaced.length > 5 ? ", …" : ""}): the drawn walls do not close them.`,
     );
-  lines.push("I added no furniture, because a drawing's furniture is only lines.");
+  lines.push(
+    drawn.furnished.length
+      ? `I furnished ${drawn.furnished.join(", ")} by what the sheet calls them. Every other room is as drawn, because a drawing's furniture is only lines.`
+      : "I added no furniture, because a drawing's furniture is only lines.",
+  );
   return { scene: drawn.scene, labels: drawn.labels, viewpoints: drawn.viewpoints, name, lines };
 }

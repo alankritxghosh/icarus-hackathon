@@ -19,6 +19,38 @@
     "painted_wooden_chair_01",
     "GreenChair_01",
     "dining_table",
-    "Shelf_01"
+    "Shelf_01",
+    "anthurium_botany_01",
+    "calathea_orbifolia_01",
+    "ceramic_vase_02",
+    "fern_02",
+    "side_table_01",
+    "stationery_supplies",
+    "steel_frame_shelves_02"
+  ],
+  "textures": [
+    "herringbone_parquet",
+    "interior_tiles",
+    "laminate_floor_02",
+    "granite_tile",
+    "concrete_floor_02",
+    "plastered_wall",
+    "dirty_carpet",
+    "denim_fabric_03",
+    "red_brick",
+    "clay_roof_tiles_02",
+    "leafy_grass"
+  ],
+  "textureResolution": "1k",
+  "textureMaps": {
+    "Diffuse": "diff",
+    "arm": "arm",
+    "nor_gl": "nor_gl"
+  },
+  "hdris": [
+    {
+      "id": "alps_field",
+      "resolution": "2k"
+    }
   ]
 }

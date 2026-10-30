@@ -22,7 +22,7 @@ export interface Item {
   d: number;
   parts?: Part[];
   /** `scale` stretches the model (x, y, z in its own frame) to fit a footprint; the node records it so the viewer applies it. */
-  asset?: { key: AssetKey; hangs?: boolean; scale?: [number, number, number] };
+  asset?: { key: AssetKey; hangs?: boolean; scale?: [number, number, number]; lift?: number };
   /** Extra free space in front, reserved so nothing blocks it. */
   front?: number;
 }

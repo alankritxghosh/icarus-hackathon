@@ -1,5 +1,5 @@
-// Fetches the CC0 models listed in assets/manifest.json from the Poly Haven public API into
-// apps/web/public/assets/models, verifying every file's size and MD5, and rewrites assets/LICENSES.md.
+// Fetches the CC0 models, PBR textures and HDRI skies listed in assets/manifest.json from the Poly Haven public API into
+// apps/web/public/assets/{models,textures,hdri}, verifying every file's size and MD5, and rewrites assets/LICENSES.md.
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -7,6 +7,8 @@ import { dirname, join } from "node:path";
 const API = "https://api.polyhaven.com";
 const HEADERS = { "User-Agent": "icarus-hackathon-asset-fetch" };
 const OUT = "apps/web/public/assets/models";
+const TEXTURES = "apps/web/public/assets/textures";
+const HDRI = "apps/web/public/assets/hdri";
 const manifest = JSON.parse(await readFile("assets/manifest.json", "utf8"));
 
 async function json(url) {
@@ -49,6 +51,31 @@ for (const id of manifest.models) {
   console.log(`ok ${id}`);
 }
 
+const textureRows = [];
+for (const id of manifest.textures ?? []) {
+  const [info, files] = await Promise.all([json(`${API}/info/${id}`), json(`${API}/files/${id}`)]);
+  for (const [map, short] of Object.entries(manifest.textureMaps)) {
+    const file = files[map][manifest.textureResolution].jpg;
+    await download(file, join(TEXTURES, id, `${id}_${short}_${manifest.textureResolution}.jpg`));
+    total += file.size;
+  }
+  textureRows.push(
+    `| ${id} | ${info.name} | ${info.authors ? Object.keys(info.authors).join(", ") : ""} | https://polyhaven.com/a/${id} |`,
+  );
+  console.log(`ok texture ${id}`);
+}
+const hdriRows = [];
+for (const { id, resolution } of manifest.hdris ?? []) {
+  const [info, files] = await Promise.all([json(`${API}/info/${id}`), json(`${API}/files/${id}`)]);
+  const file = files.hdri[resolution].hdr;
+  await download(file, join(HDRI, `${id}_${resolution}.hdr`));
+  total += file.size;
+  hdriRows.push(
+    `| ${id} | ${info.name} | ${info.authors ? Object.keys(info.authors).join(", ") : ""} | https://polyhaven.com/a/${id} |`,
+  );
+  console.log(`ok hdri ${id}`);
+}
+
 const fetched = new Date().toISOString().slice(0, 10);
 await writeFile(
   "assets/LICENSES.md",
@@ -62,6 +89,20 @@ shows a credit.
 | Id | Name | Author(s) | Source |
 | --- | --- | --- | --- |
 ${rows.join("\n")}
+
+## Textures (1k diffuse, ARM and normal maps)
+
+| Id | Name | Author(s) | Source |
+| --- | --- | --- | --- |
+${textureRows.join("\n")}
+
+## Sky (HDRI)
+
+| Id | Name | Author(s) | Source |
+| --- | --- | --- | --- |
+${hdriRows.join("\n")}
 `,
 );
-console.log(`${manifest.models.length} models, ${(total / 1e6).toFixed(1)} MB`);
+console.log(
+  `${manifest.models.length} models, ${(manifest.textures ?? []).length} textures, ${(manifest.hdris ?? []).length} sky, ${(total / 1e6).toFixed(1)} MB`,
+);

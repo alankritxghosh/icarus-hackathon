@@ -45,6 +45,9 @@ export interface MaterialDef {
   color: string;
   /** A procedural surface the viewer draws: board planks or woven carpet. */
   texture?: "planks" | "carpet";
+  /** A photographic material set under assets/textures (diffuse, normal and AO-roughness-metal maps), and how many metres one tile covers. */
+  pbr?: string;
+  tileM?: number;
   roughness: number;
   metalness: number;
   opacity: number;
@@ -61,8 +64,22 @@ export interface Scene {
 }
 
 export const MATERIALS: Record<string, MaterialDef> = {
-  "wall.interior": { color: "#f1efe9", roughness: 0.9, metalness: 0, opacity: 1 },
-  "wall.exterior": { color: "#d8d4cb", roughness: 0.85, metalness: 0, opacity: 1 },
+  "wall.interior": {
+    color: "#f1efe9",
+    pbr: "plastered_wall",
+    tileM: 2,
+    roughness: 0.9,
+    metalness: 0,
+    opacity: 1,
+  },
+  "wall.exterior": {
+    color: "#d8d4cb",
+    pbr: "plastered_wall",
+    tileM: 2,
+    roughness: 0.85,
+    metalness: 0,
+    opacity: 1,
+  },
   ceiling: {
     color: "#faf9f6",
     roughness: 0.95,
@@ -74,27 +91,64 @@ export const MATERIALS: Record<string, MaterialDef> = {
   glass: { color: "#a9cfe0", roughness: 0.05, metalness: 0, opacity: 0.28 },
   "door.wood": { color: "#a67c52", roughness: 0.6, metalness: 0, opacity: 1 },
   "frame.metal": { color: "#2b2f33", roughness: 0.45, metalness: 0.7, opacity: 1 },
-  "floor.oak": { color: "#c79d6a", texture: "planks", roughness: 0.55, metalness: 0, opacity: 1 },
+  "floor.oak": {
+    color: "#ffffff",
+    pbr: "laminate_floor_02",
+    tileM: 1.5,
+    roughness: 0.55,
+    metalness: 0,
+    opacity: 1,
+  },
   "floor.oak.light": {
-    color: "#d9bd92",
-    texture: "planks",
+    color: "#ffffff",
+    pbr: "herringbone_parquet",
+    tileM: 1.2,
     roughness: 0.55,
     metalness: 0,
     opacity: 1,
   },
   "floor.carpet.green": {
     color: "#6d8c76",
-    texture: "carpet",
+    pbr: "dirty_carpet",
+    tileM: 1.5,
     roughness: 1,
     metalness: 0,
     opacity: 1,
   },
   "floor.carpet": { color: "#7f8b96", roughness: 1, metalness: 0, opacity: 1 },
   "floor.carpet.warm": { color: "#9a8a7c", roughness: 1, metalness: 0, opacity: 1 },
-  "floor.tile": { color: "#d6d8d6", roughness: 0.4, metalness: 0, opacity: 1 },
-  "floor.wood": { color: "#b48a5e", roughness: 0.6, metalness: 0, opacity: 1 },
-  "floor.wood.light": { color: "#cdb18a", roughness: 0.55, metalness: 0, opacity: 1 },
-  "floor.concrete": { color: "#a9a8a3", roughness: 0.8, metalness: 0, opacity: 1 },
+  "floor.tile": {
+    color: "#ffffff",
+    pbr: "interior_tiles",
+    tileM: 1.2,
+    roughness: 0.4,
+    metalness: 0,
+    opacity: 1,
+  },
+  "floor.wood": {
+    color: "#ffffff",
+    pbr: "laminate_floor_02",
+    tileM: 1.5,
+    roughness: 0.6,
+    metalness: 0,
+    opacity: 1,
+  },
+  "floor.wood.light": {
+    color: "#ffffff",
+    pbr: "herringbone_parquet",
+    tileM: 1.2,
+    roughness: 0.55,
+    metalness: 0,
+    opacity: 1,
+  },
+  "floor.concrete": {
+    color: "#ffffff",
+    pbr: "concrete_floor_02",
+    tileM: 2,
+    roughness: 0.8,
+    metalness: 0,
+    opacity: 1,
+  },
   oak: { color: "#c9a273", roughness: 0.5, metalness: 0, opacity: 1 },
   "oak.dark": { color: "#8a6a47", roughness: 0.55, metalness: 0, opacity: 1 },
   "fabric.green": { color: "#4d7558", roughness: 0.95, metalness: 0, opacity: 1 },
@@ -112,7 +166,14 @@ export const MATERIALS: Record<string, MaterialDef> = {
     opacity: 1,
     emissive: "#ffe2a8",
   },
-  "floor.corridor": { color: "#cdbfa7", roughness: 0.7, metalness: 0, opacity: 1 },
+  "floor.corridor": {
+    color: "#ffffff",
+    pbr: "granite_tile",
+    tileM: 1.5,
+    roughness: 0.7,
+    metalness: 0,
+    opacity: 1,
+  },
 };
 
 /** Floor finish by room kind. A concept palette, easy to change later. */

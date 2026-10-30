@@ -4,6 +4,7 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { RGBELoader } from "three/examples/jsm/loaders/RGBELoader.js";
 import { FullScreenQuad } from "three/examples/jsm/postprocessing/Pass.js";
 import { WebGLPathTracer } from "three-gpu-pathtracer";
 import { GenerateMeshBVHWorker } from "three-mesh-bvh/worker";
@@ -61,6 +62,12 @@ export class OfficeView {
   private sky?: THREE.Texture;
   private onReal?: (state: RealState) => void;
   private areaLights: THREE.RectAreaLight[] = [];
+  private readonly pbrSets = new Map<
+    string,
+    { map: THREE.Texture; normal: THREE.Texture; arm: THREE.Texture }
+  >();
+  private pending = 0;
+  private realSky?: THREE.Texture;
   private denoiseTarget?: THREE.WebGLRenderTarget;
   private readonly denoise = new FullScreenQuad(
     new THREE.ShaderMaterial({
@@ -153,6 +160,37 @@ export class OfficeView {
     this.resize();
   }
 
+  /** A photographic material set (diffuse, normal, AO-roughness-metal), loaded once and shared. */
+  private pbr(id: string) {
+    let set = this.pbrSets.get(id);
+    if (!set) {
+      const load = (kind: string, srgb: boolean) => {
+        this.pending++;
+        const t = new THREE.TextureLoader().load(
+          `/assets/textures/${id}/${id}_${kind}_1k.jpg`,
+          () => this.textureLoaded(),
+          undefined,
+          () => this.textureLoaded(),
+        );
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.anisotropy = 8;
+        if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+        return t;
+      };
+      set = { map: load("diff", true), normal: load("nor_gl", false), arm: load("arm", false) };
+      this.pbrSets.set(id, set);
+    }
+    return set;
+  }
+
+  private textureLoaded() {
+    this.pending--;
+    if (this.pending === 0) {
+      this.requestRender();
+      this.rebuildTracer();
+    }
+  }
+
   setScene(scene: Scene) {
     this.disposeContent();
     this.shell = scene.shell;
@@ -200,7 +238,28 @@ export class OfficeView {
             );
       const def = scene.materials[node.material];
       let mat = material(node.material);
-      if (def?.texture && node.geometry.kind === "box") {
+      if (def?.pbr && node.geometry.kind === "box") {
+        const set = this.pbr(def.pbr);
+        const [sx, sy, sz] = node.geometry.size;
+        const tile = def.tileM ?? 1.5;
+        mat = mat.clone();
+        // A floor or ceiling tiles by its plan size; a wall by its length and height.
+        const flat = sy < Math.min(sx, sz);
+        const across = flat ? sx : Math.max(sx, sz);
+        const down = flat ? sz : sy;
+        const place = (t: THREE.Texture) => {
+          const c = t.clone();
+          c.needsUpdate = true;
+          c.repeat.set(Math.max(1, across / tile), Math.max(1, down / tile));
+          return c;
+        };
+        mat.map = place(set.map);
+        mat.normalMap = place(set.normal);
+        mat.roughnessMap = place(set.arm);
+        mat.metalnessMap = mat.roughnessMap;
+        mat.roughness = 1;
+        mat.metalness = 0;
+      } else if (def?.texture && node.geometry.kind === "box") {
         mat = mat.clone();
         mat.map = surface(def.texture, node.geometry.size[0], node.geometry.size[2]);
       }
@@ -212,15 +271,25 @@ export class OfficeView {
       mesh.userData = { nodeId: node.id, type: node.type };
       this.content.add(mesh);
     }
-    const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(400, 400),
-      new THREE.MeshStandardMaterial({ color: "#121a16", roughness: 1 }),
-    );
+    const grass = this.pbr("leafy_grass");
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: "#9fb08c", roughness: 1 });
+    const tiled = (t: THREE.Texture) => {
+      const c = t.clone();
+      c.needsUpdate = true;
+      c.repeat.set(80, 80);
+      return c;
+    };
+    groundMaterial.map = tiled(grass.map);
+    groundMaterial.normalMap = tiled(grass.normal);
+    groundMaterial.roughnessMap = tiled(grass.arm);
+    const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.06;
     ground.receiveShadow = true;
     ground.userData.noExport = true;
     this.content.add(ground);
+
+    this.addLandscape(scene.shell, generation);
 
     const { w, h } = scene.shell;
     this.sun.position.set(w * 0.2, 28, h * 1.2);
@@ -241,6 +310,45 @@ export class OfficeView {
     this.frameCameras();
     this.requestRender();
     this.rebuildTracer();
+  }
+
+  /** Low garden plants around the outside of the building, so it stands in a place and not on a plain. Not exported. */
+  private addLandscape(shell: { w: number; h: number }, generation: number) {
+    const kinds = ["anthurium_botany_01", "calathea_orbifolia_01", "fern_02"];
+    const spots: [number, number][] = [];
+    const gap = 2.2;
+    for (let x = 1; x < shell.w; x += 3.6) spots.push([x, shell.h + gap], [x + 1.4, -gap]);
+    for (let z = 2; z < shell.h; z += 3.6) spots.push([shell.w + gap, z], [-gap, z + 1.2]);
+    spots.forEach(([x, z], i) => {
+      const id = kinds[i % kinds.length] as string;
+      let model = this.models.get(id);
+      if (!model) {
+        model = this.loader.loadAsync(`/assets/models/${id}/${id}.gltf`).then((gltf) => {
+          gltf.scene.traverse((o) => {
+            if (o instanceof THREE.Mesh) o.castShadow = true;
+          });
+          return gltf.scene;
+        });
+        this.models.set(id, model);
+      }
+      const group = new THREE.Group();
+      group.position.set(x, 0, z);
+      group.rotation.y = i * 1.7;
+      group.userData = { noExport: true };
+      this.content.add(group);
+      model
+        .then((source) => {
+          if (generation !== this.generation) return;
+          const copy = source.clone(true);
+          copy.scale.setScalar(0.45);
+          const box = new THREE.Box3().setFromObject(copy);
+          const c = box.getCenter(new THREE.Vector3());
+          copy.position.set(-c.x, -box.min.y, -c.z);
+          group.add(copy);
+          this.requestRender();
+        })
+        .catch(() => undefined);
+    });
   }
 
   /** Loads a modelled object once, then places a clone: centred on its footprint, resting on its base. */
@@ -485,6 +593,7 @@ export class OfficeView {
    * where the raster preview's sun does.
    */
   private skyTexture(): THREE.Texture {
+    if (this.realSky) return this.realSky;
     if (this.sky) return this.sky;
     const w = 512;
     const h = 256;
@@ -553,11 +662,26 @@ export class OfficeView {
       this.onReal?.({ state: "unsupported", samples: 0 });
       return;
     }
+    this.loadRealSky();
     this.renderer.setPixelRatio(1);
     this.renderer.toneMappingExposure = 1.6;
     this.sun.visible = false;
     this.resize();
     this.rebuildTracer();
+  }
+
+  /** A real photographed sky (Poly Haven, CC0) replaces the drawn one as soon as it has loaded. */
+  private loadRealSky() {
+    if (this.realSky) return;
+    const loader = new RGBELoader().setDataType(THREE.FloatType);
+    void loader
+      .loadAsync("/assets/hdri/alps_field_2k.hdr")
+      .then((tex) => {
+        tex.mapping = THREE.EquirectangularReflectionMapping;
+        this.realSky = tex;
+        if (this.realistic) this.rebuildTracer();
+      })
+      .catch(() => undefined);
   }
 
   private rebuildTracer() {

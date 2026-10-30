@@ -25,3 +25,32 @@ shows a credit.
 | GreenChair_01 | Green Chair 01 | Kirill Sannikov | https://polyhaven.com/a/GreenChair_01 |
 | dining_table | Dining Table | Aron Łyczek | https://polyhaven.com/a/dining_table |
 | Shelf_01 | Shelf 01 | Gabriel Radić | https://polyhaven.com/a/Shelf_01 |
+| anthurium_botany_01 | Anthurium Botany 01 | Rob Tuytel, Rico Cilliers | https://polyhaven.com/a/anthurium_botany_01 |
+| calathea_orbifolia_01 | Calathea Orbifolia 01 | Rob Tuytel, Rico Cilliers | https://polyhaven.com/a/calathea_orbifolia_01 |
+| ceramic_vase_02 | Ceramic Vase 02 | James Ray Cock | https://polyhaven.com/a/ceramic_vase_02 |
+| fern_02 | Fern 02 | Rob Tuytel, Rico Cilliers | https://polyhaven.com/a/fern_02 |
+| side_table_01 | Side Table 01 | James Ray Cock | https://polyhaven.com/a/side_table_01 |
+| stationery_supplies | Stationery Supplies | Mateusz Sadek | https://polyhaven.com/a/stationery_supplies |
+| steel_frame_shelves_02 | Steel Frame Shelves 02 | James Ray Cock | https://polyhaven.com/a/steel_frame_shelves_02 |
+
+## Textures (1k diffuse, ARM and normal maps)
+
+| Id | Name | Author(s) | Source |
+| --- | --- | --- | --- |
+| herringbone_parquet | Herringbone Parquet | Jenelle van Heerden, Sergej Majboroda | https://polyhaven.com/a/herringbone_parquet |
+| interior_tiles | Interior Tiles | Charlotte Baglioni | https://polyhaven.com/a/interior_tiles |
+| laminate_floor_02 | Laminate Floor 02 | Dario Barresi, Charlotte Baglioni | https://polyhaven.com/a/laminate_floor_02 |
+| granite_tile | Granite Tile | Charlotte Baglioni | https://polyhaven.com/a/granite_tile |
+| concrete_floor_02 | Concrete Floor 02 | Rob Tuytel | https://polyhaven.com/a/concrete_floor_02 |
+| plastered_wall | Plastered Wall | Amal Kumar | https://polyhaven.com/a/plastered_wall |
+| dirty_carpet | Dirty Carpet | Rohit Seervi | https://polyhaven.com/a/dirty_carpet |
+| denim_fabric_03 | Denim Fabric 03 | colormass, Rico Cilliers | https://polyhaven.com/a/denim_fabric_03 |
+| red_brick | Red Brick | Rob Tuytel | https://polyhaven.com/a/red_brick |
+| clay_roof_tiles_02 | Clay Roof Tiles 02 | Amal Kumar | https://polyhaven.com/a/clay_roof_tiles_02 |
+| leafy_grass | Leafy Grass | Charlotte Baglioni | https://polyhaven.com/a/leafy_grass |
+
+## Sky (HDRI)
+
+| Id | Name | Author(s) | Source |
+| --- | --- | --- | --- |
+| alps_field | Alps Field | Andreas Mischok | https://polyhaven.com/a/alps_field |

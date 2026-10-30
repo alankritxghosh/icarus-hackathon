@@ -79,6 +79,12 @@ const sofa = (width: number): Item => {
   return scaled(key, "sofa", width, a.d, [width / a.w, 1, 1], 0.8);
 };
 
+/** A small thing standing on a desk or table, 0.79 m up. */
+const onDesk = (key: keyof typeof ASSETS): Item => {
+  const a = ASSETS[key];
+  return { name: key, w: a.w, d: a.d, asset: { key, lift: 0.79 } };
+};
+
 const DESK_WIDTHS = KNOWLEDGE.workstation.deskWidthsM;
 const CHAIR_OFFSET = 0.45;
 
@@ -122,6 +128,8 @@ function layDesks(
         if (!space.place(deskItem, cx, cz, rot)) continue;
         const [fx, fz] = front(rot);
         space.placeTucked(chair, cx + fx * CHAIR_OFFSET, cz + fz * CHAIR_OFFSET, rot + Math.PI);
+        // Pens, a notebook and a stapler on the desk, toward its back edge.
+        space.force(onDesk("stationery"), cx - fx * 0.2, cz - fz * 0.2, rot);
         placed++;
       }
     }
@@ -276,6 +284,9 @@ function lounge(space: Space) {
   space.place(coffee, cx, cz, 0);
   space.place(asset("armchair", "armchair"), ...f.xz(f.U * 0.2, f.V * 0.72), f.faceNegV);
   space.place(asset("greenArmchair", "armchair"), ...f.xz(f.U * 0.8, f.V * 0.72), f.faceNegV);
+  const [sx, sz] = f.xz(f.U * 0.2 + 0.9, f.V * 0.72);
+  if (space.place(asset("sideTable", "side table"), sx, sz, 0))
+    space.force({ ...asset("vase", "vase"), asset: { key: "vase", lift: 0.55 } }, sx, sz, 0);
   space.force(asset("pendant", "pendant", true), cx, cz, 0);
   plants(space, 3);
 }
@@ -295,11 +306,14 @@ function reception(space: Space) {
   }
   plants(space, 2);
   const f = frame(space.rect);
+  const [tx, tz] = f.xz(f.U * 0.5, f.V * 0.8);
+  if (space.place(asset("sideTable", "side table"), tx, tz, 0))
+    space.force({ ...asset("vase", "vase"), asset: { key: "vase", lift: 0.55 } }, tx, tz, 0);
   space.force(asset("pendant", "pendant", true), ...f.xz(f.U / 2, f.V / 2), 0);
 }
 
 function storage(space: Space) {
-  const shelf = { ...asset("bookcase", "shelving"), front: 0.7 };
+  const shelf = { ...asset("steelShelves", "shelving"), front: 0.7 };
   for (const side of wallsByLength(space, space.room.door.side))
     space.line(shelf, side, { from: 0.2, gap: 0.05 });
 }
@@ -328,6 +342,11 @@ function privateOffice(space: Space) {
   // A visitor's chair across the desk.
   const [gx, gz] = f.xz(f.U * 0.5, f.V * 0.72);
   space.place(asset("woodenChair", "chair"), gx, gz, f.faceNegV);
+  for (const side of wallsByLength(space, space.room.door.side))
+    if (
+      space.line({ ...asset("bookcase", "bookcase"), front: 0.6 }, side, { from: 0.3, max: 1 }) > 0
+    )
+      break;
   plants(space, 1);
 }
 

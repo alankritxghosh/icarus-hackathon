@@ -25,10 +25,11 @@ describe("the CC0 models the furniture uses", () => {
   it("show up in a furnished office, scaled to the footprint the planner chose", () => {
     const program = ProgramSchema.parse({
       company: { headcount: 12 },
-      shell: { widthM: 16, depthM: 10, windows: ["north"], entrance: "south" },
+      shell: { widthM: 24, depthM: 16, windows: ["north", "south"], entrance: "west" },
       rooms: [
         { kind: "open_workspace" },
         { kind: "meeting_room", capacity: 4 },
+        { kind: "private_office", count: 3 },
         { kind: "lounge" },
         { kind: "reception" },
         { kind: "storage" },
@@ -39,7 +40,16 @@ describe("the CC0 models the furniture uses", () => {
     const ids = new Set(
       scene.nodes.flatMap((n) => (n.geometry.kind === "asset" ? [n.geometry.id] : [])),
     );
-    for (const id of ["metal_office_desk", "mid_century_lounge_chair", "dining_table", "Shelf_01"])
+    for (const id of [
+      "metal_office_desk",
+      "mid_century_lounge_chair",
+      "dining_table",
+      "Shelf_01",
+      "steel_frame_shelves_02",
+      "side_table_01",
+      "ceramic_vase_02",
+      "stationery_supplies",
+    ])
       expect(ids.has(id), id).toBe(true);
     const desk = scene.nodes.find(
       (n) => n.geometry.kind === "asset" && n.geometry.id === "metal_office_desk",

@@ -34,15 +34,6 @@ interface Props {
   onOpen: (id: string) => void;
 }
 
-const CAPTION: Record<RealState["state"], (n: number) => string> = {
-  off: () => "",
-  preparing: () => "Preparing the scene for your GPU…",
-  rendering: (n) => `Rendering on your GPU · ${n} samples, getting sharper`,
-  done: (n) => `Fully rendered · ${n} samples. Drag to look around.`,
-  unsupported: () =>
-    "This browser or GPU cannot do realistic rendering, so you are seeing the quick view.",
-};
-
 const slug = (s: string) =>
   s
     .toLowerCase()
@@ -383,10 +374,9 @@ export function Studio(props: Props) {
             </button>
           </div>
         )}
-        {real.state !== "off" && (
-          <p className="real-caption">{CAPTION[real.state](real.samples)}</p>
+        {real.state === "unsupported" && (
+          <p className="real-caption">Realistic view is not available on this device.</p>
         )}
-        <p className="credit">Furniture models: CC0, Poly Haven</p>
       </section>
     </div>
   );

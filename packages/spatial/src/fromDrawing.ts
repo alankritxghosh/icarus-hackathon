@@ -42,6 +42,9 @@ const kindFromName = (name: string): string => {
   if (/shower|bath/.test(n)) return "residential.shower";
   if (/kitchen|pantry/.test(n)) return "residential.kitchen";
   if (/\bgym\b/.test(n)) return "residential.gym";
+  if (/study|office/.test(n)) return "residential.study";
+  if (/dining/.test(n)) return "residential.dining";
+  if (/\bstore\b|storage/.test(n)) return "residential.storage";
   if (/living|family|lounge|foyer/.test(n)) return "residential.living";
   return "drawing.room";
 };
