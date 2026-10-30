@@ -5,10 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./model": "./src/model.ts"
+    "./model": "./src/model.ts",
+    "./pdf": "./tools/pdfEvidenceNode.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p . && tsc -p test",
+    "typecheck": "tsc -p . && tsc -p test && tsc -p tools",
     "test": "vitest run"
   },
   "dependencies": {

@@ -22,6 +22,19 @@ export { createKernel, type Kernel } from "./kernel";
 export { checkLessons, LESSONS, type Lesson } from "./lessons";
 export { lockedSpaceIds, SAVED_VERSION, type SavedWithModel, upgradeSaved } from "./migrate";
 export { modelEvidence } from "./modelEvidence";
+export {
+  anchorEvidence,
+  type ExtractedEvidence,
+  type ExtractionReport,
+  type ExtractOptions,
+  extractEvidence,
+  filledRects,
+  parseColour,
+  parsePrintedSize,
+  type Rgb,
+  splitPrintedSize,
+  unitMmFromScale,
+} from "./pdfEvidence";
 export { planDifferences } from "./planDiff";
 export { isInside, sharedBoundaryLength } from "./predicates";
 export * from "./schema";
