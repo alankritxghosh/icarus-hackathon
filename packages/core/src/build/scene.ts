@@ -13,7 +13,7 @@ export type Geometry =
    * node position is the centre of the footprint on the floor (or the top for hanging fixtures);
    * the viewer centres the model on it and rests it there.
    */
-  | { kind: "asset"; id: string; size: [number, number, number] };
+  | { kind: "asset"; id: string; size: [number, number, number]; scale?: [number, number, number] };
 
 export type NodeType =
   | "floor"

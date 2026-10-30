@@ -246,7 +246,7 @@ export class OfficeView {
   /** Loads a modelled object once, then places a clone: centred on its footprint, resting on its base. */
   private addAsset(node: Scene["nodes"][number], generation: number) {
     if (node.geometry.kind !== "asset") return;
-    const { id, size } = node.geometry;
+    const { id, size, scale } = node.geometry;
     let model = this.models.get(id);
     if (!model) {
       model = this.loader.loadAsync(`/assets/models/${id}/${id}.gltf`).then((gltf) => {
@@ -276,6 +276,8 @@ export class OfficeView {
       .then((source) => {
         if (generation !== this.generation) return;
         const copy = source.clone(true);
+        // A model stretched to fit a footprint the planner chose (a desk of 1.4 m, a table for six).
+        if (scale) copy.scale.set(...scale);
         const box = new THREE.Box3().setFromObject(copy);
         const centre = box.getCenter(new THREE.Vector3());
         copy.position.set(-centre.x, -box.min.y, -centre.z);

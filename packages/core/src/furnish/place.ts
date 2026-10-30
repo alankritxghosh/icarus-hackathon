@@ -21,7 +21,8 @@ export interface Item {
   w: number;
   d: number;
   parts?: Part[];
-  asset?: { key: AssetKey; hangs?: boolean };
+  /** `scale` stretches the model (x, y, z in its own frame) to fit a footprint; the node records it so the viewer applies it. */
+  asset?: { key: AssetKey; hangs?: boolean; scale?: [number, number, number] };
   /** Extra free space in front, reserved so nothing blocks it. */
   front?: number;
 }
@@ -133,8 +134,21 @@ export class Space {
         type: item.asset.hangs ? "light" : "furniture",
         roomId: this.room.id,
         roomKind: this.room.kind,
-        geometry: { kind: "asset", id: spec.id, size: [spec.w, spec.h, spec.d] },
-        position: [cx, item.asset.hangs ? this.ceilingM - spec.h : 0, cz],
+        geometry: {
+          kind: "asset",
+          id: spec.id,
+          size: [
+            spec.w * (item.asset.scale?.[0] ?? 1),
+            spec.h * (item.asset.scale?.[1] ?? 1),
+            spec.d * (item.asset.scale?.[2] ?? 1),
+          ],
+          ...(item.asset.scale ? { scale: item.asset.scale } : {}),
+        },
+        position: [
+          cx,
+          item.asset.hangs ? this.ceilingM - spec.h * (item.asset.scale?.[1] ?? 1) : 0,
+          cz,
+        ],
         rotationY: rotY + (spec.yaw ?? 0),
         material: "oak",
         tags: ["furniture", item.name],

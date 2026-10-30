@@ -31,6 +31,16 @@ export const ASSETS = {
   plantLow: spec("potted_plant_02", 0.7, 0.84, 0.66),
   barStool: spec("bar_chair_round_01", 0.48, 0.75, 0.49),
   pendant: spec("modern_ceiling_lamp_01", 0.43, 0.95, 0.43),
+  // Added 30 Oct 2026. Bounds measured from the 1k glTF files with every node transform applied; every front faces +z.
+  officeDesk: spec("metal_office_desk", 2.0, 0.79, 0.95),
+  sofaSmall: spec("sofa_02", 1.81, 0.71, 0.82),
+  sofaLarge: spec("sofa_03", 2.73, 1.12, 0.93),
+  swivelChair: spec("mid_century_lounge_chair", 1.01, 1.17, 1.19),
+  coffeeTableLong: spec("modern_coffee_table_01", 1.2, 0.39, 0.6, Math.PI / 2),
+  woodenChair: spec("painted_wooden_chair_01", 0.43, 0.96, 0.54),
+  greenArmchair: spec("GreenChair_01", 0.67, 1.06, 0.66),
+  meetingTable: spec("dining_table", 2.26, 0.88, 1.39),
+  bookcase: spec("Shelf_01", 1.0, 2.08, 0.26),
 } as const satisfies Record<string, AssetSpec>;
 
 export type AssetKey = keyof typeof ASSETS;

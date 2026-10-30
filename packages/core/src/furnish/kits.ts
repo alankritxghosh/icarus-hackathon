@@ -6,7 +6,6 @@ import { ASSETS } from "./catalog";
 import {
   basinCounter,
   cubicle,
-  desk,
   downlight,
   fridge,
   island,
@@ -15,9 +14,6 @@ import {
   receptionDesk,
   screen,
   serverRack,
-  sofa,
-  table,
-  taskChair,
 } from "./parts";
 import { type Item, Space } from "./place";
 
@@ -52,6 +48,35 @@ const front = (rot: number): [number, number] => [Math.sin(rot), Math.cos(rot)];
 const asset = (key: keyof typeof ASSETS, name: string, hangs = false, reserve = 0): Item => {
   const a = ASSETS[key];
   return { name, w: a.w, d: a.d, front: reserve, asset: { key, hangs } };
+};
+
+/** A scaled model standing in for a piece the planner sizes itself: a footprint and the stretch that fits the model to it. */
+const scaled = (
+  key: keyof typeof ASSETS,
+  name: string,
+  w: number,
+  d: number,
+  scale: [number, number, number],
+  front = 0,
+): Item => ({ name, w, d, front, asset: { key, scale } });
+
+/** An office desk of the given width and the planner's usual depth, its kneehole open to +z. */
+const desk = (width: number): Item => {
+  const a = ASSETS.officeDesk;
+  return scaled("officeDesk", "desk", width, 0.75, [width / a.w, 1, 0.75 / a.d]);
+};
+/** A swivel chair, facing +z, a little smaller than the lounge chair it comes from. */
+const taskChair = (): Item => scaled("swivelChair", "chair", 0.7, 0.8, [0.7, 0.7, 0.7]);
+/** A meeting table sized for its seats. */
+const table = (width: number, depth: number): Item => {
+  const a = ASSETS.meetingTable;
+  return scaled("meetingTable", "table", width, depth, [width / a.w, 0.84, depth / a.d]);
+};
+/** A sofa of about the given width: the small model up to 2.1 m, the large one beyond. */
+const sofa = (width: number): Item => {
+  const key = width > 2.1 ? "sofaLarge" : "sofaSmall";
+  const a = ASSETS[key];
+  return scaled(key, "sofa", width, a.d, [width / a.w, 1, 1], 0.8);
 };
 
 const DESK_WIDTHS = KNOWLEDGE.workstation.deskWidthsM;
@@ -250,6 +275,7 @@ function lounge(space: Space) {
   const coffee = asset("coffeeTable", "coffee table");
   space.place(coffee, cx, cz, 0);
   space.place(asset("armchair", "armchair"), ...f.xz(f.U * 0.2, f.V * 0.72), f.faceNegV);
+  space.place(asset("greenArmchair", "armchair"), ...f.xz(f.U * 0.8, f.V * 0.72), f.faceNegV);
   space.force(asset("pendant", "pendant", true), cx, cz, 0);
   plants(space, 3);
 }
@@ -273,7 +299,7 @@ function reception(space: Space) {
 }
 
 function storage(space: Space) {
-  const shelf = { ...asset("shelves", "shelving"), front: 0.7 };
+  const shelf = { ...asset("bookcase", "shelving"), front: 0.7 };
   for (const side of wallsByLength(space, space.room.door.side))
     space.line(shelf, side, { from: 0.2, gap: 0.05 });
 }
@@ -299,6 +325,9 @@ function privateOffice(space: Space) {
     const [fx, fz] = front(f.faceV);
     space.force(taskChair(), cx + fx * CHAIR_OFFSET, cz + fz * CHAIR_OFFSET, f.faceV + Math.PI);
   }
+  // A visitor's chair across the desk.
+  const [gx, gz] = f.xz(f.U * 0.5, f.V * 0.72);
+  space.place(asset("woodenChair", "chair"), gx, gz, f.faceNegV);
   plants(space, 1);
 }
 
