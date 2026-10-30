@@ -126,6 +126,14 @@ export const Space = z.object({
       targetAreaM2: z.number().min(0).max(100000).optional(),
     })
     .default({}),
+  /**
+   * What the floor is finished with. Inside a building it is always a hard or soft interior finish; turf
+   * and gravel exist only so an outdoor space (kind "exterior.*") can say so, and the lessons reject them
+   * anywhere else. Absent means the renderer chooses from the room kind.
+   */
+  floorFinish: z
+    .enum(["tile", "wood", "carpet", "concrete", "stone", "terrazzo", "turf", "gravel"])
+    .optional(),
   locked: z.boolean().default(false),
   /**
    * Where the room was when it was locked. A locked room may drift only a bounded distance from
@@ -157,7 +165,10 @@ export const Connector = z.object({
   provenance: Provenance.default(generated),
 });
 
-/** Furniture and fixtures. The footprint is `sizeMm` centred on `at`, turned by `rotationDeg`. */
+/**
+ * Furniture and fixtures. The footprint is `sizeMm` centred on `at`, turned by `rotationDeg`. With no turn the front
+ * of the item faces +y (south on the plan); a positive turn swings the front clockwise on the plan, so 90 faces west.
+ */
 export const Item = z.object({
   id: Id,
   spaceId: Id,
