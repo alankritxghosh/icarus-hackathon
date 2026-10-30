@@ -18,6 +18,7 @@ const program = {
   shell: { widthM: 12, depthM: 9, windows: [], entrance: "west" },
   rooms: [{ kind: "open_workspace" }],
 };
+const validPlan = () => layoutOffice(ProgramSchema.parse(program), { seed: 1 });
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -25,13 +26,26 @@ describe("loadBuilds", () => {
   it("gives a build saved before locks existed its defaults, and drops one that no longer parses", () => {
     const store = { icarus_builds: "" };
     store.icarus_builds = JSON.stringify([
-      saved(program),
+      { ...saved(program), plan: validPlan() },
       { ...saved({ nonsense: true }), id: "b" },
     ]);
     vi.stubGlobal("localStorage", { getItem: () => store.icarus_builds });
     const builds = loadBuilds();
     expect(builds.map((b) => b.id)).toEqual(["a"]);
     expect(builds[0]?.program.locks).toEqual([]);
+  });
+
+  it("keeps valid projects when a stored entry or revision is damaged", () => {
+    const entries = [
+      null,
+      { ...saved(program), plan: validPlan(), history: [null, { plan: {} }] },
+      { ...saved(program), id: 4 },
+      { ...saved(program), id: "broken", plan: {} },
+    ];
+    vi.stubGlobal("localStorage", { getItem: () => JSON.stringify(entries) });
+    const builds = loadBuilds();
+    expect(builds.map((b) => b.id)).toEqual(["a"]);
+    expect(builds[0]?.history).toEqual([]);
   });
 });
 
@@ -74,11 +88,10 @@ describe("saved offices carry the spatial model", () => {
     expect(b.model.spaces.length).toBe(moved.rooms.length + moved.circulation.length);
   });
 
-  it("keeps a build whose plan cannot be converted instead of losing it", () => {
-    write([saved(program)]); // plan: {}
-    const [b] = loadBuilds();
-    expect(b?.id).toBe("a");
-    expect(b?.model).toBeUndefined();
+  it("does not offer a project whose plan would crash when opened", () => {
+    const { plan } = office();
+    write([{ ...saved(program), version: 2, model: loadModelOf(plan) }]); // plan: {}
+    expect(loadBuilds()).toEqual([]);
   });
 
   it("restores the conversation and prior versions needed for chat undo", () => {

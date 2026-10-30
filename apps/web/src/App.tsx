@@ -173,7 +173,12 @@ export function App() {
   ): Promise<Reply> => {
     const current = sessionRef.current;
 
-    if (file && file.type === "application/pdf") {
+    if (
+      file &&
+      (file.type === "application/pdf" ||
+        ((file.type === "" || file.type === "application/octet-stream") &&
+          /\.pdf$/i.test(file.name)))
+    ) {
       live(["Reading your drawing…"]);
       try {
         const drawn = await designFromDrawing(file, file.name.replace(/\.pdf$/i, ""), text);

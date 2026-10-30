@@ -1,5 +1,9 @@
 # Icarus: design a whole office from scratch
 
+This is the original product target, not a description of the current build. Some later sections
+(especially the image-model rendering and provider plan) were superseded. Use the current [status](../README.md#status)
+for what ships and [QA plan](QA.md) for acceptance checks; keep the demo test below as the goal.
+
 One goal. Icarus takes a description of a company and a building shell, and produces a complete, walkable 3D office that you can then change by talking to it. Everything else is out of scope until this works.
 
 ## The demo test (what "done" means)

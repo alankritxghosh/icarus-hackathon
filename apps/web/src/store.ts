@@ -1,5 +1,5 @@
 import { type FloorPlan, type Program, ProgramSchema } from "@icarus/core";
-import { SpatialModel, upgradeSaved } from "@icarus/spatial/model";
+import { fromFloorPlan, SpatialModel, upgradeSaved } from "@icarus/spatial/model";
 import type { Message } from "./Studio";
 
 export interface SavedRevision {
@@ -51,11 +51,16 @@ function messages(value: unknown): Message[] {
   );
 }
 
-/** The build with a fresh model. A plan that cannot be converted keeps the build as it was. */
+/** Derive the spatial model from the plan, even if an older save carried a stale model. */
+function modelOf(b: SavedBuild): SavedBuild {
+  const { version: _version, model: _model, ...rest } = b;
+  return upgradeSaved(rest, b.title);
+}
+
+/** Saving an in-memory build keeps its original payload if conversion fails. */
 function withModel(b: SavedBuild): SavedBuild {
   try {
-    const { version: _version, model: _model, ...rest } = b;
-    return upgradeSaved(rest, b.title);
+    return modelOf(b);
   } catch {
     return b;
   }
@@ -66,28 +71,47 @@ const KEY = "icarus.builds.v1";
 export function loadBuilds(): SavedBuild[] {
   try {
     const raw = localStorage.getItem(KEY);
-    const all = raw ? (JSON.parse(raw) as SavedBuild[]) : [];
+    const all: unknown = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(all)) return [];
     // Re-validate each program so a build saved before a field existed (locks, arrangement) gets its
     // defaults instead of breaking the page; one that no longer parses is dropped.
-    return all.flatMap((b) => {
-      const program = ProgramSchema.safeParse(b.program);
-      return program.success
-        ? [
-            withModel({
-              ...b,
-              program: program.data,
-              conversation: messages(b.conversation),
-              history: Array.isArray(b.history)
-                ? b.history.flatMap((h) => {
-                    const parsed = ProgramSchema.safeParse(h.program);
-                    return parsed.success && h.plan && typeof h.seed === "number"
-                      ? [{ ...h, program: parsed.data }]
-                      : [];
-                  })
-                : [],
-            }),
-          ]
-        : [];
+    return all.flatMap((b: unknown) => {
+      if (!b || typeof b !== "object") return [];
+      const entry = b as SavedBuild;
+      if (
+        typeof entry.id !== "string" ||
+        typeof entry.title !== "string" ||
+        typeof entry.brief !== "string" ||
+        !entry.plan ||
+        typeof entry.plan !== "object" ||
+        typeof entry.seed !== "number"
+      )
+        return [];
+      const program = ProgramSchema.safeParse(entry.program);
+      if (!program.success) return [];
+      const candidate = {
+        ...entry,
+        program: program.data,
+        conversation: messages(entry.conversation),
+        history: Array.isArray(entry.history)
+          ? entry.history.flatMap((h) => {
+              if (!h || typeof h !== "object") return [];
+              const parsed = ProgramSchema.safeParse(h.program);
+              if (!parsed.success || !h.plan || typeof h.seed !== "number") return [];
+              try {
+                fromFloorPlan(h.plan, { program: parsed.data });
+                return [{ ...h, program: parsed.data }];
+              } catch {
+                return [];
+              }
+            })
+          : [],
+      };
+      try {
+        return [modelOf(candidate)];
+      } catch {
+        return [];
+      }
     });
   } catch {
     return [];

@@ -352,4 +352,16 @@ button {
   .stage {
     order: 1;
   }
+  .stage-tools {
+    left: 14px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .seg {
+    flex-shrink: 0;
+    order: 2;
+  }
+  .stage-tools > .quiet-btn {
+    order: 1;
+  }
 }

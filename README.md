@@ -24,7 +24,7 @@ Working build, not a finished product. What it does today and what it does not:
 - **Does not:** edit rooms read from a drawing, design L-shaped or multi-floor offices in the app (a prototype for L-shapes is measured in [docs/NOTCHED_LAYOUT_SPIKE.md](docs/NOTCHED_LAYOUT_SPIKE.md)), check building codes, reconstruct a real room from a photo, take voice input, or use Muse Spark yet. Projects saved in one browser do not sync to another device.
 - **Not validated:** layouts are measured against our own rules; no architect has reviewed them. Realistic rendering has been measured on one Apple M1, not across devices or against photographs.
 
-Plan and daily log: [docs/HACKATHON.md](docs/HACKATHON.md). Architecture and what was measured: [docs/ARCHITECTURE_ASSESSMENT.md](docs/ARCHITECTURE_ASSESSMENT.md), [docs/RESEARCH_ROUND_2.md](docs/RESEARCH_ROUND_2.md), [docs/SPATIAL_MODEL.md](docs/SPATIAL_MODEL.md).
+Plan and daily log: [docs/HACKATHON.md](docs/HACKATHON.md). QA approach and current gaps: [docs/QA.md](docs/QA.md). Architecture and what was measured: [docs/ARCHITECTURE_ASSESSMENT.md](docs/ARCHITECTURE_ASSESSMENT.md), [docs/RESEARCH_ROUND_2.md](docs/RESEARCH_ROUND_2.md), [docs/SPATIAL_MODEL.md](docs/SPATIAL_MODEL.md).
 
 ## Run it
 
