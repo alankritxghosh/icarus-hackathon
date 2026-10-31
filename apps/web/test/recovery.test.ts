@@ -77,6 +77,21 @@ describe("starter recovery", () => {
         complete: false,
         lines: ["I could not verify the workstation count in the 3D model."],
       });
+      const boothIndex = accepted.built.scene.nodes.findIndex(
+        (node) => node.name === "phone booth back",
+      );
+      expect(boothIndex).toBeGreaterThanOrEqual(0);
+      const missingBooth = {
+        ...accepted.built,
+        scene: {
+          ...accepted.built.scene,
+          nodes: accepted.built.scene.nodes.filter((_, index) => index !== boothIndex),
+        },
+      };
+      expect(assessCompletion(missingBooth)).toEqual({
+        complete: false,
+        lines: ["I could not verify the phone booth count in the 3D model."],
+      });
       expect(acceptLargerShell(accepted.built)).toEqual({
         reason: "This design already fits its requested workstations and rooms.",
       });

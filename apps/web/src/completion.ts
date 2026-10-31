@@ -13,6 +13,10 @@ export function assessCompletion(built: Built): { complete: boolean; lines: stri
       node.name === "desk" &&
       node.geometry.kind === "asset",
   ).length;
+  // One "back" panel belongs to each booth; its other pieces must not inflate the count.
+  const sceneBooths = built.scene.nodes.filter(
+    (node) => node.roomKind === "open_workspace" && node.name === "phone booth back",
+  ).length;
   const failures = diagnose(built.plan, built.program, built.report).filter(
     (issue) => issue.severity === "fail",
   );
@@ -21,6 +25,8 @@ export function assessCompletion(built: Built): { complete: boolean; lines: stri
     lines.push(`Still missing rooms: ${missingRooms.map((room) => room.name).join(", ")}.`);
   if (sceneDesks !== reportedDesks)
     lines.push(`I could not verify the workstation count in the 3D model.`);
+  if (sceneBooths !== built.report.phoneBoothsPlaced)
+    lines.push(`I could not verify the phone booth count in the 3D model.`);
   const areaFailure = failures.find((issue) => issue.code === "program_too_big");
   const otherFailure = failures.find(
     (issue) =>
@@ -33,6 +39,7 @@ export function assessCompletion(built: Built): { complete: boolean; lines: stri
     complete:
       missingRooms.length === 0 &&
       sceneDesks === reportedDesks &&
+      sceneBooths === built.report.phoneBoothsPlaced &&
       reportedDesks >= wantedDesks &&
       built.report.phoneBoothsPlaced >= built.report.phoneBoothsWanted &&
       failures.length === 0,

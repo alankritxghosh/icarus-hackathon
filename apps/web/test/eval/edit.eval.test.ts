@@ -7,7 +7,7 @@ import {
   refineDesign,
   understandEdit,
 } from "@icarus/core";
-import { describe, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import { EVAL_BRIEFS } from "./briefs";
 
 /**
@@ -46,6 +46,15 @@ suite("edit by words evaluation", () => {
     const byKind: Record<string, Record<string, number>> = {};
     const deltas: number[] = [];
     const times: number[] = [];
+    const silentChanges: {
+      brief: string;
+      request: string;
+      room: string;
+      before: unknown;
+      after: unknown;
+      message: string;
+    }[] = [];
+    const unchangedMutations: { brief: string; request: string; status: string }[] = [];
     for (const { name, brief } of EVAL_BRIEFS) {
       const read = readBrief(brief);
       const base = (await refineDesign(read.program)).best;
@@ -88,6 +97,34 @@ suite("edit by words evaluation", () => {
         tally.requests++;
         if (step) tally[step.status]++;
         const status = step?.status ?? "none";
+        if (
+          status !== "applied" &&
+          JSON.stringify(outcome.evaluation.plan) !== JSON.stringify(base.plan)
+        )
+          unchangedMutations.push({ brief: name, request: text, status });
+        const beforeRooms = new Map(base.plan.rooms.map((room) => [room.id, room]));
+        for (const room of outcome.evaluation.plan.rooms) {
+          const before = beforeRooms.get(room.id);
+          if (!before) continue;
+          const movement = Math.hypot(
+            room.rect.x + room.rect.w / 2 - before.rect.x - before.rect.w / 2,
+            room.rect.y + room.rect.h / 2 - before.rect.y - before.rect.h / 2,
+          );
+          const size = Math.max(
+            Math.abs(room.rect.w - before.rect.w),
+            Math.abs(room.rect.h - before.rect.h),
+          );
+          const changeReport = step?.message.split(" New notes:")[0] ?? "";
+          if ((movement >= 0.25 || size >= 0.25) && !changeReport.includes(room.name))
+            silentChanges.push({
+              brief: name,
+              request: text,
+              room: room.name,
+              before: before.rect,
+              after: room.rect,
+              message: step?.message ?? "",
+            });
+        }
         if (status === "refused" && step) {
           const why = reasonClass(step.message);
           reasons[why] = (reasons[why] ?? 0) + 1;
@@ -125,12 +162,16 @@ suite("edit by words evaluation", () => {
           appliedCount: deltas.length,
           medianMs: Math.round(times[Math.floor(times.length / 2)] ?? 0),
           p95Ms: Math.round(times[Math.floor(times.length * 0.95)] ?? 0),
+          silentChanges,
+          unchangedMutations,
           rows,
         },
         null,
         2,
       ),
     );
+    expect(silentChanges).toEqual([]);
+    expect(unchangedMutations).toEqual([]);
   });
 });
 

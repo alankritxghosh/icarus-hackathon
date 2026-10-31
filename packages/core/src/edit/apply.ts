@@ -74,26 +74,40 @@ function introduced(before: Issue[], after: Issue[]): Issue[] {
   );
 }
 
-/** Rooms other than the ones moved on purpose whose centres shifted noticeably, largest first. */
+/** Material changes to other rooms, including resizing without a large centre shift. */
 function shifted(before: FloorPlan, after: FloorPlan, except: string[]) {
-  const out: { name: string; metres: number }[] = [];
+  const out: { name: string; metres: number; resized: boolean }[] = [];
   for (const room of after.rooms) {
     if (except.includes(room.id)) continue;
-    const was = roomCentre(before, room.id);
-    if (!was) continue;
-    const metres = dist(was, centre(room.rect));
-    if (metres >= 1.5) out.push({ name: room.name, metres: round1(metres) });
+    const old = before.rooms.find((r) => r.id === room.id);
+    if (!old) continue;
+    const metres = dist(centre(old.rect), centre(room.rect));
+    const resized =
+      Math.max(Math.abs(room.rect.w - old.rect.w), Math.abs(room.rect.h - old.rect.h)) >= 0.25;
+    if (metres >= 0.25 || resized) out.push({ name: room.name, metres: round1(metres), resized });
   }
-  return out.sort((a, b) => b.metres - a.metres);
+  return out.sort((a, b) => b.metres - a.metres || a.name.localeCompare(b.name));
 }
 
-const sentenceOfShifts = (list: { name: string; metres: number }[]) =>
+const sentenceOfShifts = (list: { name: string; metres: number; resized: boolean }[]) =>
   list.length
-    ? ` Also shifted: ${list
-        .slice(0, 3)
-        .map((s) => `${s.name} (${s.metres} m)`)
-        .join(", ")}${list.length > 3 ? ` and ${list.length - 3} more` : ""}.`
+    ? ` Also changed: ${list
+        .map(
+          (s) =>
+            `${s.name} (${[s.metres >= 0.25 ? `moved ${s.metres} m` : "", s.resized ? "resized" : ""].filter(Boolean).join(", ")})`,
+        )
+        .join("; ")}.`
     : "";
+
+// Preserve the original candidate ranking while making user-facing disclosure more complete.
+const rankingMovement = (before: FloorPlan, after: FloorPlan, except: string[]) =>
+  after.rooms.reduce((sum, room) => {
+    if (except.includes(room.id)) return sum;
+    const was = roomCentre(before, room.id);
+    if (!was) return sum;
+    const metres = dist(was, centre(room.rect));
+    return metres >= 1.5 ? sum + round1(metres) : sum;
+  }, 0);
 
 /** Said plainly when an edit the user asked for makes the measured plan worse, so they can undo it knowingly. */
 function worseNote(before: number, after: number): string {
@@ -169,7 +183,7 @@ function settle(
     viable.push({
       rows,
       plan,
-      moved: shifted(cur.plan, plan, subject).reduce((s, r) => s + r.metres, 0),
+      moved: rankingMovement(cur.plan, plan, subject),
     });
   }
   if (meant === 0) return { reason: none };
@@ -645,7 +659,10 @@ export function applyEdit(current: Evaluation, ops: EditOp[]): EditOutcome {
         step(
           op,
           "applied",
-          `Removed ${name}; later meeting rooms were renumbered.${sentenceOfShifts(
+          `Removed ${name}; remaining meeting rooms were re-laid out and renumbered: ${result.evaluation.plan.rooms
+            .filter((r) => r.kind === "meeting_room")
+            .map((r) => r.name)
+            .join(", ")}.${sentenceOfShifts(
             shifted(
               plan,
               result.evaluation.plan,
