@@ -559,6 +559,8 @@ const DEFAULT_IGNORED: RegExp[] = [
   /\bsheet\b/i,
   /\bnote/i,
   /\bdate\b/i,
+  /^(?:fridge|sink|hob|island counter|dining table|study table|seating)$/i,
+  /^(?:cut ?out (?:above|below)|column partition|partition wall in interiors|east entrance)$/i,
 ];
 
 // ---- Putting it together ----

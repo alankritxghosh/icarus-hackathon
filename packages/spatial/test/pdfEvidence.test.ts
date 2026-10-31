@@ -194,6 +194,28 @@ describe("extractEvidence", () => {
     expect(evidence.labels[0]?.printedSizeMm?.map(Math.round)).toEqual([3099, 3048]);
   });
 
+  it("does not count furniture and drawing notes as rooms", () => {
+    const labels = ["KITCHEN", "FRIDGE", "SINK", "DINING TABLE", "CUT OUT ABOVE"];
+    const t = `<doc><page>${labels
+      .map((name, i) =>
+        block(
+          [[word(name, 150, 130 + i * 25, 250, 142 + i * 25)]],
+          [150, 130 + i * 25, 250, 142 + i * 25],
+        ),
+      )
+      .join("")}</page></doc>`;
+    const { evidence, report } = extractEvidence(svg, t, "t", { unitMm: 10 });
+    expect(evidence.labels.map((l) => l.text)).toEqual(["KITCHEN"]);
+    expect(report.labelsIgnored).toEqual(
+      expect.arrayContaining([
+        "FRIDGE (sheet text)",
+        "SINK (sheet text)",
+        "DINING TABLE (sheet text)",
+        "CUT OUT ABOVE (sheet text)",
+      ]),
+    );
+  });
+
   it("uses the colours it is told to instead of guessing", () => {
     const { report } = extractEvidence(svg, text, "t", {
       unitMm: 10,
