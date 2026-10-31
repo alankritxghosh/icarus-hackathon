@@ -16,6 +16,7 @@ import { saveFile } from "./download";
 import { DrawingError, type DrawnDesign, designFromDrawing } from "./drawingDesign";
 import { editByWords } from "./editByWords";
 import { RenderError, readPhoto } from "./photo";
+import { acceptLargerShell, wantsLargerShell } from "./recovery";
 import type { Reference } from "./references";
 import { type Message, type Reply, Studio } from "./Studio";
 import {
@@ -309,6 +310,15 @@ export function App() {
         text: "Done.",
         lines: [...remembered, "It applies to this design and to every one after it."],
       };
+
+    if (wantsLargerShell(text)) {
+      live(["Checking a larger shell…"]);
+      const result = acceptLargerShell(current.built);
+      if (version !== viewVersion.current) return { text: "" };
+      if ("reason" in result) return { text: "I could not do that.", lines: [result.reason] };
+      change(current, result.built);
+      return { text: "Done.", lines: [result.line, ...buildSummary(result.built)] };
+    }
 
     live(["Working on it…"]);
     const result = await editByWords(text, current.built);

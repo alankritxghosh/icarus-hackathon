@@ -41,5 +41,12 @@ export function buildSummary(built: Built): string[] {
       : undefined,
   ].filter(Boolean);
   if (missing.length) lines.push(`Still missing: ${missing.join(" and ")}.`);
+  const larger = built.trace?.suggestions.find(
+    (s) => s.change.kind === "grow_shell" && s.verified.fail === 0,
+  );
+  if (larger?.change.kind === "grow_shell")
+    lines.push(
+      `A ${larger.change.widthM} × ${larger.change.depthM} m shell fits in a checked plan. Say “use the larger shell” if you can change the size.`,
+    );
   return lines;
 }

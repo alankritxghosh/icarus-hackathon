@@ -90,7 +90,12 @@ export function suggestFixes(
   issues: Issue[],
   current?: Evaluation,
 ): Suggestion[] {
-  const stuck = issues.some((i) => i.code === "program_too_big" || i.code === "crowded");
+  const stuck = issues.some(
+    (i) =>
+      i.code === "program_too_big" ||
+      i.code === "crowded" ||
+      (i.severity === "fail" && (i.code === "workspace_density" || i.code === "seats_short")),
+  );
   if (!stuck) return [];
   const base = current ?? evaluateProgram(program, { seeds: [1, 2] });
   const out: Suggestion[] = [];
