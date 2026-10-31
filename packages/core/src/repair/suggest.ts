@@ -10,7 +10,7 @@ export interface Suggestion {
   label: string;
   detail: string;
   /** What re-planning with this change measured, so the offer is a result and not a guess. */
-  verified: { open: number; fail: number };
+  verified: { open: number; fail: number; fulfillsProgram: boolean };
   change:
     | { kind: "grow_shell"; widthM: number; depthM: number }
     | { kind: "drop_room"; roomKind: RoomKind; count: number };
@@ -26,6 +26,17 @@ const DROPPABLE: RoomKind[] = [
 const half = (m: number) => Math.ceil(m / 0.5) * 0.5;
 const open = (e: Evaluation) => e.issues.filter((i) => i.severity !== "info");
 const fails = (e: Evaluation) => e.issues.filter((i) => i.severity === "fail").length;
+const fulfillsProgram = (e: Evaluation) => {
+  const report = e.furnished.report;
+  const rooms = new Set(e.plan.rooms.map((room) => room.id));
+  return (
+    fails(e) === 0 &&
+    report.seatsPlaced + report.privateDesksPlaced >=
+      report.seatsWanted + report.privateDesksWanted &&
+    report.phoneBoothsPlaced >= report.phoneBoothsWanted &&
+    expandRooms(e.program).every((room) => rooms.has(room.id))
+  );
+};
 
 /** Apply a suggestion the user accepted. */
 export function applySuggestion(program: Program, suggestion: Pick<Suggestion, "change">): Program {
@@ -106,7 +117,11 @@ export function suggestFixes(
       id: "grow_shell",
       label: `Enlarge the shell to ${grown.widthM} x ${grown.depthM} m`,
       detail: `Planned and checked: ${open(base).length} open issues become ${open(grown.evaluation).length}.`,
-      verified: { open: open(grown.evaluation).length, fail: fails(grown.evaluation) },
+      verified: {
+        open: open(grown.evaluation).length,
+        fail: fails(grown.evaluation),
+        fulfillsProgram: fulfillsProgram(grown.evaluation),
+      },
       change: { kind: "grow_shell", widthM: grown.widthM, depthM: grown.depthM },
     });
 
@@ -135,7 +150,11 @@ export function suggestFixes(
       id: `drop_${kind}`,
       label: `Drop ${count > 1 ? `${count} ` : "the "}${KIND_RULES[kind].label.toLowerCase()}${count > 1 ? "s" : ""}`,
       detail: `Planned and checked: ${open(base).length} open issues become ${open(evaluation).length}.`,
-      verified: { open: open(evaluation).length, fail: fails(evaluation) },
+      verified: {
+        open: open(evaluation).length,
+        fail: fails(evaluation),
+        fulfillsProgram: fulfillsProgram(evaluation),
+      },
       change,
     });
   }

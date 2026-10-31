@@ -42,7 +42,7 @@ export function buildSummary(built: Built): string[] {
   ].filter(Boolean);
   if (missing.length) lines.push(`Still missing: ${missing.join(" and ")}.`);
   const larger = built.trace?.suggestions.find(
-    (s) => s.change.kind === "grow_shell" && s.verified.fail === 0,
+    (s) => s.change.kind === "grow_shell" && s.verified.fulfillsProgram,
   );
   if (larger?.change.kind === "grow_shell")
     lines.push(

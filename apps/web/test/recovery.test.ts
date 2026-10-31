@@ -1,6 +1,7 @@
 import { evaluateProgram, fitShell, readBrief, suggestFixes } from "@icarus/core";
 import { describe, expect, it } from "vitest";
 import { buildSummary } from "../src/buildSummary";
+import { assessCompletion } from "../src/completion";
 import { finish } from "../src/design";
 import { acceptLargerShell, wantsLargerShell } from "../src/recovery";
 
@@ -24,6 +25,7 @@ describe("starter recovery", () => {
     expect(suggestions.some((s) => s.change.kind === "grow_shell")).toBe(true);
 
     const built = finish({ program, plan: base.plan, seed: base.seed, notes: [] }, 0);
+    expect(assessCompletion(built).complete).toBe(false);
     built.trace = {
       proposal: "rules",
       decisions: [],
@@ -59,6 +61,22 @@ describe("starter recovery", () => {
         accepted.built.program.assumptions.find((a) => a.topic === "shell")?.statement,
       ).toContain("at your request");
       expect(accepted.built.trace).toBeUndefined();
+      expect(assessCompletion(accepted.built)).toEqual({ complete: true, lines: [] });
+      const deskIndex = accepted.built.scene.nodes.findIndex(
+        (node) => node.roomKind === "open_workspace" && node.name === "desk",
+      );
+      expect(deskIndex).toBeGreaterThanOrEqual(0);
+      const missingDesk = {
+        ...accepted.built,
+        scene: {
+          ...accepted.built.scene,
+          nodes: accepted.built.scene.nodes.filter((_, index) => index !== deskIndex),
+        },
+      };
+      expect(assessCompletion(missingDesk)).toEqual({
+        complete: false,
+        lines: ["I could not verify the workstation count in the 3D model."],
+      });
       expect(acceptLargerShell(accepted.built)).toEqual({
         reason: "This design already fits its requested workstations and rooms.",
       });

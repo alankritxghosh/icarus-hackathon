@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadLessons, saveLessons } from "./accountLessons";
 import { buildSummary } from "./buildSummary";
+import { assessCompletion } from "./completion";
 import { type Built, builtFromRefine, finish, readPhotoDesign } from "./design";
 import { designFromBrief, refineProgram } from "./designLoop";
 import { saveFile } from "./download";
@@ -236,9 +237,10 @@ export function App() {
       };
       try {
         const built = await buildFrom({ kind: "photo", reference }, undefined, live);
+        const status = assessCompletion(built);
         return {
-          text: `Designed an office in the style of your photo: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m.`,
-          lines: buildSummary(built),
+          text: `${status.complete ? "Designed" : "Drafted"} an office in the style of your photo: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m.`,
+          lines: [...buildSummary(built), ...status.lines],
         };
       } catch (error) {
         return {
@@ -299,9 +301,10 @@ export function App() {
       if (learned?.onlyPreferences)
         return { text: "Noted. Now tell me what to build.", lines: remembered };
       const built = await buildFrom({ kind: "brief", text }, undefined, live);
+      const status = assessCompletion(built);
       return {
-        text: `Built it: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m. Tell me what to change.`,
-        lines: [...buildSummary(built), ...remembered],
+        text: `${status.complete ? "Built it" : "Made a draft"}: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m. Tell me what to change.`,
+        lines: [...buildSummary(built), ...status.lines, ...remembered],
       };
     }
 
