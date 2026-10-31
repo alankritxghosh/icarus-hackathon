@@ -17,7 +17,8 @@
 
 - [x] **Support a narrow edit on a known vector plan.** A generated two-room filled-wall PDF can move one straight partition by 500 mm, rebuild rooms and doorway, save, reopen and undo. `packages/spatial/test/drawingEdit.test.ts`, `docs/decisions/edit-drawing-partition.md`, earlier browser run.
 - [ ] **Read representative real vector plans reliably.** The recorded real A3 sheet closed only 5 of 23 labelled rooms; the current importer still requires filled wall shapes and a readable scale or an explicit scale. Assemble at least three permitted real sheets with hand-counted rooms, doors and dimensions, then measure missing and inferred geometry. This is a product gate, not a fixture-only test.
-- [ ] **Edit more than one unambiguous straight partition.** Irregular junctions, ambiguous walls and older saved drawings without source shapes are refused. Broaden operations only with drawing evidence tests that show unrelated walls, openings and rooms stay put. Structural status remains unknown.
+- [x] **Edit two distinct unambiguous straight partitions in sequence.** A three-room measured evidence fixture moved the kitchen/office wall 300 mm, then the office/meeting wall 300 mm. The test checks exact source rectangles, unchanged outer shell and unaffected third-room boundary after each edit, opening count and model validity. `packages/spatial/test/drawingEdit.test.ts`. This is a generated fixture, not a second real-plan or browser proof.
+- [ ] **Handle irregular or ambiguous drawing edits.** Junctions, curved or ambiguous walls and older saved drawings without source shapes are still refused. Expand each operation only when drawing evidence tests show unrelated walls, openings and rooms stay put. Structural status remains unknown.
 
 ## Release confidence and external dependencies
 
