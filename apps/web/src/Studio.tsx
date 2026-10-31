@@ -26,10 +26,15 @@ interface Props {
   builds: { id: string; title: string }[];
   activeId?: string;
   canEdit: boolean;
+  plainExport?: boolean;
   messages: Message[];
   setMessages: Dispatch<SetStateAction<Message[]>>;
   starts: { label: string; text: string }[];
-  onSend: (text: string, file: File | undefined, live: (lines: string[]) => void) => Promise<Reply>;
+  onSend: (
+    text: string,
+    files: File[] | undefined,
+    live: (lines: string[]) => void,
+  ) => Promise<Reply>;
   onNew: () => void;
   onOpen: (id: string) => void;
   onExportPlan: () => string;
@@ -51,6 +56,7 @@ export function Studio(props: Props) {
     builds,
     activeId,
     canEdit,
+    plainExport,
     messages,
     setMessages,
     starts,
@@ -63,7 +69,7 @@ export function Studio(props: Props) {
   const view = useRef<OfficeView>(null);
   const thread = useRef<HTMLDivElement>(null);
   const [text, setText] = useState("");
-  const [file, setFile] = useState<File>();
+  const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<ViewMode>("orbit");
   const [real, setReal] = useState<RealState>({ state: "off", samples: 0 });
@@ -136,7 +142,7 @@ export function Studio(props: Props) {
     pendingRef.current = false;
     setBusy(false);
     setText("");
-    setFile(undefined);
+    setFiles([]);
     setMenu(false);
     setReality(false);
     goto("orbit");
@@ -144,7 +150,7 @@ export function Studio(props: Props) {
 
   const exportGlb = async (): Promise<string> => {
     try {
-      const bytes = await view.current?.exportGlb();
+      const bytes = await view.current?.exportGlb(plainExport);
       if (!bytes) throw new Error("not ready");
       saveFile(`icarus-${slug(title ?? "building")}.glb`, bytes, "model/gltf-binary");
       return "Exported as a .glb. In Blender: File ▸ Import ▸ glTF 2.0, and edit it there.";
@@ -189,18 +195,18 @@ export function Studio(props: Props) {
 
   const send = async (said: string) => {
     const t = said.trim();
-    if ((!t && !file) || pendingRef.current) return;
+    if ((!t && files.length === 0) || pendingRef.current) return;
     pendingRef.current = true;
     const turn = turnRef.current;
-    const attached = file;
+    const attached = files;
     setText("");
-    setFile(undefined);
+    setFiles([]);
     say({
       role: "you",
       text: t || "(attached)",
-      ...(attached ? { attachment: attached.name } : {}),
+      ...(attached.length ? { attachment: attached.map((file) => file.name).join(", ") } : {}),
     });
-    if (!attached) {
+    if (!attached.length) {
       const reply = await run(t);
       if (turn !== turnRef.current) return;
       if (reply !== undefined) {
@@ -212,7 +218,7 @@ export function Studio(props: Props) {
     setBusy(true);
     const id = say({ role: "icarus", text: "", working: true, lines: ["Working on it…"] });
     try {
-      const reply = await onSend(t, attached, (lines) => {
+      const reply = await onSend(t, attached.length ? attached : undefined, (lines) => {
         if (turn === turnRef.current)
           setMessages((all) => all.map((m) => (m.id === id ? { ...m, lines } : m)));
       });
@@ -338,18 +344,18 @@ export function Studio(props: Props) {
             void send(text);
           }}
         >
-          {file && (
-            <span className="chip">
+          {files.map((file) => (
+            <span className="chip" key={file.name}>
               📎 {file.name}
               <button
                 type="button"
-                aria-label="Remove attachment"
-                onClick={() => setFile(undefined)}
+                aria-label={`Remove ${file.name}`}
+                onClick={() => setFiles((all) => all.filter((item) => item !== file))}
               >
                 ✕
               </button>
             </span>
-          )}
+          ))}
           <textarea
             value={text}
             rows={2}
@@ -376,13 +382,18 @@ export function Studio(props: Props) {
               <input
                 type="file"
                 accept="application/pdf,image/png,image/jpeg,image/webp"
+                multiple
                 onChange={(e) => {
-                  setFile(e.target.files?.[0]);
+                  setFiles(Array.from(e.target.files ?? []));
                   e.target.value = "";
                 }}
               />
             </label>
-            <button type="submit" className="send" disabled={busy || (!text.trim() && !file)}>
+            <button
+              type="submit"
+              className="send"
+              disabled={busy || (!text.trim() && !files.length)}
+            >
               {busy ? "Working…" : "Send"}
             </button>
           </div>

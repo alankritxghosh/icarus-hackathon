@@ -14,7 +14,12 @@ import { assessCompletion } from "./completion";
 import { type Built, builtFromRefine, finish, readPhotoDesign } from "./design";
 import { designFromBrief, refineProgram } from "./designLoop";
 import { saveFile } from "./download";
-import { DrawingError, type DrawnDesign, designFromDrawing } from "./drawingDesign";
+import {
+  DrawingError,
+  type DrawnDesign,
+  designFromDrawing,
+  designFromDrawings,
+} from "./drawingDesign";
 import { editByWords } from "./editByWords";
 import { RenderError, readPhoto } from "./photo";
 import { acceptLargerShell, wantsLargerShell } from "./recovery";
@@ -181,21 +186,28 @@ export function App() {
 
   const respond = async (
     text: string,
-    file: File | undefined,
+    files: File[] | undefined,
     live: (lines: string[]) => void,
   ): Promise<Reply> => {
     const current = sessionRef.current;
     const version = viewVersion.current;
 
-    if (
-      file &&
-      (file.type === "application/pdf" ||
-        ((file.type === "" || file.type === "application/octet-stream") &&
-          /\.pdf$/i.test(file.name)))
-    ) {
+    const isPdf = (file: File) =>
+      file.type === "application/pdf" ||
+      ((file.type === "" || file.type === "application/octet-stream") && /\.pdf$/i.test(file.name));
+    if (files?.length && files.every(isPdf)) {
       live(["Reading your drawing…"]);
       try {
-        const drawn = await designFromDrawing(file, file.name.replace(/\.pdf$/i, ""), text);
+        if (files.length > 2)
+          return { text: "Attach one floor plan or two floors of the same building at a time." };
+        const drawn =
+          files.length === 2
+            ? await designFromDrawings(files, text)
+            : await designFromDrawing(
+                files[0] as File,
+                (files[0] as File).name.replace(/\.pdf$/i, ""),
+                text,
+              );
         if (version !== viewVersion.current) return { text: "" };
         const id = crypto.randomUUID();
         setSession({ id, brief: drawn.name, drawing: drawn, history: [], drawingHistory: [] });
@@ -218,7 +230,9 @@ export function App() {
             ? ` Try “move the wall between ${roomA.name.toLowerCase()} and ${roomB.name.toLowerCase()} 0.5 m toward ${roomB.name.toLowerCase()}”.`
             : "";
         return {
-          text: `Here is ${drawn.name}, drawn in 3D from your plan. You can move a wall between two enclosed rooms, then undo it.${example}`,
+          text: drawn.evidence
+            ? `Here is ${drawn.name}, drawn in 3D from your plan. You can move a wall between two enclosed rooms, then undo it.${example}`
+            : `Here is a two-floor draft from ${drawn.name}.`,
           lines: drawn.lines,
         };
       } catch (error) {
@@ -228,7 +242,9 @@ export function App() {
       }
     }
 
-    if (file) {
+    if (files?.length) {
+      if (files.length !== 1) return { text: "Attach one photo or two PDF floor plans together." };
+      const file = files[0] as File;
       const reference: Reference = {
         id: "upload",
         src: URL.createObjectURL(file),
@@ -461,6 +477,7 @@ export function App() {
         .map((b) => ({ id: b.id, title: b.title }))}
       activeId={session?.id}
       canEdit={Boolean(session?.built || session?.drawing?.evidence)}
+      plainExport={Boolean(session?.drawing && session.drawing.model.levels.length > 1)}
       messages={conversation}
       setMessages={setConversation}
       starts={STARTS}

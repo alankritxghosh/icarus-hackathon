@@ -16,6 +16,10 @@ The fourth sheet's printed dimensions gave a consistent scale estimate of 28.092
 
 `fixtures/private/two-floor-reference/` is ignored by Git and contains `two-floor-reference.blend`, `two-floor-reference.glb`, rendered previews, and the extraction geometry. The Blender file has two named floor collections, source-plan textures, and each detected filled wall rectangle as its own extruded mesh. The GLB is a visual reference. Neither file has complete room boundaries, slabs, stairs, doors, windows, or construction accuracy. The rendered plan itself remains visible as a texture so missing walls can be identified without falsely generating them.
 
+Icarus now accepts both PDFs in one attachment, uses the scale inferred from the fourth sheet for both, and saves one project with two level records. Its renderer stacks the partial geometry at a stated 3.2 m interval and shows inferred outer walls translucently. A fresh browser import saved 7 enclosed spaces, 66 modeled wall runs and 36 inferred openings. This is an in-product partial reconstruction; the external Blender reference above remains a separate inspection aid.
+
+The browser exported the combined project as GLB. The default textured export was 232 MB for this scene; using plain materials for combined PDF projects reduced it to 1.35 MB while retaining the meshes. The Khronos glTF validator reported zero errors and zero warnings on the smaller file. The local browser screenshot and GLB are kept in ignored `fixtures/private/two-floor-reference/`.
+
 ## Product finding
 
 The current importer selects filled wall shapes. These sheets express much of their room enclosure through linework and other colors, so adding a bounding outline gives a plausible scene while leaving most labelled spaces out. A trial that treated long stroked lines as walls enclosed more labels but also promoted fixture and annotation text to rooms. That trial was discarded. The safe result is to report incomplete extraction and keep the source image attached.

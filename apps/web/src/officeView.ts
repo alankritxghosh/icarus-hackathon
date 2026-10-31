@@ -481,10 +481,37 @@ export class OfficeView {
    * The office as a binary glTF (.glb): what is on screen, without the ground, the plan-view labels
    * or anything hidden. Opens in Blender, Windows 3D Viewer, macOS Quick Look and most CAD viewers.
    */
-  async exportGlb(): Promise<ArrayBuffer> {
+  async exportGlb(plainMaterials = false): Promise<ArrayBuffer> {
     const out = new THREE.Group();
-    for (const child of this.content.children)
-      if (!child.userData.noExport && !(child instanceof THREE.Sprite)) out.add(child.clone());
+    const flat = new Map<string, THREE.MeshStandardMaterial>();
+    const material = (source: THREE.Material) => {
+      let made = flat.get(source.uuid);
+      if (!made) {
+        const original = source as THREE.MeshStandardMaterial;
+        made = new THREE.MeshStandardMaterial({
+          color: original.color ?? new THREE.Color("#cccccc"),
+          roughness: original.roughness ?? 1,
+          metalness: original.metalness ?? 0,
+          opacity: original.opacity,
+          transparent: original.transparent,
+          side: original.side,
+        });
+        flat.set(source.uuid, made);
+      }
+      return made;
+    };
+    for (const child of this.content.children) {
+      if (child.userData.noExport || child instanceof THREE.Sprite) continue;
+      const copy = child.clone(true);
+      if (plainMaterials)
+        copy.traverse((object) => {
+          if (!(object instanceof THREE.Mesh)) return;
+          object.material = Array.isArray(object.material)
+            ? object.material.map(material)
+            : material(object.material);
+        });
+      out.add(copy);
+    }
     const result = await new GLTFExporter().parseAsync(out, {
       binary: true,
       onlyVisible: true,

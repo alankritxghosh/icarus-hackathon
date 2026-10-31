@@ -33,6 +33,39 @@ describe("sceneFromModel", () => {
     expect(nodes("light").length).toBeGreaterThan(0);
   });
 
+  it("renders two levels in one scene at their saved elevations", () => {
+    const upper = {
+      ...model,
+      levels: [
+        { ...(model.levels[0] as (typeof model.levels)[number]), id: "L2", elevationMm: 3200 },
+      ],
+      spaces: model.spaces.map((space) => ({ ...space, id: `upper.${space.id}`, levelId: "L2" })),
+      walls: model.walls.map((wall) => ({ ...wall, id: `upper.${wall.id}`, levelId: "L2" })),
+      openings: model.openings.map((opening) => ({
+        ...opening,
+        id: `upper.${opening.id}`,
+        hostWallId: `upper.${opening.hostWallId}`,
+      })),
+    };
+    const stacked = sceneFromModel({
+      ...model,
+      levels: [...model.levels, ...upper.levels],
+      spaces: [...model.spaces, ...upper.spaces],
+      walls: [...model.walls, ...upper.walls],
+      openings: [...model.openings, ...upper.openings],
+    });
+    const slabs = stacked.scene.nodes.filter((node) => node.id.endsWith(".slab"));
+    expect(slabs[0]?.position[1]).toBeCloseTo(-0.03);
+    expect(slabs[1]?.position[1]).toBeCloseTo(3.17);
+    expect(stacked.scene.nodes.length).toBe(scene.nodes.length * 2);
+    expect(new Set(stacked.scene.nodes.map((node) => node.id)).size).toBe(
+      stacked.scene.nodes.length,
+    );
+    expect(stacked.scene.ceilingM).toBe(6.2);
+    expect(stacked.viewpoints[0]?.position[1]).toBeCloseTo(4.8);
+    expect(stacked.viewpoints[1]?.position[1]).toBeCloseTo(1.6);
+  });
+
   it("cuts a window and a doorway through their walls, with glass in the window only", () => {
     expect(nodes("window")).toHaveLength(1);
     expect(nodes("window")[0]?.material).toBe("glass");

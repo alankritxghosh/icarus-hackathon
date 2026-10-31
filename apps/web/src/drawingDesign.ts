@@ -1,9 +1,10 @@
 import type { Scene, Viewpoint } from "@icarus/core";
-import type { DrawingEvidence, SpatialModel } from "@icarus/spatial/model";
+import type { DrawingEvidence } from "@icarus/spatial/model";
 import {
   extractEvidence,
   extractEvidenceAuto,
   modelFromEvidence,
+  SpatialModel,
   sceneFromModel,
   unitMmFromScale,
 } from "@icarus/spatial/model";
@@ -138,5 +139,110 @@ export async function designFromDrawing(
     viewpoints: drawn.viewpoints,
     name,
     lines,
+  };
+}
+
+/** Two PDF sheets from one building, read in one pass so a scale on either sheet can serve both. */
+export async function designFromDrawings(
+  files: File[],
+  said = "",
+  send: typeof fetch = fetch,
+): Promise<DrawnDesign> {
+  if (files.length !== 2) throw new DrawingError("Attach two floor plans together.");
+  const floorNumber = (name: string) => {
+    const digit = /\b(\d+)(?:st|nd|rd|th)?\s*floor\b/i.exec(name)?.[1];
+    if (digit) return Number(digit);
+    const word = /\b(first|second|third|fourth|fifth|sixth)\s*floor\b/i
+      .exec(name)?.[1]
+      ?.toLowerCase();
+    return word ? ["first", "second", "third", "fourth", "fifth", "sixth"].indexOf(word) + 1 : 0;
+  };
+  const ordered = [...files].sort((a, b) => floorNumber(a.name) - floorNumber(b.name));
+  const views = await Promise.all(ordered.map((file) => readDrawingViews(file, 1, send)));
+  const ratio = scaleInText(said);
+  let unitMm = ratio ? unitMmFromScale(ratio) : undefined;
+  if (!unitMm) {
+    const estimates = views.flatMap((view, i) => {
+      try {
+        return [
+          extractEvidenceAuto(view.svg, view.bboxHtml, ordered[i]?.name ?? "floor").scale.unitMm,
+        ];
+      } catch {
+        return [];
+      }
+    });
+    unitMm = estimates[0];
+    if (!unitMm)
+      throw new DrawingError(
+        "I could not read the scale from either plan. Attach them again with the printed scale, for example “1:80”.",
+      );
+    const commonScale = unitMm;
+    if (estimates.some((estimate) => Math.abs(estimate - commonScale) / commonScale > 0.05))
+      throw new DrawingError(
+        "The plans appear to use different scales. Attach them with the correct scale.",
+      );
+  }
+  if (!unitMm) throw new DrawingError("I could not read the scale from either plan.");
+  const built = views.map((view, i) => {
+    const file = ordered[i] as File;
+    const evidence = extractEvidence(view.svg, view.bboxHtml, file.name, { unitMm }).evidence;
+    return modelFromEvidence(evidence, {
+      name: file.name.replace(/\.pdf$/i, ""),
+      levelHeightMm: 3200,
+    });
+  });
+  const levels = built.map(({ model }, i) => {
+    const file = ordered[i] as File;
+    const rank = floorNumber(file.name);
+    const id = `L${rank || i + 1}`;
+    return { id, name: file.name.replace(/\.pdf$/i, ""), elevationMm: i * 3200, model };
+  });
+  const model = SpatialModel.parse({
+    ...built[0]?.model,
+    name: ordered.map((file) => file.name.replace(/\.pdf$/i, "")).join(" + "),
+    levels: levels.map(({ id, name, elevationMm, model }) => ({
+      ...model.levels[0],
+      id,
+      name,
+      elevationMm,
+    })),
+    spaces: levels.flatMap(({ id, model }) =>
+      model.spaces.map((space) => ({ ...space, id: `${id}.${space.id}`, levelId: id })),
+    ),
+    walls: levels.flatMap(({ id, model }) =>
+      model.walls.map((wall) => ({
+        ...wall,
+        id: `${id}.${wall.id}`,
+        levelId: id,
+        left: wall.left && wall.left !== "exterior" ? `${id}.${wall.left}` : wall.left,
+        right: wall.right && wall.right !== "exterior" ? `${id}.${wall.right}` : wall.right,
+      })),
+    ),
+    openings: levels.flatMap(({ id, model }) =>
+      model.openings.map((opening) => ({
+        ...opening,
+        id: `${id}.${opening.id}`,
+        hostWallId: `${id}.${opening.hostWallId}`,
+      })),
+    ),
+    obstacles: [],
+    connectors: [],
+    items: [],
+  });
+  const drawn = sceneFromModel(model);
+  return {
+    model,
+    scene: drawn.scene,
+    labels: drawn.labels,
+    viewpoints: drawn.viewpoints,
+    name: model.name,
+    lines: [
+      `Both floors are in one 3D project. I used ${ratio ? `the 1:${ratio} scale you gave` : "a scale read from one plan"} for both and assumed 3.2 m between floors.`,
+      ...built.map(
+        ({ report }, i) =>
+          `${ordered[i]?.name}: I could build ${report.spaces} spaces; ${report.unplaced.length} still need tracing.`,
+      ),
+      "I added translucent walls where the plans leave gaps. The floor alignment needs checking. You can export this draft; wall edits are not ready yet.",
+    ],
   };
 }

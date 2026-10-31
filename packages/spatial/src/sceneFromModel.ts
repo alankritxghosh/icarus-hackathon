@@ -8,6 +8,15 @@ const M = 1 / 1000;
 const WINDOW_SILL = 0.9;
 const WINDOW_HEAD = 2.1;
 const DOOR_HEAD = 2.1;
+const DRAWING_MATERIALS: Scene["materials"] = {
+  ...MATERIALS,
+  "wall.inferred": {
+    color: "#d98a54",
+    roughness: 0.9,
+    metalness: 0,
+    opacity: 0.3,
+  },
+};
 
 export interface DrawnScene {
   scene: Scene;
@@ -365,7 +374,7 @@ const floorFor = (kind: string) =>
     ? "floor.tile"
     : "floor.wood.light";
 
-export function sceneFromModel(model: SpatialModel): DrawnScene {
+function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
   const level = model.levels[0];
   if (!level) throw new Error("the model has no level");
   const bx = level.boundary.outer.map((p) => p.x);
@@ -428,7 +437,12 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
     const uy = dy / len;
     const t = w.thicknessMm * M;
     const rot = -Math.atan2(dy, dx);
-    const material = w.kind === "exterior" ? "wall.exterior" : "wall.interior";
+    const material =
+      w.provenance.source === "inferred"
+        ? "wall.inferred"
+        : w.kind === "exterior"
+          ? "wall.exterior"
+          : "wall.interior";
     footprints.push([
       Math.min(w.a.x, w.b.x) - w.thicknessMm / 2,
       Math.min(w.a.y, w.b.y) - w.thicknessMm / 2,
@@ -546,10 +560,80 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
     },
   ];
   return {
-    scene: { ceilingM: H, nodes, materials: MATERIALS, shell: { w: W, h: D } },
+    scene: { ceilingM: H, nodes, materials: DRAWING_MATERIALS, shell: { w: W, h: D } },
     labels,
     viewpoints,
     furnished,
+  };
+}
+
+/** Render every level of one building in a shared vertical frame. */
+export function sceneFromModel(model: SpatialModel): DrawnScene {
+  if (model.levels.length <= 1) return singleLevelSceneFromModel(model);
+  const baseElevation = Math.min(...model.levels.map((level) => level.elevationMm));
+  const levels = model.levels.map((level) => {
+    const wallIds = new Set(
+      model.walls.filter((wall) => wall.levelId === level.id).map((wall) => wall.id),
+    );
+    const spaces = model.spaces.filter((space) => space.levelId === level.id);
+    const spaceIds = new Set(spaces.map((space) => space.id));
+    const subset: SpatialModel = {
+      ...model,
+      levels: [level],
+      spaces,
+      walls: model.walls.filter((wall) => wall.levelId === level.id),
+      openings: model.openings.filter((opening) => wallIds.has(opening.hostWallId)),
+      obstacles: model.obstacles.filter((obstacle) => obstacle.levelId === level.id),
+      connectors: [],
+      items: model.items.filter((item) => spaceIds.has(item.spaceId)),
+    };
+    return { level, drawn: singleLevelSceneFromModel(subset) };
+  });
+  const nodes = levels.flatMap(({ level, drawn }) =>
+    drawn.scene.nodes.map((node) => ({
+      ...node,
+      id: `${level.id}.${node.id}`,
+      position: [
+        node.position[0],
+        node.position[1] + (level.elevationMm - baseElevation) * M,
+        node.position[2],
+      ] as [number, number, number],
+    })),
+  );
+  const top = [...levels].sort((a, b) => b.level.elevationMm - a.level.elevationMm)[0];
+  if (!top) throw new Error("the model has no level");
+  return {
+    scene: {
+      ...top.drawn.scene,
+      nodes,
+      shell: {
+        w: Math.max(...levels.map(({ drawn }) => drawn.scene.shell.w)),
+        h: Math.max(...levels.map(({ drawn }) => drawn.scene.shell.h)),
+      },
+      ceilingM: Math.max(...model.levels.map((level) => level.elevationMm + level.heightMm)) * M,
+    },
+    // Plan labels follow the visible upper floor; each level still has named spaces in the saved model.
+    labels: top.drawn.labels,
+    viewpoints: levels
+      .flatMap(({ level, drawn }) =>
+        drawn.viewpoints.map((viewpoint) => ({
+          ...viewpoint,
+          id: `${level.id}.${viewpoint.id}`,
+          name: `${level.name}: ${viewpoint.name}`,
+          position: [
+            viewpoint.position[0],
+            viewpoint.position[1] + (level.elevationMm - baseElevation) * M,
+            viewpoint.position[2],
+          ] as [number, number, number],
+          target: [
+            viewpoint.target[0],
+            viewpoint.target[1] + (level.elevationMm - baseElevation) * M,
+            viewpoint.target[2],
+          ] as [number, number, number],
+        })),
+      )
+      .reverse(),
+    furnished: levels.flatMap(({ drawn }) => drawn.furnished),
   };
 }
 
