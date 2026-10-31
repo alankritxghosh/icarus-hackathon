@@ -2,8 +2,16 @@ import sys
 from pathlib import Path
 
 filled = '--filled' in sys.argv
-path = Path('/tmp/icarus-qa-filled.pdf' if filled else '/tmp/icarus-qa-plan.pdf')
+editable = '--editable' in sys.argv
+path = Path('/tmp/icarus-editable-demo.pdf' if editable else '/tmp/icarus-qa-filled.pdf' if filled else '/tmp/icarus-qa-plan.pdf')
 walls = b'''0 0 0 rg
+100 120 170 6 re f
+100 227 170 6 re f
+100 120 6 113 re f
+264 120 6 113 re f
+182 126 6 29 re f
+182 183 6 44 re f
+''' if editable else b'''0 0 0 rg
 100 120 400 8 re f
 100 392 400 8 re f
 100 120 8 280 re f
@@ -15,11 +23,15 @@ walls = b'''0 0 0 rg
 300 120 m 300 400 l S
 100 260 m 300 260 l S
 '''
-draw = walls + b'''
+labels = b'''
+BT /F1 11 Tf 122 174 Td (KITCHEN) Tj ET
+BT /F1 11 Tf 213 174 Td (OFFICE) Tj ET
+''' if editable else b'''
 BT /F1 13 Tf 145 325 Td (OFFICE) Tj ET
 BT /F1 13 Tf 145 195 Td (KITCHEN) Tj ET
 BT /F1 13 Tf 355 260 Td (MEETING ROOM) Tj ET
 '''
+draw = walls + labels
 objects = [
     b'<< /Type /Catalog /Pages 2 0 R >>',
     b'<< /Type /Pages /Kids [3 0 R] /Count 1 >>',

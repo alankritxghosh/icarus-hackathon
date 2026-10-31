@@ -1,5 +1,12 @@
 import { type Scene, type Viewpoint, viewpoints } from "@icarus/core";
-import { type AccountLesson, sceneFromModel, toDxf } from "@icarus/spatial/model";
+import {
+  type AccountLesson,
+  type DrawingEvidence,
+  moveDrawingWall,
+  type SpatialModel,
+  sceneFromModel,
+  toDxf,
+} from "@icarus/spatial/model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadLessons, saveLessons } from "./accountLessons";
 import { buildSummary } from "./buildSummary";
@@ -27,6 +34,7 @@ interface Session {
   built?: Built;
   drawing?: DrawnDesign;
   history: Built[];
+  drawingHistory?: { model: SpatialModel; evidence: DrawingEvidence }[];
 }
 
 const STARTS = [
@@ -188,13 +196,27 @@ export function App() {
         const drawn = await designFromDrawing(file, file.name.replace(/\.pdf$/i, ""), text);
         if (version !== viewVersion.current) return { text: "" };
         const id = crypto.randomUUID();
-        setSession({ id, brief: drawn.name, drawing: drawn, history: [] });
+        setSession({ id, brief: drawn.name, drawing: drawn, history: [], drawingHistory: [] });
         setDrawings((all) => [
-          { id, title: drawn.name, model: drawn.model, editedAt: Date.now(), conversation: [] },
+          {
+            id,
+            title: drawn.name,
+            model: drawn.model,
+            evidence: drawn.evidence,
+            sourceEvidence: drawn.evidence,
+            history: [],
+            editedAt: Date.now(),
+            conversation: [],
+          },
           ...all,
         ]);
+        const [roomA, roomB] = drawn.model.spaces;
+        const example =
+          drawn.model.spaces.length === 2 && roomA && roomB
+            ? ` Try “move the wall between ${roomA.name.toLowerCase()} and ${roomB.name.toLowerCase()} 0.5 m toward ${roomB.name.toLowerCase()}”.`
+            : "";
         return {
-          text: `Here is ${drawn.name}, drawn in 3D from your plan. You can view or export it.`,
+          text: `Here is ${drawn.name}, drawn in 3D from your plan. You can move a wall between two enclosed rooms, then undo it.${example}`,
           lines: drawn.lines,
         };
       } catch (error) {
@@ -228,11 +250,51 @@ export function App() {
     const learned = text ? learn(text) : undefined;
     const remembered = learned?.added.map((l) => `I will remember: “${l.said}”`) ?? [];
 
+    if (current?.drawing) {
+      const drawn = current.drawing;
+      if (/^(?:undo|go back|revert)(?:\s+(?:that|last change))?[.!?]?$/i.test(text.trim())) {
+        const prior = current.drawingHistory?.at(-1);
+        if (!prior) return { text: "There is nothing to undo." };
+        const shown = sceneFromModel(prior.model);
+        const nextDrawing = { ...drawn, model: prior.model, evidence: prior.evidence, ...shown };
+        const history = current.drawingHistory?.slice(0, -1) ?? [];
+        setSession({ ...current, drawing: nextDrawing, drawingHistory: history });
+        setDrawings((all) =>
+          all.map((d) =>
+            d.id === current.id
+              ? {
+                  ...d,
+                  model: prior.model,
+                  evidence: prior.evidence,
+                  history,
+                  editedAt: Date.now(),
+                }
+              : d,
+          ),
+        );
+        return { text: "Undid the wall move." };
+      }
+      if (!drawn.evidence)
+        return { text: "Reattach this plan to edit it; this saved copy predates drawing edits." };
+      const changed = moveDrawingWall(drawn.model, drawn.evidence, text);
+      if ("reason" in changed) return { text: "I could not do that.", lines: [changed.reason] };
+      const { evidence, model, message } = changed.moved;
+      const shown = sceneFromModel(model);
+      const nextDrawing = { ...drawn, model, evidence, ...shown };
+      const history = [
+        ...(current.drawingHistory ?? []),
+        { model: drawn.model, evidence: drawn.evidence },
+      ].slice(-20);
+      setSession({ ...current, drawing: nextDrawing, drawingHistory: history });
+      setDrawings((all) =>
+        all.map((d) =>
+          d.id === current.id ? { ...d, model, evidence, history, editedAt: Date.now() } : d,
+        ),
+      );
+      return { text: "Done.", lines: [message] };
+    }
+
     if (!current?.built) {
-      if (current?.drawing)
-        return {
-          text: "This one comes from your drawing, so I can show it, walk it and export it, but I cannot change its rooms yet. Attach another plan or describe a new building.",
-        };
       if (learned?.onlyPreferences)
         return { text: "Noted. Now tell me what to build.", lines: remembered };
       const built = await buildFrom({ kind: "brief", text }, undefined, live);
@@ -299,6 +361,7 @@ export function App() {
       brief: drawing.title,
       drawing: {
         model: drawing.model,
+        evidence: drawing.evidence,
         scene: shown.scene,
         labels: shown.labels,
         viewpoints: shown.viewpoints,
@@ -306,6 +369,7 @@ export function App() {
         lines: [],
       },
       history: [],
+      drawingHistory: drawing.history ?? [],
     });
     setConversation(
       drawing.conversation.length
@@ -383,7 +447,7 @@ export function App() {
         .sort((a, b) => b.editedAt - a.editedAt)
         .map((b) => ({ id: b.id, title: b.title }))}
       activeId={session?.id}
-      canEdit={Boolean(session?.built)}
+      canEdit={Boolean(session?.built || session?.drawing?.evidence)}
       messages={conversation}
       setMessages={setConversation}
       starts={STARTS}

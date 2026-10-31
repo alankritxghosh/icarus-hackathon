@@ -1,5 +1,5 @@
 import type { Scene, Viewpoint } from "@icarus/core";
-import type { SpatialModel } from "@icarus/spatial/model";
+import type { DrawingEvidence, SpatialModel } from "@icarus/spatial/model";
 import {
   extractEvidence,
   extractEvidenceAuto,
@@ -57,6 +57,8 @@ export function scaleInText(text: string): number | undefined {
 
 export interface DrawnDesign {
   model: SpatialModel;
+  /** Working drawing shapes, retained so a later edit can rebuild rooms and openings. */
+  evidence?: DrawingEvidence;
   scene: Scene;
   labels: { name: string; x: number; y: number; w: number; h: number }[];
   viewpoints: Viewpoint[];
@@ -130,6 +132,7 @@ export async function designFromDrawing(
   );
   return {
     model,
+    evidence,
     scene: drawn.scene,
     labels: drawn.labels,
     viewpoints: drawn.viewpoints,

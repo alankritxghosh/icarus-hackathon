@@ -1,5 +1,5 @@
 import { layoutOffice, ProgramSchema } from "@icarus/core";
-import { fromFloorPlan, SAVED_VERSION } from "@icarus/spatial/model";
+import { type DrawingEvidence, fromFloorPlan, SAVED_VERSION } from "@icarus/spatial/model";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { loadBuilds, loadDrawings, saveBuilds, saveDrawings } from "../src/store";
 
@@ -118,7 +118,7 @@ describe("saved offices carry the spatial model", () => {
 });
 
 describe("saved drawings", () => {
-  it("restores a drawing model and its conversation", () => {
+  it("restores a drawing, its editable evidence, undo state and conversation", () => {
     const { p, plan } = (() => {
       const p = ProgramSchema.parse(program);
       return { p, plan: layoutOffice(p, { seed: 1 }) };
@@ -131,16 +131,29 @@ describe("saved drawings", () => {
       },
     });
     const model = fromFloorPlan(plan, { program: p });
+    const evidence: DrawingEvidence = {
+      schema: "icarus.drawing-evidence/0.1",
+      source: "plan.pdf",
+      wallRects: [[0, 0, 6000, 200]],
+      supportRects: [],
+      labels: [{ text: "OFFICE", at: [1000, 1000], role: "room" }],
+    };
     saveDrawings([
       {
         id: "drawing-1",
         title: "Plan",
         model,
+        evidence,
+        sourceEvidence: evidence,
+        history: [{ model, evidence }],
         editedAt: 10,
         conversation: [{ id: "one", role: "you", text: "Here is my plan" }],
       },
     ]);
     expect(loadDrawings()[0]?.model).toEqual(model);
+    expect(loadDrawings()[0]?.evidence).toEqual(evidence);
+    expect(loadDrawings()[0]?.sourceEvidence).toEqual(evidence);
+    expect(loadDrawings()[0]?.history?.[0]?.model).toEqual(model);
     expect(loadDrawings()[0]?.conversation[0]?.text).toBe("Here is my plan");
   });
 });

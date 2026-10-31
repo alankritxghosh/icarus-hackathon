@@ -16,6 +16,7 @@ export {
   type DrawingAudit,
   type DrawingEvidence,
 } from "./drawingAudit";
+export { type DrawingEditResult, type DrawingMove, moveDrawingWall } from "./drawingEdit";
 export { type DxfResult, toDxf } from "./dxf";
 export { type EditState, editModel, evaluationOfModel, locksOf, type ModelEdit } from "./edit";
 export { type FromDrawingOptions, type FromDrawingReport, modelFromEvidence } from "./fromDrawing";

@@ -1,5 +1,10 @@
 import { type FloorPlan, type Program, ProgramSchema } from "@icarus/core";
-import { fromFloorPlan, SpatialModel, upgradeSaved } from "@icarus/spatial/model";
+import {
+  type DrawingEvidence,
+  fromFloorPlan,
+  SpatialModel,
+  upgradeSaved,
+} from "@icarus/spatial/model";
 import type { Message } from "./Studio";
 
 export interface SavedRevision {
@@ -34,6 +39,9 @@ export interface SavedDrawing {
   id: string;
   title: string;
   model: SpatialModel;
+  evidence?: DrawingEvidence;
+  sourceEvidence?: DrawingEvidence;
+  history?: { model: SpatialModel; evidence: DrawingEvidence }[];
   editedAt: number;
   conversation: Message[];
 }
@@ -139,6 +147,40 @@ export function saveBuilds(builds: SavedBuild[]) {
 
 const DRAWINGS_KEY = "icarus.drawings.v1";
 
+function drawingEvidence(value: unknown): DrawingEvidence | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const v = value as Record<string, unknown>;
+  const rect = (r: unknown) =>
+    Array.isArray(r) &&
+    r.length === 4 &&
+    r.every((n) => typeof n === "number" && Number.isFinite(n)) &&
+    r[0] < r[2] &&
+    r[1] < r[3];
+  if (
+    v.schema !== "icarus.drawing-evidence/0.1" ||
+    typeof v.source !== "string" ||
+    !Array.isArray(v.wallRects) ||
+    !Array.isArray(v.supportRects) ||
+    !Array.isArray(v.labels) ||
+    !v.wallRects.every(rect) ||
+    !v.supportRects.every(rect) ||
+    !v.labels.every(
+      (l: unknown) =>
+        !!l &&
+        typeof l === "object" &&
+        typeof (l as Record<string, unknown>).text === "string" &&
+        ["room", "object", "dimension"].includes(String((l as Record<string, unknown>).role)) &&
+        Array.isArray((l as Record<string, unknown>).at) &&
+        ((l as Record<string, unknown>).at as unknown[]).length === 2 &&
+        ((l as Record<string, unknown>).at as unknown[]).every(
+          (n) => typeof n === "number" && Number.isFinite(n),
+        ),
+    )
+  )
+    return undefined;
+  return value as DrawingEvidence;
+}
+
 export function loadDrawings(): SavedDrawing[] {
   try {
     const raw = localStorage.getItem(DRAWINGS_KEY);
@@ -154,6 +196,19 @@ export function loadDrawings(): SavedDrawing[] {
               id: entry.id,
               title: entry.title,
               model: model.data,
+              evidence: drawingEvidence(entry.evidence),
+              sourceEvidence: drawingEvidence(entry.sourceEvidence),
+              history: Array.isArray(entry.history)
+                ? entry.history.flatMap((h) => {
+                    if (!h || typeof h !== "object") return [];
+                    const revision = h as Record<string, unknown>;
+                    const previous = SpatialModel.safeParse(revision.model);
+                    const previousEvidence = drawingEvidence(revision.evidence);
+                    return previous.success && previousEvidence
+                      ? [{ model: previous.data, evidence: previousEvidence }]
+                      : [];
+                  })
+                : [],
               editedAt: typeof entry.editedAt === "number" ? entry.editedAt : 0,
               conversation: messages(entry.conversation),
             },
@@ -170,7 +225,11 @@ export function saveDrawings(drawings: SavedDrawing[]) {
     localStorage.setItem(
       DRAWINGS_KEY,
       JSON.stringify(
-        drawings.slice(0, 24).map((d) => ({ ...d, conversation: messages(d.conversation) })),
+        drawings.slice(0, 24).map((d) => ({
+          ...d,
+          conversation: messages(d.conversation),
+          history: d.history?.slice(-20),
+        })),
       ),
     );
   } catch {
