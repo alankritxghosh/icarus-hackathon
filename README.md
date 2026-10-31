@@ -14,7 +14,7 @@ The idea is not new to this repository: the author explored a similar product in
 
 On 30 Oct 2026 two ideas from that prototype were added here: auditing a model against measured drawing evidence, and recording corrections as enforced lessons (`docs/QUALITY_SYSTEM.md`). They were rewritten from the design with different data structures and tests, and none of the prototype's source was opened or copied. The same AI coding assistant wrote both versions, so this is a reimplementation from the written design, not a blind clean-room.
 
-Code in this repository was written with the help of an AI coding assistant (Claude Code) under the author's direction.
+Code in this repository was written with the help of AI coding assistants (Claude Code and Codex) under the author's direction.
 
 ## Status
 
