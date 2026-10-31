@@ -485,7 +485,11 @@ export class OfficeView {
     const out = new THREE.Group();
     for (const child of this.content.children)
       if (!child.userData.noExport && !(child instanceof THREE.Sprite)) out.add(child.clone());
-    const result = await new GLTFExporter().parseAsync(out, { binary: true, onlyVisible: true });
+    const result = await new GLTFExporter().parseAsync(out, {
+      binary: true,
+      onlyVisible: true,
+      maxTextureSize: 512,
+    });
     if (!(result instanceof ArrayBuffer)) throw new Error("The 3D file could not be made.");
     return result;
   }
