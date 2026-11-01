@@ -86,6 +86,8 @@ export function Studio(props: Props) {
   const [real, setReal] = useState<RealState>({ state: "off", samples: 0 });
   const [canReal, setCanReal] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [roofVisible, setRoofVisible] = useState(true);
+  const [walkPlace, setWalkPlace] = useState("");
   const turnRef = useRef(0);
   const pendingRef = useRef(false);
   const latestScene = useRef(scene);
@@ -123,6 +125,11 @@ export function Studio(props: Props) {
     view.current?.setLabels(labels);
   }, [scene, labels]);
 
+  useEffect(
+    () => setRoofVisible(Boolean(scene?.nodes.some((node) => node.tags.includes("roof")))),
+    [scene],
+  );
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to the newest message whenever the list changes
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
@@ -142,9 +149,12 @@ export function Studio(props: Props) {
   const goto = (m: ViewMode) => {
     setMode(m);
     if (m === "eye") {
+      if (real.state !== "off") setReality(false);
       const vp = viewpoints[0];
-      if (vp) view.current?.setViewpoint(vp);
-      else view.current?.setMode("orbit");
+      if (vp) {
+        view.current?.setViewpoint(vp);
+        setWalkPlace(vp.name);
+      } else view.current?.setMode("orbit");
     } else view.current?.setMode(m);
   };
 
@@ -191,7 +201,7 @@ export function Studio(props: Props) {
     if (cmd.kind === "mode") {
       goto(cmd.mode);
       return cmd.mode === "eye"
-        ? "You are inside. Drag to look, W A S D to walk."
+        ? "You are at the entrance in third person. Drag to look; use W A S D to move."
         : cmd.mode === "plan"
           ? "Top view."
           : "Outside view.";
@@ -412,6 +422,65 @@ export function Studio(props: Props) {
       </aside>
       <main className="stage" aria-label="3D model">
         <div className="viewport" ref={host} />
+        {mode === "eye" && scene && (
+          <div className="walk-hud">
+            <div className="walk-note">
+              <b>{walkPlace || viewpoints[0]?.name || "Entrance"}</b>
+              <span>Drag to look · WASD to move</span>
+            </div>
+            {plans && plans.length > 1 && (
+              <fieldset className="walk-floors">
+                <legend className="sr">Visit floor</legend>
+                {plans.map((plan) => (
+                  <button
+                    key={plan.levelId}
+                    type="button"
+                    onClick={() => {
+                      const destination = viewpoints.find((point) =>
+                        point.id.startsWith(`${plan.levelId}.`),
+                      );
+                      if (destination) {
+                        view.current?.setViewpoint(destination);
+                        setWalkPlace(destination.name);
+                      }
+                    }}
+                  >
+                    {plan.name}
+                  </button>
+                ))}
+              </fieldset>
+            )}
+            <fieldset className="walk-pad">
+              <legend className="sr">Move character</legend>
+              {(
+                [
+                  ["▲", "w"],
+                  ["◀", "a"],
+                  ["▼", "s"],
+                  ["▶", "d"],
+                ] as const
+              ).map(([label, direction]) => (
+                <button
+                  key={direction}
+                  type="button"
+                  aria-label={
+                    { w: "Move forward", a: "Move left", s: "Move backward", d: "Move right" }[
+                      direction
+                    ]
+                  }
+                  onPointerDown={(event) => {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    view.current?.setWalkInput(direction, true);
+                  }}
+                  onPointerUp={() => view.current?.setWalkInput(direction, false)}
+                  onPointerCancel={() => view.current?.setWalkInput(direction, false)}
+                >
+                  {label}
+                </button>
+              ))}
+            </fieldset>
+          </div>
+        )}
         {!!traces?.length && (
           <p className="trace-count">
             {traces.length} spaces built from plan · outlines are estimates
@@ -432,6 +501,20 @@ export function Studio(props: Props) {
         )}
         {scene && (
           <div className="stage-tools">
+            {scene.nodes.some((node) => node.tags.includes("roof")) && mode === "orbit" && (
+              <button
+                type="button"
+                className="quiet-btn roof-toggle"
+                onClick={() => {
+                  setRoofVisible((visible) => {
+                    view.current?.setCeiling(!visible);
+                    return !visible;
+                  });
+                }}
+              >
+                {roofVisible ? "Roof on" : "Roof off"}
+              </button>
+            )}
             {canReal && (
               <button
                 type="button"

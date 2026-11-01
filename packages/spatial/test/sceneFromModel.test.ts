@@ -62,8 +62,8 @@ describe("sceneFromModel", () => {
       stacked.scene.nodes.length,
     );
     expect(stacked.scene.ceilingM).toBe(6.2);
-    expect(stacked.viewpoints[0]?.position[1]).toBeCloseTo(4.8);
-    expect(stacked.viewpoints[1]?.position[1]).toBeCloseTo(1.6);
+    expect(stacked.viewpoints[0]?.position[1]).toBeCloseTo(1.6);
+    expect(stacked.viewpoints[1]?.position[1]).toBeCloseTo(4.8);
   });
 
   it("cuts a window and a doorway through their walls, with glass in the window only", () => {

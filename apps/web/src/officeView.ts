@@ -52,6 +52,18 @@ export class OfficeView {
   private look = { yaw: 0, pitch: 0 };
   private drag?: { x: number; y: number };
   private readonly keys = (e: KeyboardEvent) => this.onKey(e);
+  private readonly keyUp = (e: KeyboardEvent) => this.walkKeys.delete(e.key.toLowerCase());
+  private readonly walkKeys = new Set<string>();
+  private walkFrame = 0;
+  private walkTime = 0;
+  private walkLevelId?: string;
+  private walkBaseY = 0;
+  private readonly playerAt = new THREE.Vector3();
+  private readonly avatar = this.makeAvatar();
+  private readonly cameraGhosts = new Map<
+    THREE.Mesh,
+    { normal: THREE.Material; faded: THREE.Material }
+  >();
   // Realistic mode: progressive path tracing on the GPU of the person looking, in the browser, on the live model.
   private tracer?: WebGLPathTracer;
   private realistic = false;
@@ -117,6 +129,8 @@ export class OfficeView {
     this.three.environmentIntensity = 0.55;
     pmrem.dispose();
     this.three.add(this.content);
+    this.avatar.visible = false;
+    this.three.add(this.avatar);
     this.three.add(new THREE.HemisphereLight(0xffffff, 0xb9bec4, 1.0));
     this.three.add(this.sun, this.sun.target);
     this.sun.castShadow = true;
@@ -143,11 +157,11 @@ export class OfficeView {
       if (this.mode !== "eye" || !this.drag) return;
       this.look.yaw += (e.clientX - this.drag.x) * 0.004;
       this.look.pitch = Math.max(
-        -1.2,
-        Math.min(1.2, this.look.pitch + (e.clientY - this.drag.y) * 0.004),
+        -0.7,
+        Math.min(0.8, this.look.pitch + (e.clientY - this.drag.y) * 0.004),
       );
       this.drag = { x: e.clientX, y: e.clientY };
-      this.applyLook();
+      this.updateWalkCamera();
     });
     const release = () => {
       this.drag = undefined;
@@ -155,6 +169,7 @@ export class OfficeView {
     el.addEventListener("pointerup", release);
     el.addEventListener("pointercancel", release);
     window.addEventListener("keydown", this.keys);
+    window.addEventListener("keyup", this.keyUp);
 
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(host);
@@ -193,8 +208,10 @@ export class OfficeView {
   }
 
   setScene(scene: Scene) {
+    this.resetCameraGhosts();
     this.disposeContent();
     this.shell = scene.shell;
+    this.showCeiling = scene.nodes.some((node) => node.tags.includes("roof"));
     const materials = new Map<string, THREE.MeshStandardMaterial>();
     const material = (id: string) => {
       let m = materials.get(id);
@@ -309,6 +326,7 @@ export class OfficeView {
     this.sky = undefined;
     this.applyCeiling();
     this.frameCameras();
+    if (this.mode === "eye") this.updateWalkCamera();
     this.requestRender();
     this.rebuildTracer();
   }
@@ -409,10 +427,18 @@ export class OfficeView {
     const wasEye = this.mode === "eye";
     if (mode === "eye" && !wasEye)
       this.saved = { position: this.perspective.position.clone(), fov: this.perspective.fov };
-    if (wasEye && mode !== "eye") this.leaveEye();
+    if (wasEye && mode !== "eye") {
+      cancelAnimationFrame(this.walkFrame);
+      this.walkFrame = 0;
+      this.walkKeys.clear();
+      this.avatar.visible = false;
+      this.clearCameraGhosts();
+      this.leaveEye();
+    }
     this.mode = mode;
     this.orbit.enabled = mode === "orbit";
     this.plan.enabled = mode === "plan";
+    if (mode === "eye") this.avatar.visible = true;
     this.three.background = this.realistic ? this.skyTexture() : mode === "eye" ? SKY : DARK;
     this.applyCeiling();
     this.applyLabels();
@@ -424,22 +450,30 @@ export class OfficeView {
 
   /** Stand at a viewpoint: camera at eye height looking at its target. */
   setViewpoint(view: Viewpoint) {
-    this.setMode("eye");
     const [x, y, z] = view.position;
-    this.perspective.position.set(x, y, z);
+    const prefix = view.id.split(".")[0];
+    this.walkLevelId =
+      prefix &&
+      this.content.children.some((child) =>
+        String(child.userData.nodeId ?? "").startsWith(`${prefix}.`),
+      )
+        ? prefix
+        : undefined;
+    this.walkBaseY = y - 1.6;
+    this.playerAt.set(x, this.walkBaseY, z);
     this.perspective.fov = view.fovDeg;
     this.perspective.updateProjectionMatrix();
     const dx = view.target[0] - x;
-    const dy = view.target[1] - y;
     const dz = view.target[2] - z;
-    this.look = { yaw: Math.atan2(-dx, -dz), pitch: Math.atan2(dy, Math.hypot(dx, dz)) };
-    this.applyLook();
-  }
-
-  private applyLook() {
-    this.perspective.rotation.order = "YXZ";
-    this.perspective.rotation.set(this.look.pitch, this.look.yaw, 0);
-    this.cameraMoved();
+    this.look = { yaw: Math.atan2(-dx, -dz), pitch: 0.2 };
+    this.setMode("eye");
+    this.avatar.position.copy(this.playerAt);
+    this.avatar.rotation.y = this.look.yaw;
+    this.updateWalkCamera();
+    if (!this.walkFrame) {
+      this.walkTime = 0;
+      this.walkFrame = requestAnimationFrame(this.walkTick);
+    }
   }
 
   private leaveEye() {
@@ -452,23 +486,147 @@ export class OfficeView {
     this.orbit.update();
   }
 
-  /** Walk with the arrow keys or WASD, staying inside the shell. */
+  /** Walk with arrow keys or WASD; key state is also driven by the touch controls. */
   private onKey(e: KeyboardEvent) {
     if (this.mode !== "eye") return;
     const target = e.target as HTMLElement | null;
     if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
-    const forward = { ArrowUp: 1, w: 1, W: 1, ArrowDown: -1, s: -1, S: -1 }[e.key];
-    const strafe = { ArrowRight: 1, d: 1, D: 1, ArrowLeft: -1, a: -1, A: -1 }[e.key];
-    if (forward === undefined && strafe === undefined) return;
-    e.preventDefault();
-    const step = 0.3;
-    const { yaw } = this.look;
-    const dx = -Math.sin(yaw) * (forward ?? 0) * step + Math.cos(yaw) * (strafe ?? 0) * step;
-    const dz = -Math.cos(yaw) * (forward ?? 0) * step - Math.sin(yaw) * (strafe ?? 0) * step;
-    const p = this.perspective.position;
-    p.x = Math.min(this.shell.w - 0.4, Math.max(0.4, p.x + dx));
-    p.z = Math.min(this.shell.h - 0.4, Math.max(0.4, p.z + dz));
+    if (
+      ["w", "a", "s", "d", "arrowup", "arrowleft", "arrowdown", "arrowright"].includes(
+        e.key.toLowerCase(),
+      )
+    ) {
+      e.preventDefault();
+      this.walkKeys.add(e.key.toLowerCase());
+    }
+  }
+
+  setWalkInput(direction: "w" | "a" | "s" | "d", pressed: boolean) {
+    if (pressed) this.walkKeys.add(direction);
+    else this.walkKeys.delete(direction);
+  }
+
+  private makeAvatar(): THREE.Group {
+    const avatar = new THREE.Group();
+    const jacket = new THREE.MeshStandardMaterial({ color: "#51e4a4", roughness: 0.8 });
+    const skin = new THREE.MeshStandardMaterial({ color: "#b97d55", roughness: 0.9 });
+    const trousers = new THREE.MeshStandardMaterial({ color: "#26382f", roughness: 0.9 });
+    const face = new THREE.MeshStandardMaterial({ color: "#1a2420", roughness: 0.8 });
+    const part = (
+      geometry: THREE.BufferGeometry,
+      material: THREE.Material,
+      x: number,
+      y: number,
+      z: number,
+    ) => {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      avatar.add(mesh);
+    };
+    part(new THREE.CapsuleGeometry(0.29, 0.58, 4, 8), jacket, 0, 1.08, 0);
+    part(new THREE.SphereGeometry(0.22, 12, 10), skin, 0, 1.66, 0);
+    part(new THREE.BoxGeometry(0.23, 0.08, 0.04), face, 0, 1.67, -0.205);
+    for (const side of [-1, 1]) {
+      part(new THREE.CylinderGeometry(0.09, 0.11, 0.62, 8), trousers, side * 0.13, 0.34, 0);
+      part(new THREE.CylinderGeometry(0.075, 0.075, 0.55, 8), jacket, side * 0.36, 1.03, 0);
+    }
+    return avatar;
+  }
+
+  private readonly walkTick = (now: number) => {
+    if (this.mode !== "eye") return;
+    const dt = this.walkTime ? Math.min(0.05, (now - this.walkTime) / 1000) : 0;
+    this.walkTime = now;
+    const down = (a: string, b: string) => Number(this.walkKeys.has(a) || this.walkKeys.has(b));
+    const forward = down("w", "arrowup") - down("s", "arrowdown");
+    const strafe = down("d", "arrowright") - down("a", "arrowleft");
+    if (forward || strafe) {
+      const length = Math.hypot(forward, strafe);
+      const step = (2.4 * dt) / length;
+      const dx = (-Math.sin(this.look.yaw) * forward + Math.cos(this.look.yaw) * strafe) * step;
+      const dz = (-Math.cos(this.look.yaw) * forward - Math.sin(this.look.yaw) * strafe) * step;
+      const x = Math.max(-2, Math.min(this.shell.w + 2, this.playerAt.x + dx));
+      const z = Math.max(-2, Math.min(this.shell.h + 2, this.playerAt.z + dz));
+      if (!this.walkBlocked(x, this.playerAt.z)) this.playerAt.x = x;
+      if (!this.walkBlocked(this.playerAt.x, z)) this.playerAt.z = z;
+      this.avatar.rotation.y = Math.atan2(-dx, -dz);
+      this.updateWalkCamera();
+    }
+    this.walkFrame = requestAnimationFrame(this.walkTick);
+  };
+
+  private walkBlocked(x: number, z: number): boolean {
+    const radius = 0.2;
+    return this.content.children.some((child) => {
+      if (!child.visible || child.userData.type !== "wall" || !(child instanceof THREE.Mesh))
+        return false;
+      const box = new THREE.Box3().setFromObject(child);
+      if (box.max.y < this.walkBaseY + 0.25 || box.min.y > this.walkBaseY + 1.65) return false;
+      return (
+        x > box.min.x - radius &&
+        x < box.max.x + radius &&
+        z > box.min.z - radius &&
+        z < box.max.z + radius
+      );
+    });
+  }
+
+  private updateWalkCamera() {
+    if (this.mode !== "eye") return;
+    this.avatar.position.copy(this.playerAt);
+    const desired = this.playerAt
+      .clone()
+      .add(
+        new THREE.Vector3(
+          Math.sin(this.look.yaw) * 5.2,
+          4.5 + this.look.pitch * 1.2,
+          Math.cos(this.look.yaw) * 5.2,
+        ),
+      );
+    this.perspective.position.copy(desired);
+    this.perspective.lookAt(this.playerAt.x, this.playerAt.y + 1.2, this.playerAt.z);
+    this.fadeCameraWalls();
     this.cameraMoved();
+  }
+
+  private clearCameraGhosts() {
+    for (const [mesh, pair] of this.cameraGhosts) mesh.material = pair.normal;
+  }
+
+  private resetCameraGhosts() {
+    this.clearCameraGhosts();
+    for (const pair of this.cameraGhosts.values()) pair.faded.dispose();
+    this.cameraGhosts.clear();
+  }
+
+  private fadeCameraWalls() {
+    this.clearCameraGhosts();
+    const target = this.playerAt.clone().add(new THREE.Vector3(0, 1.2, 0));
+    const direction = this.perspective.position.clone().sub(target);
+    const length = direction.length();
+    const caster = new THREE.Raycaster(target, direction.normalize(), 0.2, length);
+    const walls = this.content.children.filter(
+      (child) => child.visible && child.userData.type === "wall",
+    );
+    const hits = caster.intersectObjects(walls, false);
+    const faded = new Set<THREE.Mesh>();
+    for (const hit of hits) {
+      const mesh = hit.object;
+      if (!(mesh instanceof THREE.Mesh) || faded.has(mesh) || faded.size >= 4) continue;
+      let pair = this.cameraGhosts.get(mesh);
+      if (!pair) {
+        const normal = mesh.material as THREE.Material;
+        const ghost = normal.clone();
+        ghost.transparent = true;
+        ghost.opacity = 0.12;
+        ghost.depthWrite = false;
+        pair = { normal, faded: ghost };
+        this.cameraGhosts.set(mesh, pair);
+      }
+      mesh.material = pair.faded;
+      faded.add(mesh);
+    }
   }
 
   setCeiling(show: boolean) {
@@ -503,6 +661,9 @@ export class OfficeView {
     for (const child of this.content.children) {
       if (child.userData.noExport || child instanceof THREE.Sprite) continue;
       const copy = child.clone(true);
+      copy.visible = true;
+      const normal = child instanceof THREE.Mesh ? this.cameraGhosts.get(child)?.normal : undefined;
+      if (normal && copy instanceof THREE.Mesh) copy.material = normal;
       if (plainMaterials)
         copy.traverse((object) => {
           if (!(object instanceof THREE.Mesh)) return;
@@ -542,12 +703,15 @@ export class OfficeView {
   }
 
   dispose() {
+    this.resetCameraGhosts();
     this.realistic = false;
     cancelAnimationFrame(this.tracerFrame);
     clearTimeout(this.tracerTimer);
     this.tracer?.dispose();
     this.denoiseTarget?.dispose();
     window.removeEventListener("keydown", this.keys);
+    window.removeEventListener("keyup", this.keyUp);
+    cancelAnimationFrame(this.walkFrame);
     cancelAnimationFrame(this.frame);
     this.observer.disconnect();
     this.orbit.dispose();
@@ -558,9 +722,22 @@ export class OfficeView {
   }
 
   private applyCeiling() {
-    for (const child of this.content.children)
-      if (child.userData.type === "ceiling")
-        child.visible = this.mode === "eye" || (this.showCeiling && this.mode === "orbit");
+    for (const child of this.content.children) {
+      const id = String(child.userData.nodeId ?? "");
+      if (
+        this.mode === "eye" &&
+        this.walkLevelId &&
+        id &&
+        !id.startsWith(`${this.walkLevelId}.`) &&
+        child.position.y > this.walkBaseY + 0.2
+      ) {
+        child.visible = false;
+      } else if (child.userData.type === "ceiling") {
+        // The complete roof is visible from outside. In third person it becomes a cutaway so the
+        // player and lower rooms stay visible while the building still owns those roof meshes.
+        child.visible = this.mode === "orbit" && this.showCeiling;
+      } else if (id) child.visible = true;
+    }
   }
 
   private frameCameras() {

@@ -287,15 +287,15 @@ export function App() {
           )
         )
           throw new Error("invalid project");
-        modelWithRoomTraces(base.data, raw.traces);
+        const model = modelWithRoomTraces(base.data, raw.traces);
         if (version !== viewVersion.current) return { text: "" };
         const id = crypto.randomUUID();
-        const shown = sceneFromModel(parsed.data);
+        const shown = sceneFromModel(model);
         const title = typeof raw.title === "string" ? raw.title : "Imported building";
         const saved: SavedDrawing = {
           id,
           title,
-          model: parsed.data,
+          model,
           baseModel: base.data,
           plans: raw.plans,
           traces: raw.traces,
@@ -307,7 +307,7 @@ export function App() {
           brief: title,
           drawing: {
             ...shown,
-            model: parsed.data,
+            model,
             baseModel: base.data,
             plans: raw.plans,
             traces: raw.traces,
@@ -535,12 +535,18 @@ export function App() {
     }
     const drawing = drawings.find((d) => d.id === id);
     if (!drawing) return;
-    const shown = sceneFromModel(drawing.model);
+    const model =
+      drawing.baseModel && drawing.traces?.length
+        ? modelWithRoomTraces(drawing.baseModel, drawing.traces)
+        : drawing.model;
+    const shown = sceneFromModel(model);
+    if (model !== drawing.model)
+      setDrawings((all) => all.map((item) => (item.id === id ? { ...item, model } : item)));
     setSession({
       id,
       brief: drawing.title,
       drawing: {
-        model: drawing.model,
+        model,
         baseModel: drawing.baseModel,
         plans: drawing.plans,
         traces: drawing.traces,
@@ -615,10 +621,11 @@ export function App() {
 
   const eye = useMemo(() => {
     const v = shown.views;
+    if (session?.drawing) return v;
     return [v.find((x) => x.name === "Open workspace") ?? v[0]].filter((x): x is Viewpoint =>
       Boolean(x),
     );
-  }, [shown.views]);
+  }, [shown.views, session?.drawing]);
 
   return (
     <Studio

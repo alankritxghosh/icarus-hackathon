@@ -41,6 +41,7 @@ export function modelWithRoomTraces(base: SpatialModel, traces: RoomTrace[]): Sp
   // Once a person traces a plan, its reviewed rooms replace the partial automatic geometry.
   const spaces: SpatialModel["spaces"] = valid.length ? [] : [...base.spaces];
   const walls: SpatialModel["walls"] = valid.length ? [] : [...base.walls];
+  const openings: SpatialModel["openings"] = valid.length ? [] : [...base.openings];
   for (const trace of valid) {
     const [x0, y0, x1, y1] = trace.rect;
     const kind = roomKind(trace.name);
@@ -110,6 +111,76 @@ export function modelWithRoomTraces(base: SpatialModel, traces: RoomTrace[]): Sp
       });
     });
   }
+  // Rectangles are a reviewed approximation. Give adjacent rooms a visible, traversable doorway
+  // at their shared edge, including the lobby-to-foyer entrance on the lower supplied floor.
+  for (let a = 0; a < valid.length; a++) {
+    const first = valid[a];
+    if (!first) continue;
+    for (let b = a + 1; b < valid.length; b++) {
+      const second = valid[b];
+      if (!second || first.levelId !== second.levelId) continue;
+      const [ax0, ay0, ax1, ay1] = first.rect;
+      const [bx0, by0, bx1, by1] = second.rect;
+      const horizontal = Math.min(ax1, bx1) - Math.max(ax0, bx0);
+      const vertical = Math.min(ay1, by1) - Math.max(ay0, by0);
+      const meetsBelow = Math.abs(ay1 - by0) <= 250;
+      const meetsAbove = Math.abs(by1 - ay0) <= 250;
+      const meetsRight = Math.abs(ax1 - bx0) <= 250;
+      const meetsLeft = Math.abs(bx1 - ax0) <= 250;
+      const overlap =
+        horizontal >= 1000 && (meetsBelow || meetsAbove)
+          ? {
+              axis: "x" as const,
+              start: Math.max(ax0, bx0),
+              end: Math.min(ax1, bx1),
+              edgeA: meetsBelow ? ay1 : ay0,
+              edgeB: meetsBelow ? by0 : by1,
+            }
+          : vertical >= 1000 && (meetsRight || meetsLeft)
+            ? {
+                axis: "y" as const,
+                start: Math.max(ay0, by0),
+                end: Math.min(ay1, by1),
+                edgeA: meetsRight ? ax1 : ax0,
+                edgeB: meetsRight ? bx0 : bx1,
+              }
+            : undefined;
+      if (!overlap) continue;
+      const centre = (overlap.start + overlap.end) / 2;
+      const width = Math.min(900, overlap.end - overlap.start - 100);
+      if (width < 700) continue;
+      const both = [first, second];
+      for (const trace of both) {
+        const edge = trace === first ? overlap.edgeA : overlap.edgeB;
+        const host = walls.find(
+          (wall) =>
+            wall.levelId === trace.levelId &&
+            wall.id.startsWith(`trace.${trace.levelId}.${trace.id}.w`) &&
+            (overlap.axis === "x"
+              ? wall.a.y === edge && wall.b.y === edge
+              : wall.a.x === edge && wall.b.x === edge),
+        );
+        if (!host) continue;
+        const coordinate = overlap.axis === "x" ? host.a.x : host.a.y;
+        const along = Math.abs(centre - coordinate);
+        const offsetMm = Math.round(along - width / 2);
+        if (offsetMm < 0) continue;
+        openings.push({
+          id: `review-door.${first.id}.${second.id}.${trace.id}`,
+          hostWallId: host.id,
+          kind: "passage",
+          offsetMm,
+          widthMm: width,
+          sillMm: 0,
+          headMm: 2100,
+          entrance:
+            /\bfoyer\b/i.test(`${first.name} ${second.name}`) &&
+            /\blobby\b/i.test(`${first.name} ${second.name}`),
+          provenance: { source: "estimated", toleranceMm: 250, confidence: 0.5, evidence: [] },
+        });
+      }
+    }
+  }
   const levels = base.levels.map((level) => {
     const own = valid.filter((trace) => trace.levelId === level.id);
     if (!own.length) return level;
@@ -143,6 +214,6 @@ export function modelWithRoomTraces(base: SpatialModel, traces: RoomTrace[]): Sp
     levels,
     spaces,
     walls,
-    openings: valid.length ? [] : base.openings,
+    openings,
   });
 }

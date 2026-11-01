@@ -286,6 +286,89 @@ button {
   color: #e8f4ed;
   font-size: 12px;
 }
+.walk-hud {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  pointer-events: none;
+}
+.walk-note {
+  position: absolute;
+  top: 66px;
+  left: 16px;
+  display: grid;
+  gap: 2px;
+  padding: 9px 12px;
+  border: 1px solid #ffffff30;
+  border-radius: 9px;
+  background: #07120edc;
+  color: var(--text);
+  font-size: 12px;
+}
+.walk-note b {
+  color: var(--green);
+  font-size: 13px;
+}
+.walk-floors {
+  position: absolute;
+  top: 124px;
+  left: 16px;
+  display: flex;
+  gap: 6px;
+  pointer-events: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.walk-floors button,
+.walk-pad button {
+  border: 1px solid #ffffff45;
+  border-radius: 8px;
+  background: #07120edc;
+  color: var(--text);
+  font-weight: 600;
+}
+.walk-floors button {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.walk-pad {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  display: grid;
+  grid-template-columns: repeat(3, 48px);
+  grid-template-rows: repeat(2, 48px);
+  gap: 5px;
+  pointer-events: auto;
+  touch-action: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.walk-pad button {
+  font-size: 18px;
+  touch-action: none;
+}
+.walk-pad button:nth-of-type(1) {
+  grid-column: 2;
+}
+.walk-pad button:nth-of-type(2) {
+  grid-column: 1;
+  grid-row: 2;
+}
+.walk-pad button:nth-of-type(3) {
+  grid-column: 2;
+  grid-row: 2;
+}
+.walk-pad button:nth-of-type(4) {
+  grid-column: 3;
+  grid-row: 2;
+}
+.walk-pad button:active {
+  background: var(--green);
+  color: #04110b;
+}
 .plan-review {
   position: absolute;
   inset: 0;
@@ -502,6 +585,20 @@ button {
   }
   .stage-tools > .quiet-btn {
     order: 1;
+  }
+  .walk-note {
+    top: 108px;
+    left: 8px;
+  }
+  .walk-floors {
+    top: 164px;
+    left: 8px;
+  }
+  .walk-pad {
+    right: 8px;
+    bottom: 8px;
+    grid-template-columns: repeat(3, 42px);
+    grid-template-rows: repeat(2, 42px);
   }
   .plan-review-head {
     top: 58px;

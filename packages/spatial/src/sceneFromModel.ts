@@ -32,6 +32,14 @@ const DRAWING_MATERIALS: Scene["materials"] = {
     metalness: 0,
     opacity: 1,
   },
+  "roof.terrace": {
+    color: "#f0e8dc",
+    pbr: "clay_roof_tiles_02",
+    tileM: 1.5,
+    roughness: 1,
+    metalness: 0,
+    opacity: 1,
+  },
 };
 
 export interface DrawnScene {
@@ -396,7 +404,7 @@ const floorFor = (kind: string, finish?: SpatialModel["spaces"][number]["floorFi
     : "floor.wood.light";
 };
 
-function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
+function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnScene {
   const level = model.levels[0];
   if (!level) throw new Error("the model has no level");
   const bx = level.boundary.outer.map((p) => p.x);
@@ -436,6 +444,18 @@ function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
         material: floorFor(s.kind, s.floorFinish),
         tags: ["floor"],
       });
+      if (traced && !s.kind.startsWith("exterior.") && !s.kind.startsWith("circulation.lift"))
+        nodes.push({
+          id: `roof.${s.id}.${i}`,
+          name: topLevel ? `${s.name} roof` : `${s.name} ceiling`,
+          type: "ceiling",
+          roomId: s.id,
+          geometry: { kind: "box", size: [(x1 - x0) * M, 0.16, (y1 - y0) * M] },
+          position: [cx, H + 0.08, cy],
+          rotationY: 0,
+          material: topLevel ? "roof.terrace" : "ceiling",
+          tags: topLevel ? ["roof"] : ["ceiling"],
+        });
     });
   }
   if (!traced)
@@ -589,6 +609,45 @@ function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
       ...(biggest ? { roomId: biggest.id } : {}),
     },
   ];
+  const lobby = labels.find((label) => /^lobby$/i.test(label.name));
+  const foyer = labels.find((label) => /^foyer$/i.test(label.name));
+  if (lobby && foyer) {
+    const door = model.openings.find((opening) => opening.entrance);
+    const wall = model.walls.find((item) => item.id === door?.hostWallId);
+    let spawn: [number, number, number] = [lobby.x, 1.6, lobby.y];
+    let facing: [number, number, number] = [foyer.x, 1.3, foyer.y];
+    if (door && wall) {
+      const length = Math.hypot(wall.b.x - wall.a.x, wall.b.y - wall.a.y);
+      const mid = door.offsetMm + door.widthMm / 2;
+      const [x, z] = at(
+        wall.a.x + ((wall.b.x - wall.a.x) * mid) / length,
+        wall.a.y + ((wall.b.y - wall.a.y) * mid) / length,
+      );
+      const horizontalWall = Math.abs(wall.a.y - wall.b.y) < 1;
+      const nx = horizontalWall ? 0 : Math.sign(lobby.x - x);
+      const nz = horizontalWall ? Math.sign(lobby.y - z) : 0;
+      spawn = [x + nx * 1.2, 1.6, z + nz * 1.2];
+      facing = [x - nx * 1.3, 1.3, z - nz * 1.3];
+    }
+    viewpoints.unshift({
+      id: "entry",
+      name: "East entrance",
+      position: spawn,
+      target: facing,
+      fovDeg: 70,
+    });
+  } else if (lobby) {
+    const destination =
+      labels.find((label) => /family room|living room|transition space/i.test(label.name)) ??
+      target;
+    viewpoints.unshift({
+      id: "landing",
+      name: "Landing",
+      position: [lobby.x, 1.6, lobby.y],
+      target: [destination?.x ?? lobby.x, 1.3, destination?.y ?? lobby.y - 2],
+      fovDeg: 70,
+    });
+  }
   return {
     scene: { ceilingM: H, nodes, materials: DRAWING_MATERIALS, shell: { w: W, h: D } },
     labels,
@@ -607,31 +666,36 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
   const globalY = Math.min(
     ...model.levels.flatMap((level) => level.boundary.outer.map((p) => p.y)),
   );
-  const levels = model.levels.map((level) => {
-    const wallIds = new Set(
-      model.walls.filter((wall) => wall.levelId === level.id).map((wall) => wall.id),
-    );
-    const spaces = model.spaces.filter((space) => space.levelId === level.id);
-    const spaceIds = new Set(spaces.map((space) => space.id));
-    const subset: SpatialModel = {
-      ...model,
-      levels: [level],
-      spaces,
-      walls: model.walls.filter((wall) => wall.levelId === level.id),
-      openings: model.openings.filter((opening) => wallIds.has(opening.hostWallId)),
-      obstacles: model.obstacles.filter((obstacle) => obstacle.levelId === level.id),
-      connectors: [],
-      items: model.items.filter((item) => spaceIds.has(item.spaceId)),
-    };
-    const localX = Math.min(...level.boundary.outer.map((p) => p.x));
-    const localY = Math.min(...level.boundary.outer.map((p) => p.y));
-    return {
-      level,
-      drawn: singleLevelSceneFromModel(subset),
-      dx: (localX - globalX) * M,
-      dz: (localY - globalY) * M,
-    };
-  });
+  const levels = [...model.levels]
+    .sort((a, b) => a.elevationMm - b.elevationMm)
+    .map((level) => {
+      const wallIds = new Set(
+        model.walls.filter((wall) => wall.levelId === level.id).map((wall) => wall.id),
+      );
+      const spaces = model.spaces.filter((space) => space.levelId === level.id);
+      const spaceIds = new Set(spaces.map((space) => space.id));
+      const subset: SpatialModel = {
+        ...model,
+        levels: [level],
+        spaces,
+        walls: model.walls.filter((wall) => wall.levelId === level.id),
+        openings: model.openings.filter((opening) => wallIds.has(opening.hostWallId)),
+        obstacles: model.obstacles.filter((obstacle) => obstacle.levelId === level.id),
+        connectors: [],
+        items: model.items.filter((item) => spaceIds.has(item.spaceId)),
+      };
+      const localX = Math.min(...level.boundary.outer.map((p) => p.x));
+      const localY = Math.min(...level.boundary.outer.map((p) => p.y));
+      return {
+        level,
+        drawn: singleLevelSceneFromModel(
+          subset,
+          level.elevationMm === Math.max(...model.levels.map((item) => item.elevationMm)),
+        ),
+        dx: (localX - globalX) * M,
+        dz: (localY - globalY) * M,
+      };
+    });
   const nodes = levels.flatMap(({ level, drawn, dx, dz }) =>
     drawn.scene.nodes.map((node) => ({
       ...node,
@@ -661,25 +725,23 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
       x: label.x + top.dx,
       y: label.y + top.dz,
     })),
-    viewpoints: levels
-      .flatMap(({ level, drawn, dx, dz }) =>
-        drawn.viewpoints.map((viewpoint) => ({
-          ...viewpoint,
-          id: `${level.id}.${viewpoint.id}`,
-          name: `${level.name}: ${viewpoint.name}`,
-          position: [
-            viewpoint.position[0] + dx,
-            viewpoint.position[1] + (level.elevationMm - baseElevation) * M,
-            viewpoint.position[2] + dz,
-          ] as [number, number, number],
-          target: [
-            viewpoint.target[0] + dx,
-            viewpoint.target[1] + (level.elevationMm - baseElevation) * M,
-            viewpoint.target[2] + dz,
-          ] as [number, number, number],
-        })),
-      )
-      .reverse(),
+    viewpoints: levels.flatMap(({ level, drawn, dx, dz }) =>
+      drawn.viewpoints.map((viewpoint) => ({
+        ...viewpoint,
+        id: `${level.id}.${viewpoint.id}`,
+        name: `${level.name}: ${viewpoint.name}`,
+        position: [
+          viewpoint.position[0] + dx,
+          viewpoint.position[1] + (level.elevationMm - baseElevation) * M,
+          viewpoint.position[2] + dz,
+        ] as [number, number, number],
+        target: [
+          viewpoint.target[0] + dx,
+          viewpoint.target[1] + (level.elevationMm - baseElevation) * M,
+          viewpoint.target[2] + dz,
+        ] as [number, number, number],
+      })),
+    ),
     furnished: levels.flatMap(({ drawn }) => drawn.furnished),
   };
 }
