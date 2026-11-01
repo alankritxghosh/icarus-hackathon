@@ -47,6 +47,7 @@ export interface SavedDrawing {
   plans?: PlanReference[];
   traces?: RoomTrace[];
   reviewedOpenings?: OpeningRecord[];
+  reviewedOpeningsOnly?: boolean;
   evidence?: DrawingEvidence;
   sourceEvidence?: DrawingEvidence;
   history?: { model: SpatialModel; evidence: DrawingEvidence }[];
@@ -233,6 +234,7 @@ export function loadDrawings(): SavedDrawing[] {
                   )
                 : undefined,
               reviewedOpenings: reviewed.success ? reviewed.data : undefined,
+              reviewedOpeningsOnly: entry.reviewedOpeningsOnly === true,
               evidence: drawingEvidence(entry.evidence),
               sourceEvidence: drawingEvidence(entry.sourceEvidence),
               history: Array.isArray(entry.history)

@@ -151,6 +151,7 @@ describe("saved drawings", () => {
         title: "Plan",
         model,
         reviewedOpenings: [reviewedOpening],
+        reviewedOpeningsOnly: true,
         evidence,
         sourceEvidence: evidence,
         history: [{ model, evidence }],
@@ -160,6 +161,7 @@ describe("saved drawings", () => {
     ]);
     expect(loadDrawings()[0]?.model).toEqual(model);
     expect(loadDrawings()[0]?.reviewedOpenings).toEqual([reviewedOpening]);
+    expect(loadDrawings()[0]?.reviewedOpeningsOnly).toBe(true);
     expect(loadDrawings()[0]?.evidence).toEqual(evidence);
     expect(loadDrawings()[0]?.sourceEvidence).toEqual(evidence);
     expect(loadDrawings()[0]?.history?.[0]?.model).toEqual(model);

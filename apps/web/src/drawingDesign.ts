@@ -74,6 +74,7 @@ export interface DrawnDesign {
   plans?: PlanReference[];
   traces?: RoomTrace[];
   reviewedOpenings?: OpeningRecord[];
+  reviewedOpeningsOnly?: boolean;
   /** Working drawing shapes, retained so a later edit can rebuild rooms and openings. */
   evidence?: DrawingEvidence;
   scene: Scene;

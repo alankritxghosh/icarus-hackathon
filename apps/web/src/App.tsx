@@ -54,9 +54,12 @@ const reviewedTraceModel = (
   base: SpatialModel,
   traces: RoomTrace[],
   openings?: OpeningRecord[],
+  onlyReviewed = false,
 ) => {
   const traced = modelWithRoomTraces(base, traces);
-  return openings?.length ? modelWithReviewedOpenings(traced, openings) : traced;
+  return openings?.length || onlyReviewed
+    ? modelWithReviewedOpenings(traced, openings ?? [], onlyReviewed)
+    : traced;
 };
 
 const STARTS = [
@@ -204,7 +207,12 @@ export function App() {
     const drawing = current?.drawing;
     if (!current || !drawing?.baseModel) return false;
     try {
-      const model = reviewedTraceModel(drawing.baseModel, traces, drawing.reviewedOpenings);
+      const model = reviewedTraceModel(
+        drawing.baseModel,
+        traces,
+        drawing.reviewedOpenings,
+        drawing.reviewedOpeningsOnly,
+      );
       const shown = sceneFromModel(model);
       setSession({ ...current, drawing: { ...drawing, model, traces, ...shown } });
       setConversation((messages) =>
@@ -263,6 +271,8 @@ export function App() {
           !parsed.success ||
           !base.success ||
           (reviewed !== undefined && !reviewed.success) ||
+          (raw.reviewedOpeningsOnly !== undefined &&
+            typeof raw.reviewedOpeningsOnly !== "boolean") ||
           !Array.isArray(raw.plans) ||
           !Array.isArray(raw.traces) ||
           raw.plans.length !== base.data.levels.length ||
@@ -305,7 +315,12 @@ export function App() {
         )
           throw new Error("invalid project");
         const reviewedOpenings = reviewed?.success ? reviewed.data : undefined;
-        const model = reviewedTraceModel(base.data, raw.traces, reviewedOpenings);
+        const model = reviewedTraceModel(
+          base.data,
+          raw.traces,
+          reviewedOpenings,
+          raw.reviewedOpeningsOnly,
+        );
         if (version !== viewVersion.current) return { text: "" };
         const id = crypto.randomUUID();
         const shown = sceneFromModel(model);
@@ -318,6 +333,7 @@ export function App() {
           plans: raw.plans,
           traces: raw.traces,
           reviewedOpenings,
+          reviewedOpeningsOnly: raw.reviewedOpeningsOnly,
           editedAt: Date.now(),
           conversation: [],
         };
@@ -331,6 +347,7 @@ export function App() {
             plans: raw.plans,
             traces: raw.traces,
             reviewedOpenings,
+            reviewedOpeningsOnly: raw.reviewedOpeningsOnly,
             name: title,
             lines: [],
           },
@@ -557,7 +574,12 @@ export function App() {
     if (!drawing) return;
     const model =
       drawing.baseModel && drawing.traces?.length
-        ? reviewedTraceModel(drawing.baseModel, drawing.traces, drawing.reviewedOpenings)
+        ? reviewedTraceModel(
+            drawing.baseModel,
+            drawing.traces,
+            drawing.reviewedOpenings,
+            drawing.reviewedOpeningsOnly,
+          )
         : drawing.model;
     const shown = sceneFromModel(model);
     if (model !== drawing.model)
@@ -571,6 +593,7 @@ export function App() {
         plans: drawing.plans,
         traces: drawing.traces,
         reviewedOpenings: drawing.reviewedOpenings,
+        reviewedOpeningsOnly: drawing.reviewedOpeningsOnly,
         evidence: drawing.evidence,
         scene: shown.scene,
         labels: shown.labels,

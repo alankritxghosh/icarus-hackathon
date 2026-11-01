@@ -113,6 +113,13 @@ describe("reviewed room outlines", () => {
       );
     expect(blocks(3.4)).toBe(false);
     expect(blocks(2)).toBe(true);
+    const sourceOnly = modelWithReviewedOpenings(
+      traced,
+      reviewed.openings.filter((opening) => opening.id === "sheet-door"),
+      true,
+    );
+    expect(sourceOnly.openings.map((opening) => opening.id)).toEqual(["sheet-door"]);
+    expect(modelWithReviewedOpenings(traced, [], true).openings).toEqual([]);
     expect(() => modelWithReviewedOpenings(traced, [{ ...guess!, id: "unsupported" }])).toThrow(
       "needs a source reference",
     );

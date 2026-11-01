@@ -218,9 +218,13 @@ export function modelWithRoomTraces(base: SpatialModel, traces: RoomTrace[]): Sp
   });
 }
 
-/** Replace guessed gaps on reviewed walls with openings located on a source sheet. */
-export function modelWithReviewedOpenings(model: SpatialModel, reviewed: Opening[]): SpatialModel {
-  if (!reviewed.length) return model;
+/** Replace guessed gaps on reviewed walls, optionally sealing every unreviewed gap. */
+export function modelWithReviewedOpenings(
+  model: SpatialModel,
+  reviewed: Opening[],
+  onlyReviewed = false,
+): SpatialModel {
+  if (!reviewed.length && !onlyReviewed) return model;
   const walls = new Map(model.walls.map((wall) => [wall.id, wall]));
   const hosts = new Set<string>();
   for (const opening of reviewed) {
@@ -235,6 +239,9 @@ export function modelWithReviewedOpenings(model: SpatialModel, reviewed: Opening
   }
   return SpatialModel.parse({
     ...model,
-    openings: [...model.openings.filter((opening) => !hosts.has(opening.hostWallId)), ...reviewed],
+    openings: [
+      ...(onlyReviewed ? [] : model.openings.filter((opening) => !hosts.has(opening.hostWallId))),
+      ...reviewed,
+    ],
   });
 }
