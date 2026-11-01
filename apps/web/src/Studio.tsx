@@ -426,7 +426,7 @@ export function Studio(props: Props) {
           <div className="walk-hud">
             <div className="walk-note">
               <b>{walkPlace || viewpoints[0]?.name || "Entrance"}</b>
-              <span>Drag to look · WASD to move</span>
+              <span>WASD or arrow keys to move · Drag to look · Scroll to zoom</span>
             </div>
             {plans && plans.length > 1 && (
               <fieldset className="walk-floors">

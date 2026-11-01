@@ -298,6 +298,7 @@ button {
   left: 16px;
   display: grid;
   gap: 2px;
+  max-width: min(270px, calc(100% - 32px));
   padding: 9px 12px;
   border: 1px solid #ffffff30;
   border-radius: 9px;

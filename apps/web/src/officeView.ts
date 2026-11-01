@@ -50,9 +50,11 @@ export class OfficeView {
   /** Where the orbit camera was before standing inside, so leaving puts it back. */
   private saved?: { position: THREE.Vector3; fov: number };
   private look = { yaw: 0, pitch: 0 };
+  private walkDistance = 7.5;
   private drag?: { x: number; y: number };
   private readonly keys = (e: KeyboardEvent) => this.onKey(e);
   private readonly keyUp = (e: KeyboardEvent) => this.walkKeys.delete(e.key.toLowerCase());
+  private readonly clearWalkKeys = () => this.walkKeys.clear();
   private readonly walkKeys = new Set<string>();
   private walkFrame = 0;
   private walkTime = 0;
@@ -60,6 +62,7 @@ export class OfficeView {
   private walkBaseY = 0;
   private readonly playerAt = new THREE.Vector3();
   private readonly avatar = this.makeAvatar();
+  private walkWalls: { mesh: THREE.Mesh; box: THREE.Box3 }[] = [];
   private readonly cameraGhosts = new Map<
     THREE.Mesh,
     { normal: THREE.Material; faded: THREE.Material }
@@ -148,8 +151,11 @@ export class OfficeView {
     this.plan.enabled = false;
 
     const el = this.renderer.domElement;
+    el.tabIndex = 0;
+    el.setAttribute("aria-label", "Walk through the model with WASD or arrow keys");
     el.addEventListener("pointerdown", (e) => {
       if (this.mode !== "eye") return;
+      el.focus({ preventScroll: true });
       this.drag = { x: e.clientX, y: e.clientY };
       el.setPointerCapture(e.pointerId);
     });
@@ -168,8 +174,19 @@ export class OfficeView {
     };
     el.addEventListener("pointerup", release);
     el.addEventListener("pointercancel", release);
+    el.addEventListener(
+      "wheel",
+      (e) => {
+        if (this.mode !== "eye") return;
+        e.preventDefault();
+        this.walkDistance = Math.max(4.5, Math.min(12, this.walkDistance + e.deltaY * 0.008));
+        this.updateWalkCamera();
+      },
+      { passive: false },
+    );
     window.addEventListener("keydown", this.keys);
     window.addEventListener("keyup", this.keyUp);
+    window.addEventListener("blur", this.clearWalkKeys);
 
     this.observer = new ResizeObserver(() => this.resize());
     this.observer.observe(host);
@@ -210,6 +227,7 @@ export class OfficeView {
   setScene(scene: Scene) {
     this.resetCameraGhosts();
     this.disposeContent();
+    this.walkWalls = [];
     this.shell = scene.shell;
     this.showCeiling = scene.nodes.some((node) => node.tags.includes("roof"));
     const materials = new Map<string, THREE.MeshStandardMaterial>();
@@ -288,6 +306,8 @@ export class OfficeView {
       mesh.receiveShadow = node.type !== "window";
       mesh.userData = { nodeId: node.id, type: node.type };
       this.content.add(mesh);
+      if (node.type === "wall")
+        this.walkWalls.push({ mesh, box: new THREE.Box3().setFromObject(mesh) });
     }
     const grass = this.pbr("leafy_grass");
     const groundMaterial = new THREE.MeshStandardMaterial({ color: "#9fb08c", roughness: 1 });
@@ -467,6 +487,7 @@ export class OfficeView {
     const dz = view.target[2] - z;
     this.look = { yaw: Math.atan2(-dx, -dz), pitch: 0.2 };
     this.setMode("eye");
+    this.renderer.domElement.focus({ preventScroll: true });
     this.avatar.position.copy(this.playerAt);
     this.avatar.rotation.y = this.look.yaw;
     this.updateWalkCamera();
@@ -536,7 +557,7 @@ export class OfficeView {
 
   private readonly walkTick = (now: number) => {
     if (this.mode !== "eye") return;
-    const dt = this.walkTime ? Math.min(0.05, (now - this.walkTime) / 1000) : 0;
+    const dt = this.walkTime ? Math.min(0.5, (now - this.walkTime) / 1000) : 0;
     this.walkTime = now;
     const down = (a: string, b: string) => Number(this.walkKeys.has(a) || this.walkKeys.has(b));
     const forward = down("w", "arrowup") - down("s", "arrowdown");
@@ -546,10 +567,13 @@ export class OfficeView {
       const step = (2.4 * dt) / length;
       const dx = (-Math.sin(this.look.yaw) * forward + Math.cos(this.look.yaw) * strafe) * step;
       const dz = (-Math.cos(this.look.yaw) * forward - Math.sin(this.look.yaw) * strafe) * step;
-      const x = Math.max(-2, Math.min(this.shell.w + 2, this.playerAt.x + dx));
-      const z = Math.max(-2, Math.min(this.shell.h + 2, this.playerAt.z + dz));
-      if (!this.walkBlocked(x, this.playerAt.z)) this.playerAt.x = x;
-      if (!this.walkBlocked(this.playerAt.x, z)) this.playerAt.z = z;
+      const segments = Math.max(1, Math.ceil(Math.hypot(dx, dz) / 0.2));
+      for (let i = 0; i < segments; i++) {
+        const x = Math.max(-2, Math.min(this.shell.w + 2, this.playerAt.x + dx / segments));
+        const z = Math.max(-2, Math.min(this.shell.h + 2, this.playerAt.z + dz / segments));
+        if (!this.walkBlocked(x, this.playerAt.z)) this.playerAt.x = x;
+        if (!this.walkBlocked(this.playerAt.x, z)) this.playerAt.z = z;
+      }
       this.avatar.rotation.y = Math.atan2(-dx, -dz);
       this.updateWalkCamera();
     }
@@ -558,10 +582,8 @@ export class OfficeView {
 
   private walkBlocked(x: number, z: number): boolean {
     const radius = 0.2;
-    return this.content.children.some((child) => {
-      if (!child.visible || child.userData.type !== "wall" || !(child instanceof THREE.Mesh))
-        return false;
-      const box = new THREE.Box3().setFromObject(child);
+    return this.walkWalls.some(({ mesh, box }) => {
+      if (!mesh.visible) return false;
       if (box.max.y < this.walkBaseY + 0.25 || box.min.y > this.walkBaseY + 1.65) return false;
       return (
         x > box.min.x - radius &&
@@ -579,9 +601,9 @@ export class OfficeView {
       .clone()
       .add(
         new THREE.Vector3(
-          Math.sin(this.look.yaw) * 5.2,
-          4.5 + this.look.pitch * 1.2,
-          Math.cos(this.look.yaw) * 5.2,
+          Math.sin(this.look.yaw) * this.walkDistance,
+          this.walkDistance * 0.55 + this.look.pitch * 1.2,
+          Math.cos(this.look.yaw) * this.walkDistance,
         ),
       );
     this.perspective.position.copy(desired);
@@ -613,7 +635,7 @@ export class OfficeView {
     const faded = new Set<THREE.Mesh>();
     for (const hit of hits) {
       const mesh = hit.object;
-      if (!(mesh instanceof THREE.Mesh) || faded.has(mesh) || faded.size >= 4) continue;
+      if (!(mesh instanceof THREE.Mesh) || faded.has(mesh)) continue;
       let pair = this.cameraGhosts.get(mesh);
       if (!pair) {
         const normal = mesh.material as THREE.Material;
@@ -711,6 +733,7 @@ export class OfficeView {
     this.denoiseTarget?.dispose();
     window.removeEventListener("keydown", this.keys);
     window.removeEventListener("keyup", this.keyUp);
+    window.removeEventListener("blur", this.clearWalkKeys);
     cancelAnimationFrame(this.walkFrame);
     cancelAnimationFrame(this.frame);
     this.observer.disconnect();

@@ -28,10 +28,6 @@ function at(x: number, z: number): [number, number, number] {
   return [x, EYE_HEIGHT_M, z];
 }
 
-function centreOf(room: PlanRoom): [number, number, number] {
-  return [room.rect.x + room.rect.w / 2, LOOK_HEIGHT_M, room.rect.y + room.rect.h / 2];
-}
-
 /** Standing against the wall opposite the door, looking back across the room towards it. */
 function fromFarWall(room: PlanRoom, name: string, fovDeg = 74): Viewpoint {
   const r = room.rect;
@@ -62,9 +58,6 @@ function fromFarWall(room: PlanRoom, name: string, fovDeg = 74): Viewpoint {
 export function viewpoints(plan: FloorPlan): Viewpoint[] {
   const views: Viewpoint[] = [];
   const workspace = plan.rooms.find((r) => r.kind === "open_workspace");
-  const focus: [number, number, number] = workspace
-    ? centreOf(workspace)
-    : [plan.shell.w / 2, LOOK_HEIGHT_M, plan.shell.h / 2];
 
   const { x, y, side } = plan.entrance;
   const [ex, ez] = inward[side];
@@ -72,7 +65,7 @@ export function viewpoints(plan: FloorPlan): Viewpoint[] {
     id: "view.entrance",
     name: "Entrance",
     position: at(x + ex * 0.9, y + ez * 0.9),
-    target: focus,
+    target: [x + ex * 3, LOOK_HEIGHT_M, y + ez * 3],
     fovDeg: 72,
   });
 

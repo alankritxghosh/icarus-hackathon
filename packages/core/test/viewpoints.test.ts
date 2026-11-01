@@ -15,6 +15,16 @@ describe("viewpoints", () => {
       const plan = layoutOffice(p, { seed: 1 });
       const views = viewpoints(plan);
       expect(views.length).toBeGreaterThanOrEqual(5);
+      const entrance = views.find((view) => view.name === "Entrance");
+      expect(entrance).toBeDefined();
+      const inward = {
+        north: [0, 1],
+        south: [0, -1],
+        east: [-1, 0],
+        west: [1, 0],
+      }[side];
+      expect(Math.sign((entrance?.target[0] ?? 0) - (entrance?.position[0] ?? 0))).toBe(inward[0]);
+      expect(Math.sign((entrance?.target[2] ?? 0) - (entrance?.position[2] ?? 0))).toBe(inward[1]);
       expect(new Set(views.map((v) => v.id)).size).toBe(views.length);
       for (const v of views) {
         expect(v.position[1], v.name).toBe(EYE_HEIGHT_M);

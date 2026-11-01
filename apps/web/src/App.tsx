@@ -622,9 +622,7 @@ export function App() {
   const eye = useMemo(() => {
     const v = shown.views;
     if (session?.drawing) return v;
-    return [v.find((x) => x.name === "Open workspace") ?? v[0]].filter((x): x is Viewpoint =>
-      Boolean(x),
-    );
+    return [v.find((x) => x.name === "Entrance") ?? v[0]].filter((x): x is Viewpoint => Boolean(x));
   }, [shown.views, session?.drawing]);
 
   return (

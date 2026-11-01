@@ -599,12 +599,19 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
   const target = biggest ? labels[model.spaces.indexOf(biggest)] : undefined;
   const px = target?.x ?? W / 2;
   const pz = target?.y ?? D / 2;
+  const roomXs = biggest?.boundary.outer.map((point) => point.x) ?? [];
+  const roomZs = biggest?.boundary.outer.map((point) => point.y) ?? [];
+  const roomW = roomXs.length ? (Math.max(...roomXs) - Math.min(...roomXs)) * M : W;
+  const roomD = roomZs.length ? (Math.max(...roomZs) - Math.min(...roomZs)) * M : D;
   const viewpoints: Viewpoint[] = [
     {
       id: "inside",
       name: biggest?.name ?? "Inside",
       position: [px, 1.6, pz],
-      target: [px + 2, 1.4, pz - 2],
+      target:
+        roomW >= roomD
+          ? [px + Math.min(1.2, roomW / 4), 1.4, pz]
+          : [px, 1.4, pz + Math.min(1.2, roomD / 4)],
       fovDeg: 70,
       ...(biggest ? { roomId: biggest.id } : {}),
     },
