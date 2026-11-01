@@ -2,6 +2,8 @@ import { type FloorPlan, type Program, ProgramSchema } from "@icarus/core";
 import {
   type DrawingEvidence,
   fromFloorPlan,
+  Opening,
+  type OpeningRecord,
   type RoomTrace,
   SpatialModel,
   upgradeSaved,
@@ -44,6 +46,7 @@ export interface SavedDrawing {
   baseModel?: SpatialModel;
   plans?: PlanReference[];
   traces?: RoomTrace[];
+  reviewedOpenings?: OpeningRecord[];
   evidence?: DrawingEvidence;
   sourceEvidence?: DrawingEvidence;
   history?: { model: SpatialModel; evidence: DrawingEvidence }[];
@@ -196,6 +199,7 @@ export function loadDrawings(): SavedDrawing[] {
       const entry = d as Record<string, unknown>;
       const model = SpatialModel.safeParse(entry.model);
       const base = SpatialModel.safeParse(entry.baseModel);
+      const reviewed = Opening.array().safeParse(entry.reviewedOpenings);
       return model.success && typeof entry.id === "string" && typeof entry.title === "string"
         ? [
             {
@@ -228,6 +232,7 @@ export function loadDrawings(): SavedDrawing[] {
                       trace.rect.every(Number.isFinite),
                   )
                 : undefined,
+              reviewedOpenings: reviewed.success ? reviewed.data : undefined,
               evidence: drawingEvidence(entry.evidence),
               sourceEvidence: drawingEvidence(entry.sourceEvidence),
               history: Array.isArray(entry.history)

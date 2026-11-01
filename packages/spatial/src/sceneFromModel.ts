@@ -714,6 +714,83 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
       ] as [number, number, number],
     })),
   );
+  for (const connector of model.connectors) {
+    if (connector.kind !== "stair" || !connector.path) continue;
+    const width = (connector.clearWidthMm ?? 900) * M;
+    for (let i = 0; i + 1 < connector.path.length; i++) {
+      const a = connector.path[i] as NonNullable<typeof connector.path>[number];
+      const b = connector.path[i + 1] as NonNullable<typeof connector.path>[number];
+      const run = Math.hypot(b.x - a.x, b.y - a.y);
+      const rise = b.elevationMm - a.elevationMm;
+      const count = a.stepsToNext ?? Math.max(1, Math.ceil(rise / 160));
+      if (run / count < 220 || rise < 0 || rise / count > 200)
+        throw new Error(`stair ${connector.id} has an unwalkable flight segment`);
+      for (let step = 0; step < count; step++) {
+        const t = (step + 0.5) / count;
+        const top = a.elevationMm + (rise * (step + 1)) / count;
+        const x = (a.x + (b.x - a.x) * t - globalX) * M;
+        const z = (a.y + (b.y - a.y) * t - globalY) * M;
+        const rotationY = -Math.atan2(b.y - a.y, b.x - a.x);
+        const treadRun = (run / count) * M;
+        nodes.push({
+          id: `stair.${connector.id}.${i}.${step}`,
+          name: `Stair ${step + 1}`,
+          type: "floor",
+          geometry: { kind: "box", size: [treadRun + 0.02, 0.12, width] },
+          position: [x, (top - baseElevation) * M - 0.06, z],
+          rotationY,
+          material: "floor.tile",
+          tags: ["floor", "stair"],
+        });
+        // Fill each rise from the start of its flight. It remains a concept-stage
+        // stair assembly, not a claim about the building's actual structure.
+        if (rise > 0) {
+          const bottom = (a.elevationMm - baseElevation) * M;
+          const height = (top - a.elevationMm) * M - 0.12;
+          if (height > 0)
+            nodes.push({
+              id: `stair.${connector.id}.${i}.${step}.riser`,
+              name: "Stair riser",
+              type: "fixture",
+              geometry: { kind: "box", size: [treadRun, height, width] },
+              position: [x, bottom + height / 2, z],
+              rotationY,
+              material: "floor.concrete",
+              tags: ["stair", "riser"],
+            });
+        }
+        // A pair of simple guard posts follows the same centreline as the treads.
+        // Posts sit outside the clear walking width and are visual only.
+        if (count > 1)
+          for (const side of [-1, 1]) {
+            const lateral = (width / 2 + 0.04) * side;
+            const edgeX = x + Math.sin(rotationY) * lateral;
+            const edgeZ = z + Math.cos(rotationY) * lateral;
+            if (step % 2 === 0)
+              nodes.push({
+                id: `stair.${connector.id}.${i}.${step}.guard.${side}`,
+                name: "Stair guard post",
+                type: "fixture",
+                geometry: { kind: "box", size: [0.04, 0.9, 0.04] },
+                position: [edgeX, (top - baseElevation) * M + 0.45, edgeZ],
+                rotationY,
+                material: "floor.concrete",
+                tags: ["stair", "guard"],
+              });
+            nodes.push({
+              id: `stair.${connector.id}.${i}.${step}.rail.${side}`,
+              name: "Stair handrail",
+              type: "fixture",
+              geometry: { kind: "box", size: [treadRun + 0.03, 0.04, 0.05] },
+              position: [edgeX, (top - baseElevation) * M + 0.9, edgeZ],
+              rotationY,
+              material: "floor.concrete",
+              tags: ["stair", "rail"],
+            });
+          }
+      }
+    }
+  }
   const top = [...levels].sort((a, b) => b.level.elevationMm - a.level.elevationMm)[0];
   if (!top) throw new Error("the model has no level");
   return {

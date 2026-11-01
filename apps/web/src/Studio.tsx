@@ -92,9 +92,11 @@ export function Studio(props: Props) {
   const pendingRef = useRef(false);
   const latestScene = useRef(scene);
   const latestLabels = useRef(labels);
+  const latestPlans = useRef(plans);
   const hasScene = Boolean(scene);
   latestScene.current = scene;
   latestLabels.current = labels;
+  latestPlans.current = plans;
 
   useEffect(() => {
     if (!hasScene) return;
@@ -102,6 +104,10 @@ export function Studio(props: Props) {
     void import("./officeView").then(({ OfficeView }) => {
       if (closed || !host.current) return;
       const v = new OfficeView(host.current);
+      v.onWalkLevelChange = (levelId) => {
+        const level = latestPlans.current?.find((plan) => plan.levelId === levelId);
+        setWalkPlace(level ? `${level.name}: landing` : levelId);
+      };
       view.current = v;
       setCanReal(v.supportsRealistic());
       if (latestScene.current) {

@@ -2,8 +2,11 @@ import { type Scene, type Viewpoint, viewpoints } from "@icarus/core";
 import {
   type AccountLesson,
   type DrawingEvidence,
+  modelWithReviewedOpenings,
   modelWithRoomTraces,
   moveDrawingWall,
+  Opening,
+  type OpeningRecord,
   type RoomTrace,
   SpatialModel,
   sceneFromModel,
@@ -46,6 +49,15 @@ interface Session {
   history: Built[];
   drawingHistory?: { model: SpatialModel; evidence: DrawingEvidence }[];
 }
+
+const reviewedTraceModel = (
+  base: SpatialModel,
+  traces: RoomTrace[],
+  openings?: OpeningRecord[],
+) => {
+  const traced = modelWithRoomTraces(base, traces);
+  return openings?.length ? modelWithReviewedOpenings(traced, openings) : traced;
+};
 
 const STARTS = [
   {
@@ -192,7 +204,7 @@ export function App() {
     const drawing = current?.drawing;
     if (!current || !drawing?.baseModel) return false;
     try {
-      const model = modelWithRoomTraces(drawing.baseModel, traces);
+      const model = reviewedTraceModel(drawing.baseModel, traces, drawing.reviewedOpenings);
       const shown = sceneFromModel(model);
       setSession({ ...current, drawing: { ...drawing, model, traces, ...shown } });
       setConversation((messages) =>
@@ -243,9 +255,14 @@ export function App() {
         const raw = JSON.parse(await (files[0] as File).text()) as SavedDrawing;
         const parsed = SpatialModel.safeParse(raw.model);
         const base = SpatialModel.safeParse(raw.baseModel);
+        const reviewed =
+          raw.reviewedOpenings === undefined
+            ? undefined
+            : Opening.array().safeParse(raw.reviewedOpenings);
         if (
           !parsed.success ||
           !base.success ||
+          (reviewed !== undefined && !reviewed.success) ||
           !Array.isArray(raw.plans) ||
           !Array.isArray(raw.traces) ||
           raw.plans.length !== base.data.levels.length ||
@@ -287,7 +304,8 @@ export function App() {
           )
         )
           throw new Error("invalid project");
-        const model = modelWithRoomTraces(base.data, raw.traces);
+        const reviewedOpenings = reviewed?.success ? reviewed.data : undefined;
+        const model = reviewedTraceModel(base.data, raw.traces, reviewedOpenings);
         if (version !== viewVersion.current) return { text: "" };
         const id = crypto.randomUUID();
         const shown = sceneFromModel(model);
@@ -299,6 +317,7 @@ export function App() {
           baseModel: base.data,
           plans: raw.plans,
           traces: raw.traces,
+          reviewedOpenings,
           editedAt: Date.now(),
           conversation: [],
         };
@@ -311,6 +330,7 @@ export function App() {
             baseModel: base.data,
             plans: raw.plans,
             traces: raw.traces,
+            reviewedOpenings,
             name: title,
             lines: [],
           },
@@ -537,7 +557,7 @@ export function App() {
     if (!drawing) return;
     const model =
       drawing.baseModel && drawing.traces?.length
-        ? modelWithRoomTraces(drawing.baseModel, drawing.traces)
+        ? reviewedTraceModel(drawing.baseModel, drawing.traces, drawing.reviewedOpenings)
         : drawing.model;
     const shown = sceneFromModel(model);
     if (model !== drawing.model)
@@ -550,6 +570,7 @@ export function App() {
         baseModel: drawing.baseModel,
         plans: drawing.plans,
         traces: drawing.traces,
+        reviewedOpenings: drawing.reviewedOpenings,
         evidence: drawing.evidence,
         scene: shown.scene,
         labels: shown.labels,

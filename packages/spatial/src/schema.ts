@@ -162,6 +162,14 @@ export const Connector = z.object({
     .min(2)
     .max(40),
   clearWidthMm: Mm.min(300).optional(),
+  /** Centreline of a walkable stair, in the building frame, from lower to upper landing. */
+  path: z
+    .array(
+      z.object({ x: Mm, y: Mm, elevationMm: Mm, stepsToNext: z.int().min(1).max(100).optional() }),
+    )
+    .min(2)
+    .max(100)
+    .optional(),
   provenance: Provenance.default(generated),
 });
 

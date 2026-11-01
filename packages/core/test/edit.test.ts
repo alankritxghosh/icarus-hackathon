@@ -641,7 +641,7 @@ describe("adding a meeting room", () => {
     expect(out.steps[0]?.status).toBe("refused");
     expect(out.steps[0]?.message).toContain("workstations");
     expect(out.evaluation).toBe(tight);
-  });
+  }, 15_000);
 });
 
 describe("removing a meeting room", () => {

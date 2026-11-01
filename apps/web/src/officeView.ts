@@ -30,6 +30,7 @@ const DARK = new THREE.Color("#0a0f0d");
  * the window resizes or the scene changes, so an idle office costs nothing.
  */
 export class OfficeView {
+  onWalkLevelChange?: (levelId: string) => void;
   private readonly renderer: THREE.WebGLRenderer;
   private readonly three = new THREE.Scene();
   private readonly perspective = new THREE.PerspectiveCamera(45, 1, 0.1, 400);
@@ -51,6 +52,8 @@ export class OfficeView {
   private saved?: { position: THREE.Vector3; fov: number };
   private look = { yaw: 0, pitch: 0 };
   private walkDistance = 7.5;
+  private walkCameraDistance = 7.5;
+  private cameraRecovering = false;
   private drag?: { x: number; y: number };
   private readonly keys = (e: KeyboardEvent) => this.onKey(e);
   private readonly keyUp = (e: KeyboardEvent) => this.walkKeys.delete(e.key.toLowerCase());
@@ -62,7 +65,27 @@ export class OfficeView {
   private walkBaseY = 0;
   private readonly playerAt = new THREE.Vector3();
   private readonly avatar = this.makeAvatar();
-  private walkWalls: { mesh: THREE.Mesh; box: THREE.Box3 }[] = [];
+  private walkWalls: {
+    mesh: THREE.Mesh;
+    x: number;
+    z: number;
+    halfW: number;
+    halfD: number;
+    minY: number;
+    maxY: number;
+    cos: number;
+    sin: number;
+  }[] = [];
+  private walkFloors: {
+    id: string;
+    x: number;
+    z: number;
+    halfW: number;
+    halfD: number;
+    top: number;
+    cos: number;
+    sin: number;
+  }[] = [];
   private readonly cameraGhosts = new Map<
     THREE.Mesh,
     { normal: THREE.Material; faded: THREE.Material }
@@ -228,6 +251,7 @@ export class OfficeView {
     this.resetCameraGhosts();
     this.disposeContent();
     this.walkWalls = [];
+    this.walkFloors = [];
     this.shell = scene.shell;
     this.showCeiling = scene.nodes.some((node) => node.tags.includes("roof"));
     const materials = new Map<string, THREE.MeshStandardMaterial>();
@@ -306,8 +330,29 @@ export class OfficeView {
       mesh.receiveShadow = node.type !== "window";
       mesh.userData = { nodeId: node.id, type: node.type };
       this.content.add(mesh);
-      if (node.type === "wall")
-        this.walkWalls.push({ mesh, box: new THREE.Box3().setFromObject(mesh) });
+      if (node.type === "wall" && node.geometry.kind === "box")
+        this.walkWalls.push({
+          mesh,
+          x: node.position[0],
+          z: node.position[2],
+          halfW: node.geometry.size[0] / 2,
+          halfD: node.geometry.size[2] / 2,
+          minY: node.position[1] - node.geometry.size[1] / 2,
+          maxY: node.position[1] + node.geometry.size[1] / 2,
+          cos: Math.cos(node.rotationY),
+          sin: Math.sin(node.rotationY),
+        });
+      if (node.type === "floor" && node.geometry.kind === "box")
+        this.walkFloors.push({
+          id: node.id,
+          x: node.position[0],
+          z: node.position[2],
+          halfW: node.geometry.size[0] / 2,
+          halfD: node.geometry.size[2] / 2,
+          top: node.position[1] + node.geometry.size[1] / 2,
+          cos: Math.cos(node.rotationY),
+          sin: Math.sin(node.rotationY),
+        });
     }
     const grass = this.pbr("leafy_grass");
     const groundMaterial = new THREE.MeshStandardMaterial({ color: "#9fb08c", roughness: 1 });
@@ -480,6 +525,8 @@ export class OfficeView {
         ? prefix
         : undefined;
     this.walkBaseY = y - 1.6;
+    this.walkCameraDistance = this.walkDistance;
+    this.cameraRecovering = false;
     this.playerAt.set(x, this.walkBaseY, z);
     this.perspective.fov = view.fovDeg;
     this.perspective.updateProjectionMatrix();
@@ -571,43 +618,140 @@ export class OfficeView {
       for (let i = 0; i < segments; i++) {
         const x = Math.max(-2, Math.min(this.shell.w + 2, this.playerAt.x + dx / segments));
         const z = Math.max(-2, Math.min(this.shell.h + 2, this.playerAt.z + dz / segments));
-        if (!this.walkBlocked(x, this.playerAt.z)) this.playerAt.x = x;
-        if (!this.walkBlocked(this.playerAt.x, z)) this.playerAt.z = z;
+        this.tryWalkStep(x, this.playerAt.z);
+        this.tryWalkStep(this.playerAt.x, z);
       }
       this.avatar.rotation.y = Math.atan2(-dx, -dz);
-      this.updateWalkCamera();
     }
+    if (forward || strafe || this.cameraRecovering) this.updateWalkCamera();
     this.walkFrame = requestAnimationFrame(this.walkTick);
   };
 
-  private walkBlocked(x: number, z: number): boolean {
-    const radius = 0.2;
-    return this.walkWalls.some(({ mesh, box }) => {
-      if (!mesh.visible) return false;
-      if (box.max.y < this.walkBaseY + 0.25 || box.min.y > this.walkBaseY + 1.65) return false;
-      return (
-        x > box.min.x - radius &&
-        x < box.max.x + radius &&
-        z > box.min.z - radius &&
-        z < box.max.z + radius
-      );
-    });
+  private tryWalkStep(x: number, z: number) {
+    const floor = this.walkFloorAt(x, z);
+    if (!floor) {
+      if (import.meta.env.DEV) this.renderer.domElement.dataset.walkStop = "no floor";
+      return;
+    }
+    const wall = this.walkBlocked(x, z, floor.top);
+    if (wall) {
+      if (import.meta.env.DEV) this.renderer.domElement.dataset.walkStop = wall;
+      return;
+    }
+    if (import.meta.env.DEV) this.renderer.domElement.dataset.walkStop = "";
+    this.playerAt.set(x, floor.top, z);
+    this.walkBaseY = floor.top;
+    const level = floor.id.split(".")[0];
+    if (
+      level &&
+      level !== "stair" &&
+      level !== this.walkLevelId &&
+      this.content.children.some((child) =>
+        String(child.userData.nodeId ?? "").startsWith(`${level}.`),
+      )
+    ) {
+      this.walkLevelId = level;
+      this.applyCeiling();
+      this.onWalkLevelChange?.(level);
+    }
+  }
+
+  private walkFloorAt(x: number, z: number) {
+    return this.walkFloors
+      .filter((floor) => {
+        if (floor.top > this.playerAt.y + 0.22 || floor.top < this.playerAt.y - 0.3) return false;
+        const dx = x - floor.x;
+        const dz = z - floor.z;
+        const lx = floor.cos * dx - floor.sin * dz;
+        const lz = floor.sin * dx + floor.cos * dz;
+        return Math.abs(lx) <= floor.halfW + 0.1 && Math.abs(lz) <= floor.halfD + 0.1;
+      })
+      .sort((a, b) => b.top - a.top)[0];
+  }
+
+  private walkBlocked(x: number, z: number, baseY = this.playerAt.y): string | undefined {
+    const wall = this.walkWalls.find(
+      (part) =>
+        part.maxY >= baseY + 0.25 && part.minY <= baseY + 1.65 && this.insideWall(part, x, z, 0.2),
+    );
+    return wall
+      ? `${String(wall.mesh.userData.nodeId ?? "wall")} x=${wall.x.toFixed(3)} half=${wall.halfW.toFixed(3)} candidate=${x.toFixed(3)}`
+      : undefined;
+  }
+
+  private insideWall(wall: (typeof this.walkWalls)[number], x: number, z: number, padding = 0) {
+    const dx = x - wall.x;
+    const dz = z - wall.z;
+    const lx = wall.cos * dx - wall.sin * dz;
+    const lz = wall.sin * dx + wall.cos * dz;
+    return Math.abs(lx) <= wall.halfW + padding && Math.abs(lz) <= wall.halfD + padding;
   }
 
   private updateWalkCamera() {
     if (this.mode !== "eye") return;
     this.avatar.position.copy(this.playerAt);
-    const desired = this.playerAt
-      .clone()
-      .add(
-        new THREE.Vector3(
-          Math.sin(this.look.yaw) * this.walkDistance,
-          this.walkDistance * 0.55 + this.look.pitch * 1.2,
-          Math.cos(this.look.yaw) * this.walkDistance,
-        ),
-      );
+    if (import.meta.env.DEV)
+      this.renderer.domElement.dataset.walkPose = [
+        this.playerAt.x.toFixed(2),
+        this.playerAt.y.toFixed(2),
+        this.playerAt.z.toFixed(2),
+        this.look.yaw.toFixed(3),
+      ].join(",");
+    const target = this.playerAt.clone().add(new THREE.Vector3(0, 1.2, 0));
+    const rise = this.walkDistance * 0.55 + this.look.pitch * 1.2 - 1.2;
+    const boom = new THREE.Vector3(
+      Math.sin(this.look.yaw),
+      rise / this.walkDistance,
+      Math.cos(this.look.yaw),
+    ).normalize();
+    const wanted = Math.hypot(this.walkDistance, rise);
+    const obstacles = this.content.children.filter(
+      (child) =>
+        child.visible && (child.userData.type === "wall" || child.userData.type === "ceiling"),
+    );
+    const hit = new THREE.Raycaster(target, boom, 0.2, wanted).intersectObjects(
+      obstacles,
+      false,
+    )[0];
+    let clear = hit ? Math.max(2.8, hit.distance - 0.25) : wanted;
+    clear = Math.min(clear, wanted);
+    // In a tight room the useful camera position may be beyond a thin blocking wall.
+    // That wall is faded below; keep the camera point outside the wall solid.
+    while (
+      clear < wanted &&
+      this.walkWalls.some((wall) => {
+        const point = target.clone().addScaledVector(boom, clear);
+        return (
+          wall.mesh.visible &&
+          point.y >= wall.minY &&
+          point.y <= wall.maxY &&
+          this.insideWall(wall, point.x, point.z)
+        );
+      })
+    ) {
+      clear = Math.min(wanted, clear + 0.2);
+    }
+    if (
+      hit &&
+      this.walkWalls.some((wall) => {
+        const point = target.clone().addScaledVector(boom, clear);
+        return (
+          wall.mesh.visible &&
+          point.y >= wall.minY &&
+          point.y <= wall.maxY &&
+          this.insideWall(wall, point.x, point.z)
+        );
+      })
+    )
+      clear = Math.max(1.2, hit.distance - 0.25);
+    this.walkCameraDistance =
+      clear < this.walkCameraDistance
+        ? clear
+        : this.walkCameraDistance + (clear - this.walkCameraDistance) * 0.2;
+    this.cameraRecovering = clear - this.walkCameraDistance > 0.01;
+    const desired = target.clone().addScaledVector(boom, this.walkCameraDistance);
     this.perspective.position.copy(desired);
-    this.perspective.lookAt(this.playerAt.x, this.playerAt.y + 1.2, this.playerAt.z);
+    this.perspective.lookAt(target);
     this.fadeCameraWalls();
     this.cameraMoved();
   }
@@ -751,6 +895,7 @@ export class OfficeView {
         this.mode === "eye" &&
         this.walkLevelId &&
         id &&
+        !id.startsWith("stair.") &&
         !id.startsWith(`${this.walkLevelId}.`) &&
         child.position.y > this.walkBaseY + 0.2
       ) {

@@ -131,6 +131,13 @@ describe("saved drawings", () => {
       },
     });
     const model = fromFloorPlan(plan, { program: p });
+    const entrance = model.openings[0];
+    expect(entrance).toBeDefined();
+    if (!entrance) throw new Error("fixture has no opening");
+    const reviewedOpening = {
+      ...entrance,
+      provenance: { source: "measured" as const, evidence: ["sheet:entry-door"] },
+    };
     const evidence: DrawingEvidence = {
       schema: "icarus.drawing-evidence/0.1",
       source: "plan.pdf",
@@ -143,6 +150,7 @@ describe("saved drawings", () => {
         id: "drawing-1",
         title: "Plan",
         model,
+        reviewedOpenings: [reviewedOpening],
         evidence,
         sourceEvidence: evidence,
         history: [{ model, evidence }],
@@ -151,6 +159,7 @@ describe("saved drawings", () => {
       },
     ]);
     expect(loadDrawings()[0]?.model).toEqual(model);
+    expect(loadDrawings()[0]?.reviewedOpenings).toEqual([reviewedOpening]);
     expect(loadDrawings()[0]?.evidence).toEqual(evidence);
     expect(loadDrawings()[0]?.sourceEvidence).toEqual(evidence);
     expect(loadDrawings()[0]?.history?.[0]?.model).toEqual(model);

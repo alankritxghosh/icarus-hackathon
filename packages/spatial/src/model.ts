@@ -37,6 +37,6 @@ export {
   reviewAgainstPrinciples,
 } from "./principles";
 export { type DrawnScene, sceneFromModel } from "./sceneFromModel";
-export { SpatialModel } from "./schema";
+export { Opening, type Opening as OpeningRecord, SpatialModel } from "./schema";
 export { estimateUnitMm, extractEvidenceAuto, type ScaleEstimate } from "./sheetScale";
-export { modelWithRoomTraces, type RoomTrace } from "./traceRooms";
+export { modelWithReviewedOpenings, modelWithRoomTraces, type RoomTrace } from "./traceRooms";

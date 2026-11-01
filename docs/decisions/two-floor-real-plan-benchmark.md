@@ -45,6 +45,14 @@ The spatial layer now accepts a source-referenced opening to replace an adjacenc
 
 This residential pair tests multi-floor vector extraction. It cannot satisfy the separate workplace-design review gate or justify a general “prompt anything” claim.
 
+### 2 November route experiment
+
+An ignored local route study now carries 38 outlined spaces, five reviewed route openings and a six-point stair path. The fourth-floor drawing coordinates were shifted 2,260 mm to line up the visible stair edges; this is a visual registration assumption, not a measured building offset. The path uses 3,200 mm total rise with tread runs and rises chosen to be walkable in the concept viewer. The third-floor foyer gap and exact door positions remain estimates tied to sheet-feature references in each opening's provenance. The local generator and project are in ignored `fixtures/private/two-floor-reference/`.
+
+**Decision:** Represent the stair as connector waypoints with explicit elevations and step counts. Alternatives were a floor-button relocation (no physical route) and an independent game stair mesh (could disagree with export and collisions). A hand-calculated 20-step, 3,200 mm fixture checks 160 mm rises and continuous floor support; a high-rise mutation is rejected. A fresh local browser run held movement keys from the third-floor east entrance, through the foyer, over the stair and into the fourth-floor bedroom without pressing a floor button. The final pose was approximately x=6.23 m, elevation=3.20 m, z=3.65 m with no recorded collision stop. Reopening the saved project and repeating the route passed. The same connector now generates treads, risers, guard posts and stepped handrail pieces in the visual scene. This approach uses no new library and keeps the visible stair tied to the semantic model.
+
+The screenshot still shows a conspicuous open volume under parts of the stair over the landscape ground, and the upper-room camera can crowd the avatar. The handrail pieces are stepped approximations and visual only. There is no source-verified slab/structural support, guard design, full-room door network or independent architectural judgement. The browser run proves one route on one renderer; it does not close the Level 8 or Level 10 gate.
+
 ## In-app plan review experiment (1 November)
 
 The local Icarus worktree now renders the actual first PDF page in Plan view. A person draws a rectangle around a space; Icarus takes its printed name when available, or asks for a short name when PDF text misses it. That outline becomes a room floor and estimated wall edges in the two-level spatial model. The plan overlay stays visible so misplaced outlines can be checked and undone. The model uses the installed CC0 Poly Haven furniture and PBR floor/wall materials where a matching room type exists. It can be saved as an `.icarus.json` project and reopened by attaching that file in the composer.

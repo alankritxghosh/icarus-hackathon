@@ -1,5 +1,5 @@
 import type { Scene, Viewpoint } from "@icarus/core";
-import type { DrawingEvidence, RoomTrace } from "@icarus/spatial/model";
+import type { DrawingEvidence, OpeningRecord, RoomTrace } from "@icarus/spatial/model";
 import {
   extractEvidence,
   extractEvidenceAuto,
@@ -73,6 +73,7 @@ export interface DrawnDesign {
   baseModel?: SpatialModel;
   plans?: PlanReference[];
   traces?: RoomTrace[];
+  reviewedOpenings?: OpeningRecord[];
   /** Working drawing shapes, retained so a later edit can rebuild rooms and openings. */
   evidence?: DrawingEvidence;
   scene: Scene;
