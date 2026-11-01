@@ -59,6 +59,6 @@ export {
 export { type DrawnScene, sceneFromModel } from "./sceneFromModel";
 export * from "./schema";
 export { estimateUnitMm, extractEvidenceAuto, type ScaleEstimate } from "./sheetScale";
-export { modelWithRoomTraces, type RoomTrace } from "./traceRooms";
+export { modelWithReviewedOpenings, modelWithRoomTraces, type RoomTrace } from "./traceRooms";
 export { uncertaintySummary } from "./uncertainty";
 export { type Finding, usableAreaM2, validate } from "./validate";

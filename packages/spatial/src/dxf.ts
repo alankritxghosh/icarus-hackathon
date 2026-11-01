@@ -152,5 +152,5 @@ export function toDxf(model: SpatialModel): DxfResult {
   h(0, "SECTION");
   h(2, "ENTITIES");
   const tail = ["0", "ENDSEC", "0", "EOF"];
-  return { dxf: [...head, ...body, ...tail].join("\n") + "\n", skipped };
+  return { dxf: `${[...head, ...body, ...tail].join("\n")}\n`, skipped };
 }

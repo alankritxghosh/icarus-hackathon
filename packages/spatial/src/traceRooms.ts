@@ -1,4 +1,4 @@
-import { SCHEMA_VERSION, type Space, SpatialModel } from "./schema";
+import { type Opening, SCHEMA_VERSION, type Space, SpatialModel } from "./schema";
 
 /** A room rectangle reviewed against the visible PDF sheet, in the building's millimetre frame. */
 export interface RoomTrace {
@@ -215,5 +215,26 @@ export function modelWithRoomTraces(base: SpatialModel, traces: RoomTrace[]): Sp
     spaces,
     walls,
     openings,
+  });
+}
+
+/** Replace guessed gaps on reviewed walls with openings located on a source sheet. */
+export function modelWithReviewedOpenings(model: SpatialModel, reviewed: Opening[]): SpatialModel {
+  if (!reviewed.length) return model;
+  const walls = new Map(model.walls.map((wall) => [wall.id, wall]));
+  const hosts = new Set<string>();
+  for (const opening of reviewed) {
+    const wall = walls.get(opening.hostWallId);
+    if (!wall) throw new Error(`reviewed opening ${opening.id} has no host wall`);
+    const length = Math.hypot(wall.b.x - wall.a.x, wall.b.y - wall.a.y);
+    if (opening.offsetMm + opening.widthMm > length)
+      throw new Error(`reviewed opening ${opening.id} extends beyond its wall`);
+    if (!opening.provenance.evidence.length)
+      throw new Error(`reviewed opening ${opening.id} needs a source reference`);
+    hosts.add(opening.hostWallId);
+  }
+  return SpatialModel.parse({
+    ...model,
+    openings: [...model.openings.filter((opening) => !hosts.has(opening.hostWallId)), ...reviewed],
   });
 }

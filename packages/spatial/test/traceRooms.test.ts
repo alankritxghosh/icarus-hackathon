@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type DrawingEvidence,
   modelFromEvidence,
+  modelWithReviewedOpenings,
   modelWithRoomTraces,
   sceneFromModel,
 } from "../src";
@@ -71,5 +72,49 @@ describe("reviewed room outlines", () => {
         }),
       ).toBe(false);
     }
+  });
+
+  it("replaces an adjacency guess with the source-located opening in the model and scene", () => {
+    const base = modelFromEvidence(evidence).model;
+    const levelId = base.levels[0]?.id as string;
+    const traced = modelWithRoomTraces(base, [
+      { id: "foyer", levelId, name: "FOYER", rect: [0, 0, 4000, 3000] },
+      { id: "lobby", levelId, name: "LOBBY", rect: [0, 3000, 4000, 5000] },
+    ]);
+    const guess = traced.openings.find((opening) => opening.hostWallId.endsWith("foyer.w2"));
+    expect(guess).toBeDefined();
+    const reviewed = modelWithReviewedOpenings(traced, [
+      {
+        ...guess!,
+        id: "sheet-door",
+        offsetMm: 200,
+        widthMm: 800,
+        provenance: { source: "measured", toleranceMm: 100, evidence: ["sheet:foyer-south-door"] },
+      },
+    ]);
+    expect(
+      reviewed.openings.filter((opening) => opening.hostWallId === guess!.hostWallId),
+    ).toHaveLength(1);
+    expect(
+      reviewed.openings.find((opening) => opening.id === "sheet-door")?.provenance.evidence,
+    ).toEqual(["sheet:foyer-south-door"]);
+    const walls = sceneFromModel(reviewed).scene.nodes.filter(
+      (node) =>
+        node.id.startsWith(guess!.hostWallId) &&
+        node.type === "wall" &&
+        !node.id.includes("lintel"),
+    );
+    // The wall runs from x=4000 to x=0. The reviewed 800 mm gap is near its right end.
+    const blocks = (x: number) =>
+      walls.some(
+        (node) =>
+          node.geometry.kind === "box" &&
+          Math.abs(node.position[0] - x) < node.geometry.size[0] / 2,
+      );
+    expect(blocks(3.4)).toBe(false);
+    expect(blocks(2)).toBe(true);
+    expect(() => modelWithReviewedOpenings(traced, [{ ...guess!, id: "unsupported" }])).toThrow(
+      "needs a source reference",
+    );
   });
 });
