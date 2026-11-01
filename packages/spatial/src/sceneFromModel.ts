@@ -16,6 +16,22 @@ const DRAWING_MATERIALS: Scene["materials"] = {
     metalness: 0,
     opacity: 0.3,
   },
+  "wall.traced": {
+    color: "#e4d7c6",
+    pbr: "plastered_wall",
+    tileM: 2,
+    roughness: 0.9,
+    metalness: 0,
+    opacity: 0.9,
+  },
+  "floor.landscape": {
+    color: "#ffffff",
+    pbr: "leafy_grass",
+    tileM: 2,
+    roughness: 1,
+    metalness: 0,
+    opacity: 1,
+  },
 };
 
 export interface DrawnScene {
@@ -369,10 +385,16 @@ function furnishRoom(
   return undefined;
 }
 
-const floorFor = (kind: string) =>
-  /toilet|shower|bath|kitchen|pantry|restroom|wc|lobby/.test(kind)
+const floorFor = (kind: string, finish?: SpatialModel["spaces"][number]["floorFinish"]) => {
+  if (finish === "turf") return "floor.landscape";
+  if (finish === "stone") return "floor.corridor";
+  if (finish === "tile") return "floor.tile";
+  if (finish === "concrete") return "floor.concrete";
+  if (finish === "wood") return "floor.wood.light";
+  return /toilet|shower|bath|kitchen|pantry|restroom|wc|lobby/.test(kind)
     ? "floor.tile"
     : "floor.wood.light";
+};
 
 function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
   const level = model.levels[0];
@@ -388,16 +410,18 @@ function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
   const at = (x: number, y: number) => [(x - ox) * M, (y - oy) * M] as const;
 
   // The slab under the whole building, then each room's floor on it.
-  nodes.push({
-    id: "slab",
-    name: "Floor",
-    type: "floor",
-    geometry: { kind: "box", size: [W, 0.05, D] },
-    position: [W / 2, -0.03, D / 2],
-    rotationY: 0,
-    material: "floor.tile",
-    tags: ["floor"],
-  });
+  const traced = model.spaces.some((space) => space.provenance.source === "estimated");
+  if (!traced)
+    nodes.push({
+      id: "slab",
+      name: "Floor",
+      type: "floor",
+      geometry: { kind: "box", size: [W, 0.05, D] },
+      position: [W / 2, -0.03, D / 2],
+      rotationY: 0,
+      material: "floor.tile",
+      tags: ["floor"],
+    });
   for (const s of model.spaces) {
     rectangles(s.boundary.outer).forEach(([x0, y0, x1, y1], i) => {
       const [cx, cy] = at((x0 + x1) / 2, (y0 + y1) / 2);
@@ -409,21 +433,22 @@ function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
         geometry: { kind: "box", size: [(x1 - x0) * M, 0.05, (y1 - y0) * M] },
         position: [cx, -0.025, cy],
         rotationY: 0,
-        material: floorFor(s.kind),
+        material: floorFor(s.kind, s.floorFinish),
         tags: ["floor"],
       });
     });
   }
-  nodes.push({
-    id: "ceiling",
-    name: "Ceiling",
-    type: "ceiling",
-    geometry: { kind: "box", size: [W, 0.1, D] },
-    position: [W / 2, H + 0.05, D / 2],
-    rotationY: 0,
-    material: "ceiling",
-    tags: ["ceiling"],
-  });
+  if (!traced)
+    nodes.push({
+      id: "ceiling",
+      name: "Ceiling",
+      type: "ceiling",
+      geometry: { kind: "box", size: [W, 0.1, D] },
+      position: [W / 2, H + 0.05, D / 2],
+      rotationY: 0,
+      material: "ceiling",
+      tags: ["ceiling"],
+    });
 
   // Walls, cut at their openings.
   const footprints: [number, number, number, number][] = [];
@@ -440,9 +465,11 @@ function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
     const material =
       w.provenance.source === "inferred"
         ? "wall.inferred"
-        : w.kind === "exterior"
-          ? "wall.exterior"
-          : "wall.interior";
+        : w.provenance.source === "estimated"
+          ? "wall.traced"
+          : w.kind === "exterior"
+            ? "wall.exterior"
+            : "wall.interior";
     footprints.push([
       Math.min(w.a.x, w.b.x) - w.thicknessMm / 2,
       Math.min(w.a.y, w.b.y) - w.thicknessMm / 2,
@@ -493,24 +520,27 @@ function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
 
   // Ceiling lights on a grid, kept out of the walls, so the rooms are lit and the realistic renderer has lights.
   const cell = 3500;
-  for (let x = ox + cell / 2; x < ox + W / M; x += cell)
-    for (let y = oy + cell / 2; y < oy + D / M; y += cell) {
-      if (
-        footprints.some(([a, b, c, d]) => x > a - 300 && x < c + 300 && y > b - 300 && y < d + 300)
-      )
-        continue;
-      const [cx, cy] = at(x, y);
-      nodes.push({
-        id: `light.${Math.round(cx * 10)}.${Math.round(cy * 10)}`,
-        name: "Ceiling light",
-        type: "light",
-        geometry: { kind: "box", size: [0.6, 0.03, 0.6] },
-        position: [cx, H - 0.02, cy],
-        rotationY: 0,
-        material: "light.warm",
-        tags: ["light"],
-      });
-    }
+  if (!traced)
+    for (let x = ox + cell / 2; x < ox + W / M; x += cell)
+      for (let y = oy + cell / 2; y < oy + D / M; y += cell) {
+        if (
+          footprints.some(
+            ([a, b, c, d]) => x > a - 300 && x < c + 300 && y > b - 300 && y < d + 300,
+          )
+        )
+          continue;
+        const [cx, cy] = at(x, y);
+        nodes.push({
+          id: `light.${Math.round(cx * 10)}.${Math.round(cy * 10)}`,
+          name: "Ceiling light",
+          type: "light",
+          geometry: { kind: "box", size: [0.6, 0.03, 0.6] },
+          position: [cx, H - 0.02, cy],
+          rotationY: 0,
+          material: "light.warm",
+          tags: ["light"],
+        });
+      }
 
   // Furnish the rooms the walls enclose, by name; the rest stay as drawn.
   const furnished: string[] = [];
@@ -571,6 +601,12 @@ function singleLevelSceneFromModel(model: SpatialModel): DrawnScene {
 export function sceneFromModel(model: SpatialModel): DrawnScene {
   if (model.levels.length <= 1) return singleLevelSceneFromModel(model);
   const baseElevation = Math.min(...model.levels.map((level) => level.elevationMm));
+  const globalX = Math.min(
+    ...model.levels.flatMap((level) => level.boundary.outer.map((p) => p.x)),
+  );
+  const globalY = Math.min(
+    ...model.levels.flatMap((level) => level.boundary.outer.map((p) => p.y)),
+  );
   const levels = model.levels.map((level) => {
     const wallIds = new Set(
       model.walls.filter((wall) => wall.levelId === level.id).map((wall) => wall.id),
@@ -587,16 +623,23 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
       connectors: [],
       items: model.items.filter((item) => spaceIds.has(item.spaceId)),
     };
-    return { level, drawn: singleLevelSceneFromModel(subset) };
+    const localX = Math.min(...level.boundary.outer.map((p) => p.x));
+    const localY = Math.min(...level.boundary.outer.map((p) => p.y));
+    return {
+      level,
+      drawn: singleLevelSceneFromModel(subset),
+      dx: (localX - globalX) * M,
+      dz: (localY - globalY) * M,
+    };
   });
-  const nodes = levels.flatMap(({ level, drawn }) =>
+  const nodes = levels.flatMap(({ level, drawn, dx, dz }) =>
     drawn.scene.nodes.map((node) => ({
       ...node,
       id: `${level.id}.${node.id}`,
       position: [
-        node.position[0],
+        node.position[0] + dx,
         node.position[1] + (level.elevationMm - baseElevation) * M,
-        node.position[2],
+        node.position[2] + dz,
       ] as [number, number, number],
     })),
   );
@@ -607,28 +650,32 @@ export function sceneFromModel(model: SpatialModel): DrawnScene {
       ...top.drawn.scene,
       nodes,
       shell: {
-        w: Math.max(...levels.map(({ drawn }) => drawn.scene.shell.w)),
-        h: Math.max(...levels.map(({ drawn }) => drawn.scene.shell.h)),
+        w: Math.max(...levels.map(({ drawn, dx }) => drawn.scene.shell.w + dx)),
+        h: Math.max(...levels.map(({ drawn, dz }) => drawn.scene.shell.h + dz)),
       },
       ceilingM: Math.max(...model.levels.map((level) => level.elevationMm + level.heightMm)) * M,
     },
     // Plan labels follow the visible upper floor; each level still has named spaces in the saved model.
-    labels: top.drawn.labels,
+    labels: top.drawn.labels.map((label) => ({
+      ...label,
+      x: label.x + top.dx,
+      y: label.y + top.dz,
+    })),
     viewpoints: levels
-      .flatMap(({ level, drawn }) =>
+      .flatMap(({ level, drawn, dx, dz }) =>
         drawn.viewpoints.map((viewpoint) => ({
           ...viewpoint,
           id: `${level.id}.${viewpoint.id}`,
           name: `${level.name}: ${viewpoint.name}`,
           position: [
-            viewpoint.position[0],
+            viewpoint.position[0] + dx,
             viewpoint.position[1] + (level.elevationMm - baseElevation) * M,
-            viewpoint.position[2],
+            viewpoint.position[2] + dz,
           ] as [number, number, number],
           target: [
-            viewpoint.target[0],
+            viewpoint.target[0] + dx,
             viewpoint.target[1] + (level.elevationMm - baseElevation) * M,
-            viewpoint.target[2],
+            viewpoint.target[2] + dz,
           ] as [number, number, number],
         })),
       )

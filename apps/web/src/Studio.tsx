@@ -1,8 +1,11 @@
 import type { Scene, Viewpoint } from "@icarus/core";
+import type { RoomTrace } from "@icarus/spatial/model";
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
 import { viewCommand } from "./chatCommands";
 import { saveFile } from "./download";
+import type { PlanReference } from "./drawingDesign";
 import type { OfficeView, RealState, ViewMode } from "./officeView";
+import { PlanTracer } from "./PlanTracer";
 
 export interface Reply {
   text: string;
@@ -27,6 +30,10 @@ interface Props {
   activeId?: string;
   canEdit: boolean;
   plainExport?: boolean;
+  plans?: PlanReference[];
+  traces?: RoomTrace[];
+  onTraceRoom?: (trace: RoomTrace) => boolean;
+  onUndoTrace?: () => void;
   messages: Message[];
   setMessages: Dispatch<SetStateAction<Message[]>>;
   starts: { label: string; text: string }[];
@@ -57,6 +64,10 @@ export function Studio(props: Props) {
     activeId,
     canEdit,
     plainExport,
+    plans,
+    traces,
+    onTraceRoom,
+    onUndoTrace,
     messages,
     setMessages,
     starts,
@@ -381,7 +392,7 @@ export function Studio(props: Props) {
               <span className="sr">Attach a floor plan or photo</span>
               <input
                 type="file"
-                accept="application/pdf,image/png,image/jpeg,image/webp"
+                accept="application/pdf,image/png,image/jpeg,image/webp,.icarus.json"
                 multiple
                 onChange={(e) => {
                   setFiles(Array.from(e.target.files ?? []));
@@ -401,6 +412,19 @@ export function Studio(props: Props) {
       </aside>
       <main className="stage" aria-label="3D model">
         <div className="viewport" ref={host} />
+        {!!traces?.length && (
+          <p className="trace-count">
+            {traces.length} spaces built from plan · outlines are estimates
+          </p>
+        )}
+        {mode === "plan" && plans?.length && onTraceRoom && onUndoTrace && (
+          <PlanTracer
+            plans={plans}
+            traces={traces ?? []}
+            onTrace={onTraceRoom}
+            onUndo={onUndoTrace}
+          />
+        )}
         {!scene && (
           <div className="empty">
             <p>Your building appears here.</p>

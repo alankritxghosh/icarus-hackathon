@@ -56,10 +56,23 @@ function localDrawingViews(): Plugin {
           await writeFile(src, pdf);
           const p = String(page);
           await run("pdftocairo", ["-svg", "-f", p, "-l", p, src, join(dir, "page.svg")]);
+          await run("pdftocairo", [
+            "-png",
+            "-scale-to",
+            "1600",
+            "-singlefile",
+            "-f",
+            p,
+            "-l",
+            p,
+            src,
+            join(dir, "page"),
+          ]);
           await run("pdftotext", ["-bbox-layout", "-f", p, "-l", p, src, join(dir, "page.html")]);
           send(200, {
             svg: await readFile(join(dir, "page.svg"), "utf8"),
             bboxHtml: await readFile(join(dir, "page.html"), "utf8"),
+            pngBase64: (await readFile(join(dir, "page.png"))).toString("base64"),
             page,
           });
         } catch {

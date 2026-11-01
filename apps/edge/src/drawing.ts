@@ -7,6 +7,7 @@ const MAX_VIEW_BYTES = 24 * 1024 * 1024;
 const Views = z.object({
   svg: z.string().max(MAX_VIEW_BYTES),
   bboxHtml: z.string().max(MAX_VIEW_BYTES),
+  pngBase64: z.string().max(MAX_VIEW_BYTES).optional(),
   page: z.int().min(1).max(50),
 });
 

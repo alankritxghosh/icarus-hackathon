@@ -1,5 +1,5 @@
 import type { Scene, Viewpoint } from "@icarus/core";
-import type { DrawingEvidence } from "@icarus/spatial/model";
+import type { DrawingEvidence, RoomTrace } from "@icarus/spatial/model";
 import {
   extractEvidence,
   extractEvidenceAuto,
@@ -14,7 +14,19 @@ export class DrawingError extends Error {}
 interface Views {
   svg: string;
   bboxHtml: string;
+  pngBase64?: string;
   page: number;
+}
+
+export interface PlanReference {
+  levelId: string;
+  name: string;
+  image: string;
+  pageWidth: number;
+  pageHeight: number;
+  unitMm: number;
+  offsetMm: [number, number];
+  labels: { id: string; name: string; x: number; y: number }[];
 }
 
 const MESSAGES: Record<number, string> = {
@@ -58,6 +70,9 @@ export function scaleInText(text: string): number | undefined {
 
 export interface DrawnDesign {
   model: SpatialModel;
+  baseModel?: SpatialModel;
+  plans?: PlanReference[];
+  traces?: RoomTrace[];
   /** Working drawing shapes, retained so a later edit can rebuild rooms and openings. */
   evidence?: DrawingEvidence;
   scene: Scene;
@@ -185,11 +200,14 @@ export async function designFromDrawings(
   if (!unitMm) throw new DrawingError("I could not read the scale from either plan.");
   const built = views.map((view, i) => {
     const file = ordered[i] as File;
-    const evidence = extractEvidence(view.svg, view.bboxHtml, file.name, { unitMm }).evidence;
-    return modelFromEvidence(evidence, {
-      name: file.name.replace(/\.pdf$/i, ""),
-      levelHeightMm: 3200,
-    });
+    const extracted = extractEvidence(view.svg, view.bboxHtml, file.name, { unitMm });
+    return {
+      ...modelFromEvidence(extracted.evidence, {
+        name: file.name.replace(/\.pdf$/i, ""),
+        levelHeightMm: 3200,
+      }),
+      extracted,
+    };
   });
   const levels = built.map(({ model }, i) => {
     const file = ordered[i] as File;
@@ -230,8 +248,38 @@ export async function designFromDrawings(
     items: [],
   });
   const drawn = sceneFromModel(model);
+  const plans: PlanReference[] = views.flatMap((view, i) => {
+    if (!view.pngBase64) return [];
+    const page = /<page\s+width="([\d.]+)"\s+height="([\d.]+)"/.exec(view.bboxHtml);
+    const level = levels[i];
+    const item = built[i];
+    if (!page || !level || !item) return [];
+    const pageWidth = Number(page[1]);
+    const pageHeight = Number(page[2]);
+    const offsetMm = item.extracted.report.offsetMm;
+    return [
+      {
+        levelId: level.id,
+        name: level.name,
+        image: `data:image/png;base64,${view.pngBase64}`,
+        pageWidth,
+        pageHeight,
+        unitMm,
+        offsetMm,
+        labels: item.extracted.evidence.labels.map((label, index) => ({
+          id: `${level.id}.${index}`,
+          name: label.text,
+          x: (label.at[0] - offsetMm[0]) / unitMm / pageWidth,
+          y: (label.at[1] - offsetMm[1]) / unitMm / pageHeight,
+        })),
+      },
+    ];
+  });
   return {
     model,
+    baseModel: model,
+    plans,
+    traces: [],
     scene: drawn.scene,
     labels: drawn.labels,
     viewpoints: drawn.viewpoints,

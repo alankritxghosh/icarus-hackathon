@@ -17,6 +17,7 @@ Test the extraction without deploying: `python app.py sheet.pdf` (needs poppler 
 from __future__ import annotations
 
 import hmac
+import base64
 import os
 import subprocess
 import sys
@@ -45,6 +46,7 @@ def views(pdf: bytes, page: int = 1) -> dict:
         p = str(page)
         try:
             subprocess.run(["pdftocairo", "-svg", "-f", p, "-l", p, src, os.path.join(d, "page.svg")], check=True, capture_output=True, timeout=60)
+            subprocess.run(["pdftocairo", "-png", "-scale-to", "1600", "-singlefile", "-f", p, "-l", p, src, os.path.join(d, "page")], check=True, capture_output=True, timeout=60)
             subprocess.run(["pdftotext", "-bbox-layout", "-f", p, "-l", p, src, os.path.join(d, "page.html")], check=True, capture_output=True, timeout=60)
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             raise ValueError("poppler could not read that PDF") from e
@@ -52,7 +54,9 @@ def views(pdf: bytes, page: int = 1) -> dict:
             svg = f.read()
         with open(os.path.join(d, "page.html"), encoding="utf-8") as f:
             bbox = f.read()
-    return {"svg": svg, "bboxHtml": bbox, "page": page}
+        with open(os.path.join(d, "page.png"), "rb") as f:
+            png = base64.b64encode(f.read()).decode("ascii")
+    return {"svg": svg, "bboxHtml": bbox, "pngBase64": png, "page": page}
 
 
 with image.imports():

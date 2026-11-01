@@ -2,8 +2,10 @@ import { type Scene, type Viewpoint, viewpoints } from "@icarus/core";
 import {
   type AccountLesson,
   type DrawingEvidence,
+  modelWithRoomTraces,
   moveDrawingWall,
-  type SpatialModel,
+  type RoomTrace,
+  SpatialModel,
   sceneFromModel,
   toDxf,
 } from "@icarus/spatial/model";
@@ -29,6 +31,7 @@ import {
   loadBuilds,
   loadDrawings,
   type SavedBuild,
+  type SavedDrawing,
   type SavedRevision,
   saveBuilds,
   saveDrawings,
@@ -184,6 +187,48 @@ export function App() {
     return learned;
   };
 
+  const updateTraces = (traces: RoomTrace[]) => {
+    const current = sessionRef.current;
+    const drawing = current?.drawing;
+    if (!current || !drawing?.baseModel) return false;
+    try {
+      const model = modelWithRoomTraces(drawing.baseModel, traces);
+      const shown = sceneFromModel(model);
+      setSession({ ...current, drawing: { ...drawing, model, traces, ...shown } });
+      setConversation((messages) =>
+        messages.map((message) =>
+          message.role === "icarus" && message.text.startsWith("Here is a two-floor draft")
+            ? {
+                ...message,
+                text: `Built ${traces.length} named spaces across both floors from the plan outlines.`,
+                lines: [
+                  "Room outlines and walls are estimated from the visible sheets; doors and untraced areas still need review.",
+                ],
+              }
+            : message,
+        ),
+      );
+      setDrawings((all) =>
+        all.map((saved) =>
+          saved.id === current.id ? { ...saved, model, traces, editedAt: Date.now() } : saved,
+        ),
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const traceRoom = (trace: RoomTrace) => {
+    const previous = sessionRef.current?.drawing?.traces ?? [];
+    return updateTraces([...previous.filter((item) => item.id !== trace.id), trace]);
+  };
+
+  const undoTrace = () => {
+    const previous = sessionRef.current?.drawing?.traces ?? [];
+    if (previous.length) updateTraces(previous.slice(0, -1));
+  };
+
   const respond = async (
     text: string,
     files: File[] | undefined,
@@ -191,6 +236,95 @@ export function App() {
   ): Promise<Reply> => {
     const current = sessionRef.current;
     const version = viewVersion.current;
+
+    if (files?.length === 1 && /\.icarus\.json$/i.test(files[0]?.name ?? "")) {
+      try {
+        if ((files[0] as File).size > 8_000_000) throw new Error("project too large");
+        const raw = JSON.parse(await (files[0] as File).text()) as SavedDrawing;
+        const parsed = SpatialModel.safeParse(raw.model);
+        const base = SpatialModel.safeParse(raw.baseModel);
+        if (
+          !parsed.success ||
+          !base.success ||
+          !Array.isArray(raw.plans) ||
+          !Array.isArray(raw.traces) ||
+          raw.plans.length !== base.data.levels.length ||
+          raw.traces.length > 200 ||
+          !raw.traces.every(
+            (trace) =>
+              typeof trace.id === "string" &&
+              typeof trace.levelId === "string" &&
+              typeof trace.name === "string" &&
+              Array.isArray(trace.rect) &&
+              trace.rect.length === 4 &&
+              trace.rect.every((value) => typeof value === "number" && Number.isFinite(value)),
+          ) ||
+          !raw.plans.every(
+            (plan) =>
+              typeof plan.levelId === "string" &&
+              base.data.levels.some((level) => level.id === plan.levelId) &&
+              typeof plan.name === "string" &&
+              typeof plan.image === "string" &&
+              plan.image.startsWith("data:image/png;base64,") &&
+              plan.image.length < 4_000_000 &&
+              Number.isFinite(plan.pageWidth) &&
+              plan.pageWidth > 0 &&
+              Number.isFinite(plan.pageHeight) &&
+              plan.pageHeight > 0 &&
+              Number.isFinite(plan.unitMm) &&
+              plan.unitMm > 0 &&
+              Array.isArray(plan.offsetMm) &&
+              plan.offsetMm.length === 2 &&
+              plan.offsetMm.every(Number.isFinite) &&
+              Array.isArray(plan.labels) &&
+              plan.labels.every(
+                (label) =>
+                  typeof label.id === "string" &&
+                  typeof label.name === "string" &&
+                  Number.isFinite(label.x) &&
+                  Number.isFinite(label.y),
+              ),
+          )
+        )
+          throw new Error("invalid project");
+        modelWithRoomTraces(base.data, raw.traces);
+        if (version !== viewVersion.current) return { text: "" };
+        const id = crypto.randomUUID();
+        const shown = sceneFromModel(parsed.data);
+        const title = typeof raw.title === "string" ? raw.title : "Imported building";
+        const saved: SavedDrawing = {
+          id,
+          title,
+          model: parsed.data,
+          baseModel: base.data,
+          plans: raw.plans,
+          traces: raw.traces,
+          editedAt: Date.now(),
+          conversation: [],
+        };
+        setSession({
+          id,
+          brief: title,
+          drawing: {
+            ...shown,
+            model: parsed.data,
+            baseModel: base.data,
+            plans: raw.plans,
+            traces: raw.traces,
+            name: title,
+            lines: [],
+          },
+          history: [],
+          drawingHistory: [],
+        });
+        setDrawings((all) => [saved, ...all]);
+        return {
+          text: `Opened ${title}. The reviewed rooms and source plans are ready in Plan and 3D.`,
+        };
+      } catch {
+        return { text: "I could not open that Icarus project file." };
+      }
+    }
 
     const isPdf = (file: File) =>
       file.type === "application/pdf" ||
@@ -216,6 +350,9 @@ export function App() {
             id,
             title: drawn.name,
             model: drawn.model,
+            baseModel: drawn.baseModel,
+            plans: drawn.plans,
+            traces: drawn.traces,
             evidence: drawn.evidence,
             sourceEvidence: drawn.evidence,
             history: [],
@@ -271,7 +408,21 @@ export function App() {
 
     if (current?.drawing) {
       const drawn = current.drawing;
+      if (/^(?:save|download|export)(?: my| this)? project[.!?]?$/i.test(text.trim())) {
+        const saved = drawings.find((item) => item.id === current.id);
+        if (!saved) return { text: "I could not save this project just now." };
+        saveFile(
+          `${current.brief.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.icarus.json`,
+          JSON.stringify(saved),
+          "application/json",
+        );
+        return { text: "Downloaded an Icarus project file. Attach it later to continue." };
+      }
       if (/^(?:undo|go back|revert)(?:\s+(?:that|last change))?[.!?]?$/i.test(text.trim())) {
+        if (drawn.traces?.length) {
+          undoTrace();
+          return { text: "Undid the last room outline." };
+        }
         const prior = current.drawingHistory?.at(-1);
         if (!prior) return { text: "There is nothing to undo." };
         const shown = sceneFromModel(prior.model);
@@ -390,6 +541,9 @@ export function App() {
       brief: drawing.title,
       drawing: {
         model: drawing.model,
+        baseModel: drawing.baseModel,
+        plans: drawing.plans,
+        traces: drawing.traces,
         evidence: drawing.evidence,
         scene: shown.scene,
         labels: shown.labels,
@@ -478,6 +632,10 @@ export function App() {
       activeId={session?.id}
       canEdit={Boolean(session?.built || session?.drawing?.evidence)}
       plainExport={Boolean(session?.drawing && session.drawing.model.levels.length > 1)}
+      plans={session?.drawing?.plans}
+      traces={session?.drawing?.traces}
+      onTraceRoom={traceRoom}
+      onUndoTrace={undoTrace}
       messages={conversation}
       setMessages={setConversation}
       starts={STARTS}

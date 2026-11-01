@@ -2,9 +2,11 @@ import { type FloorPlan, type Program, ProgramSchema } from "@icarus/core";
 import {
   type DrawingEvidence,
   fromFloorPlan,
+  type RoomTrace,
   SpatialModel,
   upgradeSaved,
 } from "@icarus/spatial/model";
+import type { PlanReference } from "./drawingDesign";
 import type { Message } from "./Studio";
 
 export interface SavedRevision {
@@ -39,6 +41,9 @@ export interface SavedDrawing {
   id: string;
   title: string;
   model: SpatialModel;
+  baseModel?: SpatialModel;
+  plans?: PlanReference[];
+  traces?: RoomTrace[];
   evidence?: DrawingEvidence;
   sourceEvidence?: DrawingEvidence;
   history?: { model: SpatialModel; evidence: DrawingEvidence }[];
@@ -190,12 +195,39 @@ export function loadDrawings(): SavedDrawing[] {
       if (!d || typeof d !== "object") return [];
       const entry = d as Record<string, unknown>;
       const model = SpatialModel.safeParse(entry.model);
+      const base = SpatialModel.safeParse(entry.baseModel);
       return model.success && typeof entry.id === "string" && typeof entry.title === "string"
         ? [
             {
               id: entry.id,
               title: entry.title,
               model: model.data,
+              baseModel: base.success ? base.data : undefined,
+              plans: Array.isArray(entry.plans)
+                ? (entry.plans as PlanReference[]).filter(
+                    (plan) =>
+                      typeof plan?.levelId === "string" &&
+                      typeof plan?.image === "string" &&
+                      plan.image.startsWith("data:image/png;base64,") &&
+                      plan.image.length < 4_000_000 &&
+                      Number.isFinite(plan.pageWidth) &&
+                      Number.isFinite(plan.pageHeight) &&
+                      Number.isFinite(plan.unitMm) &&
+                      Array.isArray(plan.offsetMm) &&
+                      Array.isArray(plan.labels),
+                  )
+                : undefined,
+              traces: Array.isArray(entry.traces)
+                ? (entry.traces as RoomTrace[]).filter(
+                    (trace) =>
+                      typeof trace?.id === "string" &&
+                      typeof trace?.name === "string" &&
+                      typeof trace?.levelId === "string" &&
+                      Array.isArray(trace.rect) &&
+                      trace.rect.length === 4 &&
+                      trace.rect.every(Number.isFinite),
+                  )
+                : undefined,
               evidence: drawingEvidence(entry.evidence),
               sourceEvidence: drawingEvidence(entry.sourceEvidence),
               history: Array.isArray(entry.history)

@@ -39,3 +39,4 @@ export {
 export { type DrawnScene, sceneFromModel } from "./sceneFromModel";
 export { SpatialModel } from "./schema";
 export { estimateUnitMm, extractEvidenceAuto, type ScaleEstimate } from "./sheetScale";
+export { modelWithRoomTraces, type RoomTrace } from "./traceRooms";
