@@ -79,6 +79,8 @@ After asset clearance and living-room dependency cleanup, the latest saved v2 pr
 
 The private raster now also probes each of the **45 modeled non-window openings** for a straight player-sized crossing, allowing up to 200 mm of lateral alignment within each 900 mm-class aperture. All 25 lower and 20 upper openings passed with furniture obstacles enabled. Sealing the Bedroom 2 opening makes the check fail and isolates that room. This is a 100 mm sampling check of the rebuilt model; it cannot prove the source drawing shows those assumed doors or that a human can steer every branch comfortably in the browser.
 
+A separate scene audit checked the same 45 opening midpoints against the actual generated wall boxes: each has a matching lintel at the recorded width and no full-height host-wall piece crossing its centre. It found **zero mismatches**. This ties the opening records to the rendered gaps, while the raster checks player clearance; neither resolves their source location or all camera views.
+
 ## In-app plan review experiment (1 November)
 
 The local Icarus worktree now renders the actual first PDF page in Plan view. A person draws a rectangle around a space; Icarus takes its printed name when available, or asks for a short name when PDF text misses it. That outline becomes a room floor and estimated wall edges in the two-level spatial model. The plan overlay stays visible so misplaced outlines can be checked and undone. The model uses the installed CC0 Poly Haven furniture and PBR floor/wall materials where a matching room type exists. It can be saved as an `.icarus.json` project and reopened by attaching that file in the composer.
