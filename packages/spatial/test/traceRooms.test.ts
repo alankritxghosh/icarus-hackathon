@@ -21,6 +21,22 @@ const evidence: DrawingEvidence = {
 };
 
 describe("reviewed room outlines", () => {
+  it("does not furnish a bedroom foyer as another bedroom", () => {
+    const base = modelFromEvidence(evidence).model;
+    const levelId = base.levels[0]?.id as string;
+    const reviewed = modelWithRoomTraces(base, [
+      { id: "foyer", levelId, name: "MASTER BEDROOM FOYER", rect: [0, 0, 4000, 3000] },
+      { id: "bedroom", levelId, name: "MASTER BEDROOM", rect: [0, 3000, 4000, 7000] },
+    ]);
+    expect(reviewed.spaces.map((space) => space.kind)).toEqual([
+      "residential.living",
+      "residential.bedroom",
+    ]);
+    const beds = sceneFromModel(reviewed).scene.nodes.filter((node) => node.name === "bed");
+    expect(beds).toHaveLength(6);
+    expect(beds.every((node) => node.roomId === `trace.${levelId}.bedroom`)).toBe(true);
+  });
+
   it("replaces partial extraction and renders the reviewed spaces with CC0 furniture and finishes", () => {
     const base = modelFromEvidence(evidence).model;
     const levelId = base.levels[0]?.id as string;

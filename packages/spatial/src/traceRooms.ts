@@ -14,6 +14,7 @@ function roomKind(name: string): string {
   if (/balcony|deck/.test(n)) return "exterior.balcony";
   if (/lift/.test(n)) return "circulation.lift";
   if (/stair/.test(n)) return "circulation.stair";
+  if (/foyer/.test(n)) return "residential.living";
   if (/bed ?room/.test(n)) return "residential.bedroom";
   if (/wardrobe|dressing/.test(n)) return "residential.wardrobe";
   if (/toilet|\bwc\b|powder|restroom/.test(n)) return "residential.toilet";
@@ -23,7 +24,7 @@ function roomKind(name: string): string {
   if (/study|office/.test(n)) return "residential.study";
   if (/dining/.test(n)) return "residential.dining";
   if (/\bstore\b|storage/.test(n)) return "residential.storage";
-  if (/living|family|lounge|foyer/.test(n)) return "residential.living";
+  if (/living|family|lounge/.test(n)) return "residential.living";
   if (/transition|lobby/.test(n)) return "circulation.hall";
   return "drawing.room";
 }
