@@ -95,6 +95,12 @@ export class OfficeView {
     THREE.Mesh,
     { normal: THREE.Material; faded: THREE.Material }
   >();
+  private readonly cameraAssetBounds: {
+    object: THREE.Object3D;
+    bounds: THREE.Box3;
+    cutawayKey?: string;
+  }[] = [];
+  private readonly cameraHiddenAssets = new Set<THREE.Object3D>();
   // Realistic mode: progressive path tracing on the GPU of the person looking, in the browser, on the live model.
   private tracer?: WebGLPathTracer;
   private realistic = false;
@@ -262,6 +268,7 @@ export class OfficeView {
     this.disposeContent();
     this.walkWalls = [];
     this.walkFloors = [];
+    this.cameraAssetBounds.length = 0;
     this.shell = scene.shell;
     this.showCeiling = scene.nodes.some((node) => node.tags.includes("roof"));
     const materials = new Map<string, THREE.MeshStandardMaterial>();
@@ -461,6 +468,12 @@ export class OfficeView {
       block.userData = { nodeId: node.id, type: node.type, assetNode: node };
       block.receiveShadow = true;
       this.content.add(block);
+      block.updateMatrixWorld(true);
+      this.cameraAssetBounds.push({
+        object: block,
+        bounds: new THREE.Box3().setFromObject(block),
+        cutawayKey: node.roomId ? `${node.roomId}:${id}` : undefined,
+      });
       return;
     }
     let model = this.models.get(id);
@@ -498,6 +511,12 @@ export class OfficeView {
         const centre = box.getCenter(new THREE.Vector3());
         copy.position.set(-centre.x, -box.min.y, -centre.z);
         group.add(copy);
+        group.updateMatrixWorld(true);
+        this.cameraAssetBounds.push({
+          object: group,
+          bounds: new THREE.Box3().setFromObject(group),
+          cutawayKey: node.roomId ? `${node.roomId}:${id}` : undefined,
+        });
         this.requestRender();
       })
       .catch(() => {
@@ -802,6 +821,8 @@ export class OfficeView {
 
   private clearCameraGhosts() {
     for (const [mesh, pair] of this.cameraGhosts) mesh.material = pair.normal;
+    for (const object of this.cameraHiddenAssets) object.visible = true;
+    this.cameraHiddenAssets.clear();
   }
 
   private resetCameraGhosts() {
@@ -816,6 +837,35 @@ export class OfficeView {
     const direction = this.perspective.position.clone().sub(target);
     const length = direction.length();
     const caster = new THREE.Raycaster(target, direction.normalize(), 0.2, length);
+    const torso = this.playerAt.clone().add(new THREE.Vector3(0, 0.65, 0));
+    const torsoToCamera = this.perspective.position.clone().sub(torso);
+    const torsoRay = new THREE.Ray(torso, torsoToCamera.clone().normalize());
+    const cutawayAssets = new Set<string>();
+    for (const asset of this.cameraAssetBounds) {
+      if (!asset.object.visible) continue;
+      const headHit = caster.ray.intersectBox(asset.bounds, new THREE.Vector3());
+      const torsoHit = torsoRay.intersectBox(asset.bounds, new THREE.Vector3());
+      if (
+        asset.bounds.distanceToPoint(this.perspective.position) < 0.35 ||
+        (headHit && headHit.distanceTo(target) < length - 0.15) ||
+        (torsoHit && torsoHit.distanceTo(torso) < torsoToCamera.length() - 0.15)
+      ) {
+        if (asset.cutawayKey) cutawayAssets.add(asset.cutawayKey);
+        else {
+          asset.object.visible = false;
+          this.cameraHiddenAssets.add(asset.object);
+        }
+      }
+    }
+    for (const asset of this.cameraAssetBounds)
+      if (asset.cutawayKey && cutawayAssets.has(asset.cutawayKey) && asset.object.visible) {
+        asset.object.visible = false;
+        this.cameraHiddenAssets.add(asset.object);
+      }
+    if (import.meta.env.DEV)
+      this.renderer.domElement.dataset.walkHiddenAssets = [...this.cameraHiddenAssets]
+        .map((asset) => String(asset.userData.nodeId ?? ""))
+        .join(",");
     const walls = this.content.children.filter(
       (child) => child.visible && child.userData.type === "wall",
     );
