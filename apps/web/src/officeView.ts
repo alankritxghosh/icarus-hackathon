@@ -829,7 +829,7 @@ export class OfficeView {
         const normal = mesh.material as THREE.Material;
         const ghost = normal.clone();
         ghost.transparent = true;
-        ghost.opacity = 0.12;
+        ghost.opacity = 0.05;
         ghost.depthWrite = false;
         pair = { normal, faded: ghost };
         this.cameraGhosts.set(mesh, pair);
