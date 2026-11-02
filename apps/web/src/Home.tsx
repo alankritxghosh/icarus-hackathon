@@ -10,7 +10,7 @@ export function Home() {
           <a href="#how">How it works</a>
         </nav>
         <a className="btn primary" href="/studio">
-          Open the studio
+          Follow that dream
         </a>
       </header>
 
