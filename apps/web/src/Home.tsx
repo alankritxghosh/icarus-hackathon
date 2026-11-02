@@ -4,8 +4,7 @@ export function Home() {
     <div className="home">
       <header className="home-top">
         <a className="home-logo" href="/">
-          <Wing />
-          Icarus
+          icarus
         </a>
         <nav>
           <a href="#how">How it works</a>
@@ -36,8 +35,8 @@ export function Home() {
         </div>
         <figure className="home-art">
           <img
-            src="/home/office-ink.jpg"
-            alt="An office Icarus designed for a 35-person studio: open desks, meeting rooms and a kitchen, seen from above"
+            src="/home/office-sketch.svg"
+            alt="An office Icarus designed for a 35-person studio, being sketched in blue pen: the floor, the walls, then the desks and meeting rooms"
           />
           <span className="hand note-a">From a sentence to a 3D office.</span>
           <ul className="hand note-b">
@@ -90,15 +89,5 @@ export function Home() {
         <p>Muse Spark by Meta reads what you ask; Icarus's own checks decide what is built.</p>
       </footer>
     </div>
-  );
-}
-
-function Wing() {
-  return (
-    <svg viewBox="0 0 48 32" aria-hidden="true">
-      <path d="M2 30C14 22 30 10 46 2" />
-      <path d="M8 26c4-8 10-14 18-19M14 22c5-6 11-11 19-15M20 18c6-4 12-8 20-11" />
-      <path d="M8 26c6 0 12-2 18-6M14 22c6 0 12-2 18-7" />
-    </svg>
   );
 }
