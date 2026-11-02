@@ -119,6 +119,33 @@ describe("sceneFromModel", () => {
     expect(lintels[0]?.position[1]).toBeCloseTo((2.1 + 3) / 2, 5);
   });
 
+  it("bridges a traced floor gap at a saved doorway", () => {
+    const traced = {
+      ...model,
+      spaces: model.spaces.map((space) => ({
+        ...space,
+        provenance: { ...space.provenance, source: "estimated" as const },
+      })),
+    };
+    const rendered = sceneFromModel(traced).scene;
+    const door = model.openings.find((opening) => opening.kind === "door");
+    expect(door).toBeDefined();
+    const threshold = rendered.nodes.find((node) => node.id === `threshold.${door?.id}`);
+    expect(threshold?.type).toBe("floor");
+    expect(threshold?.tags).toContain("estimated");
+    expect(threshold?.geometry.kind).toBe("box");
+    expect(threshold?.position[0]).toBeCloseTo(3, 1);
+    const z = threshold?.position[2] ?? 0;
+    const roomFloorAtGap = rendered.nodes.some(
+      (node) =>
+        node.id.startsWith("floor.") &&
+        node.geometry.kind === "box" &&
+        Math.abs(3 - node.position[0]) <= node.geometry.size[0] / 2 &&
+        Math.abs(z - node.position[2]) <= node.geometry.size[2] / 2,
+    );
+    expect(roomFloorAtGap).toBe(false);
+  });
+
   it("puts every floor inside the building on tile or wood, never grass or gravel", () => {
     for (const n of nodes("floor"))
       expect(["floor.tile", "floor.wood.light"]).toContain(n.material);

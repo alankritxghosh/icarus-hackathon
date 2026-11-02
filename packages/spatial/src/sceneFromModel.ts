@@ -535,7 +535,37 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
         piece(`sill${i}`, s0, s1, 0, WINDOW_SILL, material, "wall");
         piece(`head${i}`, s0, s1, WINDOW_HEAD, H, material, "wall");
         piece(`glass${i}`, s0, s1, WINDOW_SILL, WINDOW_HEAD, "glass", "window", 0.04);
-      } else piece(`lintel${i}`, s0, s1, DOOR_HEAD, H, material, "wall");
+      } else {
+        piece(`lintel${i}`, s0, s1, DOOR_HEAD, H, material, "wall");
+        if (traced) {
+          const mid = (s0 + s1) / 2;
+          const [cx, cz] = at(w.a.x + ux * mid, w.a.y + uy * mid);
+          const floorAt = (x: number, z: number) =>
+            nodes.some(
+              (node) =>
+                node.type === "floor" &&
+                node.geometry.kind === "box" &&
+                Math.abs(x - node.position[0]) <= node.geometry.size[0] / 2 + 0.001 &&
+                Math.abs(z - node.position[2]) <= node.geometry.size[2] / 2 + 0.001,
+            );
+          // Separate traced rooms can leave a strip of unsupported floor at
+          // their doorway, even though their wall solids have a proper gap.
+          const missing = [-0.25, -0.15, -0.05, 0.05, 0.15, 0.25].some(
+            (distance) => !floorAt(cx - uy * distance, cz + ux * distance),
+          );
+          if (missing)
+            nodes.push({
+              id: `threshold.${o.id}`,
+              name: "Door threshold (estimated)",
+              type: "floor",
+              geometry: { kind: "box", size: [(s1 - s0) * M, 0.05, 0.6] },
+              position: [cx, -0.025, cz],
+              rotationY: rot,
+              material: "floor.concrete",
+              tags: ["floor", "threshold", "estimated"],
+            });
+        }
+      }
       cursor = Math.max(cursor, s1);
     });
     piece("end", cursor, len, 0, H, material, "wall");
