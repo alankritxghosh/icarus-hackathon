@@ -1,6 +1,7 @@
 import type { Scene, Viewpoint } from "@icarus/core";
 import type { RoomTrace } from "@icarus/spatial/model";
 import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from "react";
+import { type BuildCard, roomViews, type Summary } from "./buildCard";
 import { viewCommand } from "./chatCommands";
 import { saveFile } from "./download";
 import type { PlanReference } from "./drawingDesign";
@@ -10,6 +11,7 @@ import { PlanTracer } from "./PlanTracer";
 export interface Reply {
   text: string;
   lines?: string[];
+  card?: BuildCard;
 }
 
 export interface Message {
@@ -19,6 +21,9 @@ export interface Message {
   lines?: string[];
   attachment?: string;
   working?: boolean;
+  card?: BuildCard;
+  /** When it was said, in milliseconds since 1970; older saved conversations have none. */
+  at?: number;
 }
 
 interface Props {
@@ -26,6 +31,7 @@ interface Props {
   labels: { name: string; x: number; y: number; w: number; h: number }[];
   viewpoints: Viewpoint[];
   title?: string;
+  summary?: Summary;
   builds: { id: string; title: string }[];
   activeId?: string;
   canEdit: boolean;
@@ -60,6 +66,7 @@ export function Studio(props: Props) {
     labels,
     viewpoints,
     title,
+    summary,
     builds,
     activeId,
     canEdit,
@@ -88,7 +95,12 @@ export function Studio(props: Props) {
   const [menu, setMenu] = useState(false);
   const [roofVisible, setRoofVisible] = useState(false);
   const [walkPlace, setWalkPlace] = useState("");
-  const rooms = viewpoints.filter((point) => /(^|\.)room\./.test(point.id));
+  const [exporting, setExporting] = useState(false);
+  const [overview, setOverview] = useState("");
+  const [shots, setShots] = useState<Record<string, string>>({});
+  const rooms = roomViews(viewpoints);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
   const turnRef = useRef(0);
   const pendingRef = useRef(false);
   const latestScene = useRef(scene);
@@ -135,6 +147,18 @@ export function Studio(props: Props) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: each new building opens with its roof off, so its rooms show
   useEffect(() => setRoofVisible(false), [scene]);
 
+  // A picture of the opening view for the ready card and the views strip, taken once the textures have loaded.
+  useEffect(() => {
+    setShots({});
+    setOverview("");
+    if (!scene) return;
+    const timer = setTimeout(() => {
+      if (view.current && modeRef.current === "orbit")
+        setOverview(view.current.snapshotAt(480, 300, 0.85));
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, [scene]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to the newest message whenever the list changes
   useEffect(() => {
     thread.current?.scrollTo({ top: thread.current.scrollHeight });
@@ -142,7 +166,7 @@ export function Studio(props: Props) {
 
   const say = (m: Omit<Message, "id">) => {
     const id = crypto.randomUUID();
-    setMessages((all) => [...all, { ...m, id }]);
+    setMessages((all) => [...all, { ...m, id, at: Date.now() }]);
     return id;
   };
 
@@ -161,6 +185,24 @@ export function Studio(props: Props) {
         setWalkPlace(vp.name);
       } else view.current?.setMode("orbit");
     } else view.current?.setMode(m);
+  };
+
+  /** Stand in a room; the first visit also takes its picture for the views strip. */
+  const visit = (point: Viewpoint) => {
+    if (modeRef.current !== "eye") {
+      if (real.state !== "off") setReality(false);
+      setMode("eye");
+    }
+    view.current?.setViewpoint(point);
+    setWalkPlace(point.name);
+    if (shots[point.id]) return;
+    setTimeout(() => {
+      const v = view.current;
+      if (v && modeRef.current === "eye") {
+        const shot = v.snapshotAt(320, 200, 0.8);
+        setShots((all) => ({ ...all, [point.id]: shot }));
+      }
+    }, 1500);
   };
 
   const leaveProject = () => {
@@ -256,7 +298,9 @@ export function Studio(props: Props) {
                 id,
                 role: "icarus",
                 text: reply.text,
+                at: Date.now(),
                 ...(reply.lines ? { lines: reply.lines } : {}),
+                ...(reply.card ? { card: reply.card } : {}),
               }
             : m,
         ),
@@ -282,86 +326,229 @@ export function Studio(props: Props) {
     }
   };
 
+  const lastCard = [...messages].reverse().find((m) => m.card)?.id;
+  const log = messages.filter((m) => m.role === "you");
+  // "fourth floor: MASTER BEDROOM" reads as "master bedroom"; the strip is already per building.
+  const place = (name: string) => (name.split(": ").pop() ?? name).toLowerCase();
+  const clock = (at?: number) =>
+    at ? new Date(at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) : "";
+
   return (
-    <div className="studio">
-      <aside className="chat" aria-label="Conversation">
-        <header className="chat-head">
-          <div className="brand">
-            <span className="mark" aria-hidden="true" />
-            <b>ICARUS</b>
-          </div>
-          <div className="chat-tools">
-            {builds.length > 0 && (
-              <div className="history">
-                <button
-                  type="button"
-                  className="quiet-btn"
-                  onClick={() => setMenu((v) => !v)}
-                  aria-expanded={menu}
-                >
-                  Projects
-                </button>
-                {menu && (
-                  <ul className="history-menu">
-                    {builds.slice(0, 10).map((b) => (
-                      <li key={b.id}>
-                        <button
-                          type="button"
-                          className={b.id === activeId ? "on" : ""}
-                          onClick={() => {
-                            leaveProject();
-                            onOpen(b.id);
-                          }}
-                        >
-                          {b.title}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            )}
-            <button
-              type="button"
-              className="quiet-btn"
-              onClick={() => {
-                leaveProject();
-                onNew();
-              }}
-            >
-              New
-            </button>
-          </div>
-        </header>
-        <div className="thread" ref={thread} aria-live="polite">
-          {messages.length === 0 && (
-            <div className="msg icarus">
-              <p>
-                Describe the building you want, or attach a floor plan (PDF) or a photo of a space
-                you like. Then change it by telling me what to change.
-              </p>
-              <div className="starts">
-                {starts.map((s) => (
-                  <button key={s.label} type="button" onClick={() => void send(s.text)}>
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+    <div className={`studio${(summary?.length ?? 0) || log.length ? "" : " no-side"}`}>
+      <header className="top">
+        <div className="crumbs">
+          <span className="logo">
+            icarus<span>.</span>
+          </span>
+          {title && (
+            <>
+              <span className="crumb-sep" aria-hidden="true">
+                /
+              </span>
+              <span className="crumb">Projects</span>
+              <span className="crumb-sep" aria-hidden="true">
+                ›
+              </span>
+              <span className="crumb now">{title}</span>
+            </>
           )}
-          {messages.map((m) => (
-            <div key={m.id} className={`msg ${m.role}${m.working ? " working" : ""}`}>
-              {m.attachment && <span className="chip">📎 {m.attachment}</span>}
-              {m.text && <p>{m.text}</p>}
-              {m.lines && m.lines.length > 0 && (
-                <ul>
-                  {m.lines.map((l) => (
-                    <li key={l}>{l}</li>
-                  ))}
+        </div>
+        <span className="top-mode">Build</span>
+        <div className="top-actions">
+          {scene && (
+            <div className="menu-wrap">
+              <button
+                type="button"
+                className="btn primary"
+                aria-expanded={exporting}
+                onClick={() => setExporting((v) => !v)}
+              >
+                Export ↗
+              </button>
+              {exporting && (
+                <ul className="menu">
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExporting(false);
+                        void exportGlb().then((t) => say({ role: "icarus", text: t }));
+                      }}
+                    >
+                      3D model for Blender (.glb)
+                    </button>
+                  </li>
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExporting(false);
+                        say({ role: "icarus", text: onExportPlan() });
+                      }}
+                    >
+                      Floor plan for CAD (.dxf)
+                    </button>
+                  </li>
                 </ul>
               )}
             </div>
-          ))}
+          )}
+        </div>
+      </header>
+
+      <nav className="rail" aria-label="Projects">
+        <button
+          type="button"
+          title="New project"
+          onClick={() => {
+            leaveProject();
+            onNew();
+          }}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 11 12 4l9 7v9H3z" />
+          </svg>
+          <span className="sr">New project</span>
+        </button>
+        <span className="on" title="Build">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3 4 7.5v9L12 21l8-4.5v-9z M4 7.5 12 12l8-4.5 M12 12v9" />
+          </svg>
+        </span>
+        {builds.length > 0 && (
+          <div className="history">
+            <button
+              type="button"
+              title="Projects"
+              onClick={() => setMenu((v) => !v)}
+              aria-expanded={menu}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M12 3 3 8l9 5 9-5z M3 13l9 5 9-5" />
+              </svg>
+              <span className="sr">Projects</span>
+            </button>
+            {menu && (
+              <ul className="menu history-menu">
+                {builds.slice(0, 10).map((b) => (
+                  <li key={b.id}>
+                    <button
+                      type="button"
+                      className={b.id === activeId ? "on" : ""}
+                      onClick={() => {
+                        leaveProject();
+                        onOpen(b.id);
+                      }}
+                    >
+                      {b.title}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </nav>
+
+      <aside className="chat" aria-label="Conversation">
+        <h1 className="hand">
+          Describe your build.
+          <svg viewBox="0 0 40 42" aria-hidden="true">
+            <path d="M3 10 C 18 2, 34 10, 30 34" />
+            <path d="M22 28 L 30 35 L 36 26" />
+          </svg>
+        </h1>
+        <p className="lede">
+          Tell Icarus about a space, or attach a floor plan.
+          <br />
+          Then change it by telling Icarus what to change.
+        </p>
+        <div className="thread" ref={thread} aria-live="polite">
+          {messages.length === 0 && (
+            <div className="starts">
+              {starts.map((s) => (
+                <button key={s.label} type="button" onClick={() => void send(s.text)}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+          {messages.map((m) =>
+            m.role === "you" ? (
+              <div key={m.id} className="msg you">
+                <span className="avatar" aria-hidden="true">
+                  You
+                </span>
+                <div>
+                  <div className="bubble">
+                    {m.attachment && <span className="chip">📎 {m.attachment}</span>}
+                    {m.text !== "(attached)" && <p>{m.text}</p>}
+                  </div>
+                  {m.at && <div className="time">{clock(m.at)}</div>}
+                </div>
+              </div>
+            ) : (
+              <div key={m.id} className="msg icarus">
+                <span className="spark" aria-hidden="true">
+                  ✦
+                </span>
+                <div className="stack">
+                  <div className="who">icarus</div>
+                  {m.working ? (
+                    <Progress steps={(m.lines ?? []).map((label) => ({ label }))} working />
+                  ) : (
+                    <>
+                      {m.card && <Progress steps={m.card.steps} />}
+                      {m.card && m.id === lastCard && scene && (
+                        <div className="ready">
+                          {overview ? (
+                            <img src={overview} alt="" />
+                          ) : (
+                            <span className="ready-blank" />
+                          )}
+                          <div>
+                            <h3>Your build is ready.</h3>
+                            <div className="row">
+                              <button
+                                type="button"
+                                className="btn primary small"
+                                onClick={() => goto("orbit")}
+                              >
+                                View 3D
+                              </button>
+                              {viewpoints.length > 0 && (
+                                <button
+                                  type="button"
+                                  className="btn small"
+                                  onClick={() => goto("eye")}
+                                >
+                                  Walk through
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      {(m.card?.note || m.text || (m.lines && m.lines.length > 0)) && (
+                        <div className="bubble">
+                          {m.card?.note && <p>{m.card.note}</p>}
+                          {m.text && <p>{m.text}</p>}
+                          {m.lines && m.lines.length > 0 && (
+                            <ul>
+                              {m.lines.map((l) => (
+                                <li key={l}>{l}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {m.at && !m.working && <div className="time">{clock(m.at)}</div>}
+                </div>
+              </div>
+            ),
+          )}
         </div>
         <form
           className="composer"
@@ -418,137 +605,20 @@ export function Studio(props: Props) {
             <button
               type="submit"
               className="send"
+              aria-label={busy ? "Working" : "Send"}
               disabled={busy || (!text.trim() && !files.length)}
             >
-              {busy ? "Working…" : "Send"}
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M5 12h13M13 6l6 6-6 6" />
+              </svg>
             </button>
           </div>
         </form>
       </aside>
-      <main className="stage" aria-label="3D model">
-        <div className="viewport" ref={host} />
-        {mode === "eye" && scene && (
-          <div className="walk-hud">
-            <div className="walk-note">
-              <b>{walkPlace || viewpoints[0]?.name || "Entrance"}</b>
-              <span>WASD or arrow keys to move · Drag to look · Scroll to zoom</span>
-            </div>
-            {((plans && plans.length > 1) || rooms.length > 0) && (
-              <fieldset className="walk-floors">
-                <legend className="sr">Visit floor or room</legend>
-                {(plans && plans.length > 1 ? plans : []).map((plan) => (
-                  <button
-                    key={plan.levelId}
-                    type="button"
-                    onClick={() => {
-                      const destination = viewpoints.find((point) =>
-                        point.id.startsWith(`${plan.levelId}.`),
-                      );
-                      if (destination) {
-                        view.current?.setViewpoint(destination);
-                        setWalkPlace(destination.name);
-                      }
-                    }}
-                  >
-                    {plan.name}
-                  </button>
-                ))}
-                {rooms.length > 0 && (
-                  <select
-                    aria-label="Go to a room"
-                    value=""
-                    onChange={(e) => {
-                      const destination = rooms.find((room) => room.id === e.target.value);
-                      if (destination) {
-                        view.current?.setViewpoint(destination);
-                        setWalkPlace(destination.name);
-                      }
-                    }}
-                  >
-                    <option value="">Go to a room…</option>
-                    {rooms.map((room) => (
-                      <option key={room.id} value={room.id}>
-                        {room.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </fieldset>
-            )}
-            <fieldset className="walk-pad">
-              <legend className="sr">Move character</legend>
-              {(
-                [
-                  ["▲", "w"],
-                  ["◀", "a"],
-                  ["▼", "s"],
-                  ["▶", "d"],
-                ] as const
-              ).map(([label, direction]) => (
-                <button
-                  key={direction}
-                  type="button"
-                  aria-label={
-                    { w: "Move forward", a: "Move left", s: "Move backward", d: "Move right" }[
-                      direction
-                    ]
-                  }
-                  onPointerDown={(event) => {
-                    event.currentTarget.setPointerCapture(event.pointerId);
-                    view.current?.setWalkInput(direction, true);
-                  }}
-                  onPointerUp={() => view.current?.setWalkInput(direction, false)}
-                  onPointerCancel={() => view.current?.setWalkInput(direction, false)}
-                >
-                  {label}
-                </button>
-              ))}
-            </fieldset>
-          </div>
-        )}
-        {!!traces?.length && (
-          <p className="trace-count">
-            {traces.length} spaces built from plan · outlines are estimates
-          </p>
-        )}
-        {mode === "plan" && plans?.length && onTraceRoom && onUndoTrace && (
-          <PlanTracer
-            plans={plans}
-            traces={traces ?? []}
-            onTrace={onTraceRoom}
-            onUndo={onUndoTrace}
-          />
-        )}
-        {!scene && (
-          <div className="empty">
-            <p>Your building appears here.</p>
-          </div>
-        )}
-        {scene && (
-          <div className="stage-tools">
-            {scene.nodes.some((node) => node.tags.includes("roof")) && mode === "orbit" && (
-              <button
-                type="button"
-                className="quiet-btn roof-toggle"
-                onClick={() => {
-                  setRoofVisible((visible) => {
-                    view.current?.setCeiling(!visible);
-                    return !visible;
-                  });
-                }}
-              >
-                {roofVisible ? "Roof on" : "Roof off"}
-              </button>
-            )}
-            {canReal && (
-              <button
-                type="button"
-                className={`real${real.state !== "off" && real.state !== "unsupported" ? " on" : ""}`}
-                onClick={() => setReality(real.state === "off" || real.state === "unsupported")}
-              >
-                ✦ Make it real
-              </button>
-            )}
+
+      <main className="viewer" aria-label="3D model">
+        <div className="vtabs">
+          {scene && (
             <fieldset className="seg" aria-label="View">
               {(["orbit", "plan", "eye"] as const).map((m) => (
                 <button
@@ -557,30 +627,232 @@ export function Studio(props: Props) {
                   className={mode === m ? "on" : ""}
                   onClick={() => goto(m)}
                 >
-                  {m === "orbit" ? "3D" : m === "plan" ? "Plan" : "Walk"}
+                  {m === "orbit" ? "3D" : m === "plan" ? "Floor Plan" : "Walkthrough"}
                 </button>
               ))}
             </fieldset>
+          )}
+          {scene && (
+            <div className="stage-tools">
+              {scene.nodes.some((node) => node.tags.includes("roof")) && mode === "orbit" && (
+                <button
+                  type="button"
+                  className="btn small"
+                  onClick={() => {
+                    setRoofVisible((visible) => {
+                      view.current?.setCeiling(!visible);
+                      return !visible;
+                    });
+                  }}
+                >
+                  {roofVisible ? "Roof on" : "Roof off"}
+                </button>
+              )}
+              {canReal && (
+                <button
+                  type="button"
+                  className={`btn small real${real.state !== "off" && real.state !== "unsupported" ? " on" : ""}`}
+                  onClick={() => setReality(real.state === "off" || real.state === "unsupported")}
+                >
+                  ✦ Make it real
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="stage">
+          <div className="viewport" ref={host} />
+          {mode === "eye" && scene && (
+            <div className="walk-hud">
+              <div className="walk-note">
+                <b>{walkPlace || viewpoints[0]?.name || "Entrance"}</b>
+                <span>WASD or arrow keys to move · Drag to look · Scroll to zoom</span>
+              </div>
+              {((plans && plans.length > 1) || rooms.length > 0) && (
+                <fieldset className="walk-floors">
+                  <legend className="sr">Visit floor or room</legend>
+                  {(plans && plans.length > 1 ? plans : []).map((plan) => (
+                    <button
+                      key={plan.levelId}
+                      type="button"
+                      onClick={() => {
+                        const destination = viewpoints.find((point) =>
+                          point.id.startsWith(`${plan.levelId}.`),
+                        );
+                        if (destination) {
+                          view.current?.setViewpoint(destination);
+                          setWalkPlace(destination.name);
+                        }
+                      }}
+                    >
+                      {plan.name}
+                    </button>
+                  ))}
+                  {rooms.length > 0 && (
+                    <select
+                      aria-label="Go to a room"
+                      value=""
+                      onChange={(e) => {
+                        const destination = rooms.find((room) => room.id === e.target.value);
+                        if (destination) visit(destination);
+                      }}
+                    >
+                      <option value="">Go to a room…</option>
+                      {rooms.map((room) => (
+                        <option key={room.id} value={room.id}>
+                          {room.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </fieldset>
+              )}
+              <fieldset className="walk-pad">
+                <legend className="sr">Move character</legend>
+                {(
+                  [
+                    ["▲", "w"],
+                    ["◀", "a"],
+                    ["▼", "s"],
+                    ["▶", "d"],
+                  ] as const
+                ).map(([label, direction]) => (
+                  <button
+                    key={direction}
+                    type="button"
+                    aria-label={
+                      { w: "Move forward", a: "Move left", s: "Move backward", d: "Move right" }[
+                        direction
+                      ]
+                    }
+                    onPointerDown={(event) => {
+                      event.currentTarget.setPointerCapture(event.pointerId);
+                      view.current?.setWalkInput(direction, true);
+                    }}
+                    onPointerUp={() => view.current?.setWalkInput(direction, false)}
+                    onPointerCancel={() => view.current?.setWalkInput(direction, false)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </fieldset>
+            </div>
+          )}
+          {mode === "plan" && plans?.length && onTraceRoom && onUndoTrace && (
+            <PlanTracer
+              plans={plans}
+              traces={traces ?? []}
+              onTrace={onTraceRoom}
+              onUndo={onUndoTrace}
+            />
+          )}
+          {!scene && (
+            <div className="empty">
+              <p className="hand">Your building appears here.</p>
+            </div>
+          )}
+          {real.state === "preparing" && (
+            <p className="real-caption" role="status">
+              Preparing realistic view…
+            </p>
+          )}
+          {real.state === "unsupported" && (
+            <p className="real-caption" role="status">
+              Realistic view is not available on this device.
+            </p>
+          )}
+        </div>
+        {scene && (
+          <div className="views">
             <button
               type="button"
-              className="quiet-btn"
-              onClick={() => void exportGlb().then((t) => say({ role: "icarus", text: t }))}
+              className={`view${mode === "orbit" ? " on" : ""}`}
+              onClick={() => goto("orbit")}
             >
-              Export for Blender
+              {overview ? <img src={overview} alt="" /> : <span className="view-blank" />}
+              <span>Overview</span>
             </button>
+            {rooms.slice(0, 8).map((room) => (
+              <button
+                key={room.id}
+                type="button"
+                className={`view${mode === "eye" && walkPlace === room.name ? " on" : ""}`}
+                onClick={() => visit(room)}
+              >
+                {shots[room.id] ? (
+                  <img src={shots[room.id]} alt="" />
+                ) : (
+                  <span className="view-blank hand">{place(room.name)}</span>
+                )}
+                <span>{place(room.name)}</span>
+              </button>
+            ))}
           </div>
         )}
-        {real.state === "preparing" && (
-          <p className="real-caption" role="status">
-            Preparing realistic view…
-          </p>
-        )}
-        {real.state === "unsupported" && (
-          <p className="real-caption" role="status">
-            Realistic view is not available on this device.
-          </p>
-        )}
       </main>
+
+      <aside
+        className="side"
+        aria-label="About this build"
+        hidden={!summary?.length && !log.length}
+      >
+        {summary && summary.length > 0 && (
+          <section className="card">
+            <h2>Build Summary</h2>
+            {summary.map((row) => (
+              <div className="stat" key={row.label}>
+                <span>{row.label}</span>
+                <span>{row.value}</span>
+              </div>
+            ))}
+          </section>
+        )}
+        {log.length > 0 && (
+          <section className="card">
+            <h2>
+              Change Log <span className="count">({log.length})</span>
+            </h2>
+            <ol className="log">
+              {log.map((m, index) => (
+                <li
+                  key={m.id}
+                  className={
+                    busy && index === log.length - 1
+                      ? "pending"
+                      : index === log.length - 1
+                        ? "latest"
+                        : ""
+                  }
+                >
+                  {m.attachment ?? m.text}
+                  <small>{busy && index === log.length - 1 ? "Applying…" : clock(m.at)}</small>
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
+      </aside>
+    </div>
+  );
+}
+
+/** The steps of a build, done or under way, each with the one fact it produced. */
+function Progress(props: { steps: { label: string; detail?: string }[]; working?: boolean }) {
+  const { steps, working } = props;
+  return (
+    <div className="gcard">
+      <div className="ghead">
+        <b>Building your space</b>
+        <span className={working ? "state busy" : "state"}>● {working ? "Working" : "Done"}</span>
+      </div>
+      <ol className="steps">
+        {steps.map((step, index) => (
+          <li key={step.label} className={working && index === steps.length - 1 ? "busy" : "done"}>
+            <span>{step.label}</span>
+            {step.detail && <span className="detail">{step.detail}</span>}
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

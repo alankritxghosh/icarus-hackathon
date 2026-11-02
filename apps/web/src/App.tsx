@@ -14,6 +14,7 @@ import {
 } from "@icarus/spatial/model";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadLessons, saveLessons } from "./accountLessons";
+import { drawingCard, drawingSummary, officeCard, officeSummary } from "./buildCard";
 import { buildSummary } from "./buildSummary";
 import { assessCompletion } from "./completion";
 import { type Built, builtFromRefine, finish, readPhotoDesign } from "./design";
@@ -150,7 +151,12 @@ export function App() {
         source.kind === "brief" ? source.text : `An office like “${source.reference.title}”`;
       const yieldToHost = () => new Promise<void>((r) => setTimeout(r, 0));
       const started = performance.now();
-      live([source.kind === "photo" ? "Reading your photo…" : "Designing your office…"]);
+      let stages = [source.kind === "photo" ? "Reading your photo" : "Reading your brief"];
+      live(stages);
+      const stage = (next: string) => {
+        stages = [...stages, next];
+        live(stages);
+      };
       await pause(200);
       let outcome: Awaited<ReturnType<typeof designFromBrief>>;
       if (source.kind === "photo") {
@@ -162,6 +168,7 @@ export function App() {
       } else {
         outcome = await designFromBrief(source.text, {
           yieldToHost,
+          onStage: stage,
         });
       }
       const built = builtFromRefine(
@@ -356,7 +363,8 @@ export function App() {
         });
         setDrawings((all) => [saved, ...all]);
         return {
-          text: `Opened ${title}. The reviewed rooms and source plans are ready in Plan and 3D.`,
+          text: "",
+          card: drawingCard({ model, plans: raw.plans, scene: shown.scene }),
         };
       } catch {
         return { text: "I could not open that Icarus project file." };
@@ -408,6 +416,7 @@ export function App() {
             ? `Here is ${drawn.name}, drawn in 3D from your plan. You can move a wall between two enclosed rooms, then undo it.${example}`
             : `Here is a two-floor draft from ${drawn.name}.`,
           lines: drawn.lines,
+          card: drawingCard(drawn),
         };
       } catch (error) {
         return {
@@ -429,8 +438,9 @@ export function App() {
         const built = await buildFrom({ kind: "photo", reference }, undefined, live);
         const status = assessCompletion(built);
         return {
-          text: `${status.complete ? "Designed" : "Drafted"} an office in the style of your photo: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m.`,
-          lines: [...buildSummary(built), ...status.lines],
+          text: `${status.complete ? "Designed" : "Drafted"} an office in the style of your photo.`,
+          lines: buildSummary(built).slice(2),
+          card: officeCard(built),
         };
       } catch (error) {
         return {
@@ -507,8 +517,9 @@ export function App() {
       const built = await buildFrom({ kind: "brief", text }, undefined, live);
       const status = assessCompletion(built);
       return {
-        text: `${status.complete ? "Built it" : "Made a draft"}: ${built.plan.rooms.length} rooms on ${built.plan.shell.w} × ${built.plan.shell.h} m. Tell me what to change.`,
-        lines: [...buildSummary(built), ...status.lines, ...remembered],
+        text: `${status.complete ? "Built it" : "Made a draft"}. Tell me what to change.`,
+        lines: [...buildSummary(built).slice(2), ...remembered],
+        card: officeCard(built),
       };
     }
 
@@ -663,6 +674,16 @@ export function App() {
     return { scene: undefined as Scene | undefined, labels: [], views: [] as Viewpoint[] };
   }, [session, lessons]);
 
+  const summary = useMemo(
+    () =>
+      session?.built
+        ? officeSummary(session.built)
+        : session?.drawing
+          ? drawingSummary(session.drawing.model, session.drawing.viewpoints)
+          : undefined,
+    [session],
+  );
+
   const eye = useMemo(() => {
     const v = shown.views;
     if (session?.drawing) return v;
@@ -675,6 +696,7 @@ export function App() {
       labels={shown.labels}
       viewpoints={eye}
       title={session?.brief}
+      summary={summary}
       builds={[...builds, ...drawings]
         .sort((a, b) => b.editedAt - a.editedAt)
         .map((b) => ({ id: b.id, title: b.title }))}
