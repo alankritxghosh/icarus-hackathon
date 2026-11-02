@@ -17,14 +17,13 @@ export function Home() {
       <section className="home-hero">
         <div className="home-copy">
           <h1>Icarus</h1>
-          <p className="home-motto">Follow that dream.</p>
           <p className="home-lede">
             Design an office from a sentence or from your floor plans, walk through it in 3D, and
             change it by telling Icarus what to change.
           </p>
           <div className="row">
-            <a className="btn primary big" href="/studio">
-              Try Icarus →
+            <a className="btn primary big dream" href="/studio">
+              Follow that dream →
             </a>
           </div>
           <ul className="home-checks">
