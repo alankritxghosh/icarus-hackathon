@@ -5,7 +5,7 @@ import { type BuildCard, roomViews, type Summary } from "./buildCard";
 import { viewCommand } from "./chatCommands";
 import { saveFile } from "./download";
 import type { PlanReference } from "./drawingDesign";
-import type { OfficeView, RealState, ViewMode } from "./officeView";
+import type { OfficeView, ViewMode } from "./officeView";
 import { PlanTracer } from "./PlanTracer";
 
 export interface Reply {
@@ -90,8 +90,12 @@ export function Studio(props: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<ViewMode>("orbit");
-  const [real, setReal] = useState<RealState>({ state: "off", samples: 0 });
-  const [canReal, setCanReal] = useState(false);
+  // A GPU render of the current view, made on the server; the live model stays under it.
+  const [real, setReal] = useState<{
+    state: "off" | "rendering" | "done" | "failed";
+    image?: string;
+    note?: string;
+  }>({ state: "off" });
   const [menu, setMenu] = useState(false);
   const [roofVisible, setRoofVisible] = useState(false);
   const [walkPlace, setWalkPlace] = useState("");
@@ -122,7 +126,6 @@ export function Studio(props: Props) {
         setWalkPlace(level ? `${level.name}: landing` : levelId);
       };
       view.current = v;
-      setCanReal(v.supportsRealistic());
       if (latestScene.current) {
         v.setScene(latestScene.current);
         v.setLabels(latestLabels.current);
@@ -133,7 +136,6 @@ export function Studio(props: Props) {
       closed = true;
       view.current?.dispose();
       view.current = null;
-      setCanReal(false);
     };
     // The viewer lives while a scene exists; later edits update it through the next effect.
   }, [hasScene]);
@@ -170,9 +172,42 @@ export function Studio(props: Props) {
     return id;
   };
 
+  /** Send this view and the model as it is drawn to the GPU renderer, and show the picture over the model. */
+  const makeReal = async (): Promise<string> => {
+    const v = view.current;
+    const stage = host.current;
+    if (!v || !stage) return "There is nothing to render yet.";
+    setReal({ state: "rendering" });
+    const started = performance.now();
+    try {
+      const scale = Math.min(1, 1600 / Math.max(stage.clientWidth, stage.clientHeight));
+      const camera = {
+        ...v.renderView(),
+        width: Math.max(64, Math.round(stage.clientWidth * scale)),
+        height: Math.max(64, Math.round(stage.clientHeight * scale)),
+        samples: 128,
+      };
+      const model = await v.exportGlb(plainExport, true);
+      const res = await fetch("/api/render", {
+        method: "POST",
+        headers: { "content-type": "model/gltf-binary", "x-icarus-view": JSON.stringify(camera) },
+        body: model,
+      });
+      const data = (await res.json().catch(() => ({}))) as { jpegBase64?: string; error?: string };
+      if (!res.ok || !data.jpegBase64) throw new Error(data.error ?? "the renderer failed");
+      const seconds = Math.round((performance.now() - started) / 1000);
+      setReal({ state: "done", image: `data:image/jpeg;base64,${data.jpegBase64}` });
+      return `Rendered this view on a GPU in ${seconds} s.`;
+    } catch (error) {
+      const note = error instanceof Error ? error.message : "the renderer failed";
+      setReal({ state: "failed", note });
+      return `I could not render this view: ${note}.`;
+    }
+  };
+
   const setReality = (on: boolean) => {
-    view.current?.setRealistic(on, (s) => setReal(s));
-    if (!on) setReal({ state: "off", samples: 0 });
+    if (on) void makeReal().then((t) => say({ role: "icarus", text: t }));
+    else setReal({ state: "off" });
   };
 
   const goto = (m: ViewMode) => {
@@ -238,12 +273,11 @@ export function Studio(props: Props) {
     if (!scene)
       return "There is nothing to look at yet. Describe a building or attach a floor plan first.";
     if (cmd.kind === "real") {
-      if (cmd.on && !canReal)
-        return "This device cannot show the realistic view. You can still use 3D and Plan.";
-      setReality(cmd.on);
-      return cmd.on
-        ? "Making it real: the model is being rendered on your GPU. You can still orbit and walk it."
-        : "Back to the quick view.";
+      if (!cmd.on) {
+        setReal({ state: "off" });
+        return "Back to the model.";
+      }
+      return makeReal();
     }
     if (cmd.kind === "mode") {
       goto(cmd.mode);
@@ -648,13 +682,14 @@ export function Studio(props: Props) {
                   {roofVisible ? "Roof on" : "Roof off"}
                 </button>
               )}
-              {canReal && (
+              {mode !== "plan" && (
                 <button
                   type="button"
-                  className={`btn small real${real.state !== "off" && real.state !== "unsupported" ? " on" : ""}`}
-                  onClick={() => setReality(real.state === "off" || real.state === "unsupported")}
+                  className={`btn small real${real.state === "rendering" || real.state === "done" ? " on" : ""}`}
+                  disabled={real.state === "rendering"}
+                  onClick={() => setReality(real.state !== "done")}
                 >
-                  ✦ Make it real
+                  {real.state === "rendering" ? "Rendering…" : "✦ Make it real"}
                 </button>
               )}
             </div>
@@ -751,15 +786,36 @@ export function Studio(props: Props) {
               <p className="hand">Your building appears here.</p>
             </div>
           )}
-          {real.state === "preparing" && (
+          {real.state === "rendering" && (
             <p className="real-caption" role="status">
-              Preparing realistic view…
+              Rendering this view on a GPU…
             </p>
           )}
-          {real.state === "unsupported" && (
+          {real.state === "failed" && (
             <p className="real-caption" role="status">
-              Realistic view is not available on this device.
+              Could not render: {real.note}
             </p>
+          )}
+          {real.state === "done" && real.image && (
+            <div className="real-shot">
+              <img src={real.image} alt="A path-traced render of this view" />
+              <div className="row">
+                <button
+                  type="button"
+                  className="btn small"
+                  onClick={() => setReal({ state: "off" })}
+                >
+                  Back to the model
+                </button>
+                <a
+                  className="btn small primary"
+                  href={real.image}
+                  download={`icarus-${slug(title ?? "building")}.jpg`}
+                >
+                  Save picture
+                </a>
+              </div>
+            </div>
           )}
         </div>
         {scene && (
@@ -767,7 +823,10 @@ export function Studio(props: Props) {
             <button
               type="button"
               className={`view${mode === "orbit" ? " on" : ""}`}
-              onClick={() => goto("orbit")}
+              onClick={() => {
+                goto("orbit");
+                view.current?.reframe();
+              }}
             >
               {overview ? <img src={overview} alt="" /> : <span className="view-blank" />}
               <span>Overview</span>

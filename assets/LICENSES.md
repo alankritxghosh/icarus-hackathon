@@ -47,9 +47,3 @@ shows a credit.
 | denim_fabric_03 | Denim Fabric 03 | colormass, Rico Cilliers | https://polyhaven.com/a/denim_fabric_03 |
 | red_brick | Red Brick | Rob Tuytel | https://polyhaven.com/a/red_brick |
 | leafy_grass | Leafy Grass | Charlotte Baglioni | https://polyhaven.com/a/leafy_grass |
-
-## Sky (HDRI)
-
-| Id | Name | Author(s) | Source |
-| --- | --- | --- | --- |
-| alps_field | Alps Field | Andreas Mischok | https://polyhaven.com/a/alps_field |

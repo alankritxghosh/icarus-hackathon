@@ -16,4 +16,9 @@ export interface Env {
   /** Per caller and across all callers; absent in tests and local runs, where nothing is limited. */
   DRAWING_LIMIT_CALLER?: RateLimiter;
   DRAWING_LIMIT_ALL?: RateLimiter;
+  /** The Modal render worker (workers/render), both secrets, and its own limits. */
+  RENDER_WORKER_URL?: string;
+  RENDER_WORKER_TOKEN?: string;
+  RENDER_LIMIT_CALLER?: RateLimiter;
+  RENDER_LIMIT_ALL?: RateLimiter;
 }

@@ -1,49 +1,50 @@
-# Make it real: the model itself, rendered on the viewer's GPU
+# Make it real: the model rendered with Cycles on a Modal GPU
 
-30 Oct 2026. "Make it real" used to send a snapshot to an image model and show a static picture. It now renders the live 3D
-model with progressive GPU path tracing in the browser: orbit and walk it while it sharpens; export it to Blender as it
-is. No image is generated and no server GPU is used.
+3 Nov 2026. "Make it real" renders the view on screen with Blender Cycles on a Modal GPU and shows the picture over the
+live model. It replaces the browser path tracer of 30 Oct, which the founder found slow and weak on his laptop: it used
+the viewer's own GPU, and Modal played no part.
 
 ## What it is
 
-`apps/web/src/officeView.ts` (`setRealistic`) hands the scene to `three-gpu-pathtracer` 0.0.27 (MIT; peer `three-mesh-bvh`
-0.9.17), which traces light paths on the viewer's GPU: global illumination, soft shadows, light through the windows
-from a photographed high-dynamic-range sky (Poly Haven Alps Field, 2k, CC0; a drawn sky stands in until it loads), ceiling lights as area lights, the CC0 models with their own materials.
+1. `apps/web/src/Studio.tsx` (`makeReal`) asks the 3D view for its camera and sun (`OfficeView.renderView`) and for the
+   model as a GLB with only what is on screen (`exportGlb(plain, true)`: no hidden roof or upper floor, and no wall the
+   walk camera has faded to see past). It posts both to `/api/render`.
+2. `apps/edge/src/render.ts` limits each caller to 4 renders a minute and everyone to 30, checks the view and that the
+   body is a GLB of at most 60 MB, and forwards both with a bearer token the browser never sees. It checks the reply's
+   shape before passing the picture back.
+3. `workers/render/app.py` (Modal app `icarus-render`) imports the GLB into Blender 4.2 (`bpy`), places the same camera,
+   adds a matte paper ground, a physical sky (its own sun disc off) and a sun from the browser's sun direction, and
+   renders 128 samples with Cycles on the GPU (OptiX), denoised with OpenImageDenoise, in AgX. It adds nothing to the
+   model.
 
-- The BVH of the building is built in a web worker, so the page stays usable while it is prepared.
-- While the camera moves it shows a quick low-resolution pass; the full image accumulates when it stops.
-- An edge-aware blur on the accumulated image, shaped by the sample count, hides grain early and fades as samples arrive.
-- It starts at 0.6 of screen resolution and shrinks to 0.4 if fewer than 3 samples a second arrive (not while the page is
-  hidden, when the browser slows animation).
-- It stops at 600 samples so the GPU is left alone; any movement restarts it.
-- Without WebGL2 float rendering it says so and stays on the quick view. Nothing about samples or progress is shown to the person.
+The picture is a still of one view, not a walkable scene. The quick 3D view stays in the browser for moving around.
 
 ## Why this and not the alternatives
 
 | Option | Verdict |
-| --- | --- |
-| Server GPU stills (the old image-model repaint) | A picture, not a model; cost per click; invents details the model does not have. Rejected by the founder's brief. |
-| Cycles on a Modal GPU, sent back as images | Photographic and exact, but static and metered per view. Kept as a possible export, not the interactive path. |
-| Rasterised PBR with ambient occlusion and shadow maps | Interactive on any GPU, but no real bounced light; interiors look flat. The preview already is this. |
-| **Path tracing in the browser** | Real global illumination on the live, interactive model, at no server cost. Cost: heavy on weak GPUs. |
+|---|---|
+| Path tracing in the browser (30 Oct to 2 Nov) | Real bounced light on the live model at no server cost, but as slow as the viewer's GPU: about 1 sample a second walking on an M1, on an 8-room office. The two-floor plan is about a million triangles. Removed with its two packages and sky image. |
+| Image-model repaint of a snapshot | A picture, not the model; invents details the model does not have. Rejected earlier by the founder. |
+| **Cycles on a Modal GPU** | The same model and camera, path traced on a data-centre GPU in seconds, and the same on a phone as on a desktop. Paid per second and static. Chosen. |
 
 ## Measured, with its limits
 
-One machine: an Apple M1 in the desktop app's embedded browser, a 12-person office of 8 rooms:
-628,000 triangles (the CC0 furniture dominates), 8 ceiling area lights, 1000 x 850 canvas.
+2 to 3 Nov 2026, the private two-floor plan (42 spaces), a 3.3 MB GLB without textures:
 
-- Orbit view at 0.5 resolution: about 10 samples a second, 100 samples in 11 s, 160 in 22 s. A clean, soft image.
-- Walk view at 0.55 resolution: about 1 sample a second (29 in 30 s). Usable, still grainy.
-- At 0.8 resolution an early run managed about 0.7 samples a second: too slow, which is why it starts smaller.
-- Measured by driving the tracer directly, because the embedded page was reported hidden and throttled its animation frames,
-  so the live frame loop was not timed. A visible window will do at least as well.
-
-So on a base M1 the first usable image takes seconds and a clean one under a minute; a discrete GPU should be several times
-faster. This has not been measured on any other machine. Heavy furniture models are the largest cost; lighter ones would help.
+- **GPU supply.** With only L4 allowed, a render waited over 400 s for capacity and never started. The worker now takes
+  the first free of L4, A10G or L40S; which one served each run was not recorded.
+- **Warm worker:** 3.6 to 7.1 s of Cycles rendering at 960 × 600 to 1280 × 800, 1.5 to 1.9 s to import the model, and 8
+  to 16 s from button to picture in the app, including the export and the upload.
+- **Cold start** was not measured cleanly: the first calls after deploys failed on the OptiX denoiser (fixed by using
+  OpenImageDenoise) or reached a crashed container.
+- **Light** was set by eye over seven renders of the same view (sun 2.6, sky 0.4 with no sun disc, exposure -1.1). It
+  has not been compared with a photograph or judged by a designer.
+- **Cost:** about 10 to 20 s of GPU time per render, roughly 0.3 to 1 US cent at Modal's list prices for these GPUs. The
+  worker scales to zero after 2 minutes idle.
 
 ## Not done
 
-- Nothing was compared against a photograph, so "exactly like real life" is the aim, not a measured result.
-- The materials are plain colours and canvas wood; there are no PBR texture maps, so surfaces look clean, not worn.
-- Furniture other than the nine CC0 models is built from boxes and looks like it.
-- No denoiser beyond the blur above; at low sample counts grain remains in shadows.
+- The deployed edge Worker on workers.dev does not have this route or its two secrets yet: the Cloudflare login on this
+  machine expired. Until it is redeployed, Make it real works only with the local Worker.
+- Multi-floor projects export plain colours (`plainExport`), so their renders have no textures.
+- The worker returns 500 for a Cycles failure; the app shows it as "the renderer failed" without the cause.

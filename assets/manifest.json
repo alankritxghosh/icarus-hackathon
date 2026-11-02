@@ -46,10 +46,5 @@
     "arm": "arm",
     "nor_gl": "nor_gl"
   },
-  "hdris": [
-    {
-      "id": "alps_field",
-      "resolution": "2k"
-    }
-  ]
+  "hdris": []
 }

@@ -938,15 +938,43 @@ button {
   font-size: 12.5px;
 }
 
-@media (max-width: 1100px) {
+/* Below this the model would get less than about 700 px; the summary column moves under the conversation. */
+@media (max-width: 1500px) {
   .studio {
     grid-template-columns: 58px minmax(300px, 360px) minmax(0, 1fr);
+    grid-template-rows: 62px minmax(0, 1fr) auto;
   }
-  .side {
-    display: none;
+  .rail {
+    grid-column: 1;
+    grid-row: 2 / 4;
+  }
+  .chat {
+    grid-column: 2;
+    grid-row: 2;
   }
   .viewer {
+    grid-column: 3;
+    grid-row: 2 / 4;
     margin-right: 18px;
+  }
+  .side {
+    grid-column: 2;
+    grid-row: 3;
+    flex-direction: row;
+    padding: 0 0 18px;
+    overflow: visible;
+  }
+  .side .card {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+  }
+  .side .card h2 {
+    font-size: 19px;
+  }
+  .stat {
+    padding: 5px 0;
+    font-size: 14px;
   }
 }
 @media (max-width: 820px) {
@@ -983,13 +1011,32 @@ button {
     padding: 6px 12px;
     font-size: 14px;
   }
-  .stage-tools .real {
-    display: none;
-  }
   .walk-pad {
     right: 8px;
     bottom: 8px;
     grid-template-columns: repeat(3, 42px);
     grid-template-rows: repeat(2, 42px);
   }
+}
+
+/* A GPU render of the current view, over the live model */
+.real-shot {
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  display: grid;
+  background: #efeae1;
+}
+.real-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.real-shot .row {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+}
+.real-shot a.btn {
+  text-decoration: none;
 }

@@ -18,6 +18,17 @@
       "namespace_id": "1001",
       "simple": { "limit": 6, "period": 60 }
     },
-    { "name": "DRAWING_LIMIT_ALL", "namespace_id": "1002", "simple": { "limit": 60, "period": 60 } }
+    {
+      "name": "DRAWING_LIMIT_ALL",
+      "namespace_id": "1002",
+      "simple": { "limit": 60, "period": 60 }
+    },
+    // A GPU render takes 10 to 20 seconds of paid time.
+    {
+      "name": "RENDER_LIMIT_CALLER",
+      "namespace_id": "1003",
+      "simple": { "limit": 4, "period": 60 }
+    },
+    { "name": "RENDER_LIMIT_ALL", "namespace_id": "1004", "simple": { "limit": 30, "period": 60 } }
   ]
 }
