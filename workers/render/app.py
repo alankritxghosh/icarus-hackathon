@@ -207,6 +207,13 @@ async def draw(request: Request):
         raise HTTPException(status_code=401, detail="unauthorised")
     try:
         view = parse_view(request.headers.get("x-icarus-view", ""))
-        return render(await request.body(), view)
+        glb = await request.body()
+        # Blender segfaults when it resets for a second job and took the whole container with it, so every click was a
+        # cold start (3 Nov 2026). Each render runs in a fresh child; a crash ends only that child.
+        import asyncio
+        import multiprocessing
+
+        with multiprocessing.get_context("spawn").Pool(1) as pool:
+            return await asyncio.to_thread(pool.apply, render, (glb, view))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
