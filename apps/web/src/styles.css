@@ -1040,3 +1040,239 @@ button {
 .real-shot a.btn {
   text-decoration: none;
 }
+
+/* The front page */
+a.logo {
+  color: inherit;
+  text-decoration: none;
+}
+a.btn {
+  display: inline-block;
+  color: inherit;
+  text-decoration: none;
+}
+a.btn.primary {
+  color: #fff;
+}
+.btn.big {
+  padding: 12px 26px;
+  font-size: 20px;
+}
+.home {
+  min-height: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 48px;
+  overflow-x: hidden;
+}
+.home-top {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  padding: 24px 0;
+}
+.home-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: auto;
+  color: var(--navy-deep);
+  font-size: 30px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.home-logo svg {
+  width: 52px;
+  height: 36px;
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.home-top nav a {
+  color: var(--navy);
+  font-size: 18px;
+  font-style: italic;
+  text-decoration: none;
+}
+.home-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 40px;
+  align-items: center;
+  padding: 36px 0 56px;
+  border-bottom: 1px solid #c9cfe0;
+}
+.home-copy h1 {
+  margin: 0;
+  color: var(--navy-deep);
+  font-size: clamp(72px, 9vw, 132px);
+  font-weight: 600;
+  line-height: 0.95;
+  letter-spacing: -2px;
+}
+.home-motto {
+  display: inline-block;
+  margin: 4px 0 22px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--navy);
+  color: var(--navy);
+  font-size: clamp(38px, 4.6vw, 64px);
+  font-style: italic;
+  line-height: 1.1;
+}
+.home-lede {
+  max-width: 34em;
+  margin: 0 0 26px;
+  color: var(--navy-deep);
+  font-size: 22px;
+  line-height: 1.45;
+}
+.home-checks {
+  display: grid;
+  gap: 10px;
+  margin: 28px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 18px;
+}
+.home-checks li {
+  position: relative;
+  padding-left: 30px;
+}
+.home-checks li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--navy);
+  font-size: 20px;
+}
+.home-art {
+  position: relative;
+  margin: 0;
+  padding: 70px 30px 60px;
+}
+.home-art img {
+  display: block;
+  width: 100%;
+  mix-blend-mode: multiply;
+  /* The render's sky is not quite the page's paper; its edges fade into the page instead of showing a frame. */
+  mask-image: radial-gradient(ellipse 60% 62% at 50% 50%, #000 62%, transparent 100%);
+}
+.home-art .hand {
+  position: absolute;
+  margin: 0;
+  font-size: 26px;
+  font-weight: 500;
+}
+.note-a {
+  top: 6px;
+  left: 14%;
+  transform: rotate(-8deg);
+}
+.note-a::after {
+  content: "";
+  position: absolute;
+  top: 34px;
+  left: 60%;
+  width: 40px;
+  height: 52px;
+  border-right: 2px solid var(--hand);
+  border-radius: 0 0 60% 0;
+}
+.note-b {
+  top: 0;
+  right: 0;
+  padding: 10px 18px;
+  list-style: none;
+  border: 1.5px solid var(--hand);
+  transform: rotate(-4deg);
+}
+.note-b li::before {
+  content: "☑ ";
+}
+.note-c {
+  right: 4%;
+  bottom: 8px;
+  transform: rotate(-7deg);
+}
+.home-how {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 40px 0;
+}
+.home-how article {
+  padding: 8px 36px;
+  text-align: center;
+}
+.home-how article + article {
+  border-left: 1px solid #c9cfe0;
+}
+.home-how svg {
+  width: 84px;
+  height: 64px;
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.home-how h2 {
+  margin: 10px 0 8px;
+  color: var(--navy-deep);
+  font-size: 32px;
+  font-weight: 600;
+}
+.home-how p {
+  max-width: 22em;
+  margin: 0 auto;
+  color: var(--navy-deep);
+  font-size: 18px;
+}
+.home-foot {
+  padding: 24px 0 40px;
+  border-top: 1px solid #c9cfe0;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+.home-foot p {
+  margin: 4px 0;
+}
+@media (max-width: 900px) {
+  .home {
+    padding: 0 16px;
+  }
+  .home-top {
+    gap: 16px;
+  }
+  .home-top nav {
+    display: none;
+  }
+  .home-hero {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding-top: 12px;
+  }
+  .home-lede {
+    font-size: 19px;
+  }
+  .home-art {
+    padding: 56px 0 44px;
+  }
+  .home-art .hand {
+    font-size: 20px;
+  }
+  .note-b {
+    display: none;
+  }
+  .home-how {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+  .home-how article + article {
+    border-left: 0;
+    border-top: 1px solid #c9cfe0;
+    padding-top: 28px;
+  }
+}

@@ -371,9 +371,9 @@ export function Studio(props: Props) {
     <div className={`studio${(summary?.length ?? 0) || log.length ? "" : " no-side"}`}>
       <header className="top">
         <div className="crumbs">
-          <span className="logo">
+          <a className="logo" href="/">
             icarus<span>.</span>
-          </span>
+          </a>
           {title && (
             <>
               <span className="crumb-sep" aria-hidden="true">
