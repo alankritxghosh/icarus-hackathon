@@ -184,4 +184,31 @@ describe("every model-derived variant is measured against the rules alone", () =
       );
     }
   }, 600_000);
+
+  it("never ends worse than the same repair loop without the model, and says when it kept that plan", async () => {
+    const { readBrief, refineDesign } = await import("@icarus/core");
+    // A plausible wish that passes the first check but steers the repair loop somewhere worse: found by search with
+    // the final comparison switched off (7.6 against 0.06), as Muse Spark did on this brief on 2 Nov 2026.
+    const SMALL =
+      "An 8-person studio with one meeting room and a kitchen. Windows on the south wall, entrance on the west.";
+    const wish = {
+      preferences: {
+        adjacent: [{ a: "kitchen", b: "reception", weight: 3 }],
+        apart: [],
+        areaScale: {},
+      },
+      decisions: [
+        { topic: "kitchen", choice: "next to reception", reason: "greet guests with coffee" },
+      ],
+    };
+    const net = fakeFetch((path) =>
+      path.endsWith("/propose") ? ok({ proposal: wish, model: "m" }) : fail(502, "none"),
+    );
+    const out = await designFromBrief(SMALL, { fetcher: net.fetcher });
+    const without = await refineDesign(readBrief(SMALL).program);
+    expect(out.refine.best.cost).toBe(without.best.cost);
+    expect(out.trace.vetoed.join(" ")).toContain("Kept the plan made without the model");
+    expect(out.trace.decisions.every((d) => !d.used)).toBe(true);
+    expect(out.notes).toEqual(readBrief(SMALL).notes);
+  }, 300_000);
 });

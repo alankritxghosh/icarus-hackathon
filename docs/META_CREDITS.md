@@ -66,6 +66,8 @@ Median 7.2 s per request in run4. There is no free-Llama run of this test to com
 
 Muse Spark lowered the total by 6.7% against the loop without a model and by 4.2% against Llama. Per brief it is mixed: better on 4 (for example demo studio 11.5 to 3.7, startup 12 82.2 to 66.2, agency 22 north 69.2 to 62.3), worse on 4 and level on 4. Where it was worse, the plan without a model was already near zero (law firm 0.0 to 3.3, small studio 0.1 to 3.6). Over the 12 briefs it proposed 57 decisions, of which the validators refused 7; all 17 revision answers were valid and 9 were used. Median 35 s per brief. Each brief ran once, so the per-brief numbers include the model's run-to-run variation (an aborted earlier run scored demo studio 11.4).
 
+**Change made after this run:** the design loop now also runs the same repair loop without the model and keeps the model's plan only when it scores at least as well. That run makes no model calls. Applied to the recorded results, it takes the lower of the two plans for each brief: 339.4 in total (5 briefs switch to the plan made without the model), against 371.3 without a model. It is worked out from this run's numbers, not a fresh run. A test reproduces the fault with a scripted wish, "kitchen next to reception", on the 8-person studio brief, which steered the loop to 7.6 instead of 0.06. With the comparison switched off, that test fails.
+
 Spend was not metered per call here: the Worker's daily count lives in memory and reset at each restart. All runs together, including probes and aborted runs, are estimated at about $2. Check the Meta dashboard for the real figure.
 
 ## What counts as a result

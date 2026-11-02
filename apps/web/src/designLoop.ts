@@ -225,5 +225,19 @@ export async function designFromBrief(
     yieldToHost: options.yieldToHost,
   });
   trace.revisions.used = refine.rounds.filter((r) => r.source === "model" && r.accepted).length;
+  if (!advisor && program === read.program)
+    return { program: refine.best.program, refine, trace, notes };
+  // The final check: the same repair loop on the rules alone, with no model. The model's plan is kept only when it
+  // scores at least as well; on 2 Nov 2026 Muse Spark made 4 of 12 already-good plans slightly worse.
+  options.onStage?.("Comparing with the plan made without the model");
+  const without = await refineDesign(read.program, { yieldToHost: options.yieldToHost });
+  if (without.best.cost < refine.best.cost) {
+    trace.vetoed.push(
+      `Kept the plan made without the model: it scored better (${without.best.cost.toFixed(1)} against ${refine.best.cost.toFixed(1)}).`,
+    );
+    trace.decisions = trace.decisions.map((d) => ({ ...d, used: false }));
+    trace.revisions.used = 0;
+    return { program: without.best.program, refine: without, trace, notes: read.notes };
+  }
   return { program: refine.best.program, refine, trace, notes };
 }
