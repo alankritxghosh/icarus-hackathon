@@ -948,7 +948,20 @@ export class OfficeView {
     const walls = this.content.children.filter(
       (child) => child.visible && child.userData.type === "wall",
     );
-    const hits = caster.intersectObjects(walls, false);
+    const lowerBody = this.playerAt.clone().add(new THREE.Vector3(0, 0.1, 0));
+    const lowerToCamera = this.perspective.position.clone().sub(lowerBody);
+    const lowerLength = lowerToCamera.length();
+    const furniture = this.content.children.filter(
+      (child) =>
+        child.visible && child.userData.type === "furniture" && child instanceof THREE.Mesh,
+    );
+    const furnitureHits = new THREE.Raycaster(
+      lowerBody,
+      lowerToCamera.normalize(),
+      0.2,
+      lowerLength,
+    ).intersectObjects(furniture, false);
+    const hits = [...caster.intersectObjects(walls, false), ...furnitureHits];
     const faded = new Set<THREE.Mesh>();
     for (const hit of hits) {
       const mesh = hit.object;
@@ -958,7 +971,7 @@ export class OfficeView {
         const normal = mesh.material as THREE.Material;
         const ghost = normal.clone();
         ghost.transparent = true;
-        ghost.opacity = 0.05;
+        ghost.opacity = mesh.userData.type === "furniture" ? 0.12 : 0.05;
         ghost.depthWrite = false;
         pair = { normal, faded: ghost };
         this.cameraGhosts.set(mesh, pair);
@@ -966,6 +979,11 @@ export class OfficeView {
       mesh.material = pair.faded;
       faded.add(mesh);
     }
+    if (import.meta.env.DEV)
+      this.renderer.domElement.dataset.walkFadedFurniture = [...faded]
+        .filter((mesh) => mesh.userData.type === "furniture")
+        .map((mesh) => String(mesh.userData.nodeId ?? ""))
+        .join(",");
   }
 
   setCeiling(show: boolean) {

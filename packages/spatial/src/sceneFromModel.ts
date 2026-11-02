@@ -541,6 +541,87 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
     piece("end", cursor, len, 0, H, material, "wall");
   }
 
+  // Concept guards follow exposed balcony boundaries. A nearby room wall owns
+  // the building-side edge and its doorway, so no second rail closes that gap.
+  for (const space of model.spaces) {
+    if (space.kind !== "exterior.balcony" || !/balcony/i.test(space.name)) continue;
+    const ring = space.boundary.outer;
+    for (let i = 0; i < ring.length; i++) {
+      const a = ring[i] as { x: number; y: number };
+      const b = ring[(i + 1) % ring.length] as { x: number; y: number };
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const length = Math.hypot(dx, dy);
+      if (length < 400) continue;
+      const wallRanges = model.walls
+        .flatMap((wall) => {
+          if (wall.kind === "virtual") return [];
+          const wx = wall.b.x - wall.a.x;
+          const wy = wall.b.y - wall.a.y;
+          const wallLength = Math.hypot(wx, wy);
+          if (wallLength < 1 || Math.abs(dx * wy - dy * wx) / (length * wallLength) > 0.01)
+            return [];
+          const distance = Math.abs((wall.a.x - a.x) * dy - (wall.a.y - a.y) * dx) / length;
+          if (distance > 350) return [];
+          const project = (x: number, y: number) => ((x - a.x) * dx + (y - a.y) * dy) / length;
+          const start = Math.max(
+            0,
+            Math.min(project(wall.a.x, wall.a.y), project(wall.b.x, wall.b.y)),
+          );
+          const end = Math.min(
+            length,
+            Math.max(project(wall.a.x, wall.a.y), project(wall.b.x, wall.b.y)),
+          );
+          return end > start ? [[start, end] as [number, number]] : [];
+        })
+        .sort((left, right) => left[0] - right[0]);
+      let covered = 0;
+      let end = 0;
+      for (const [start, stop] of wallRanges) {
+        covered += Math.max(0, stop - Math.max(start, end));
+        end = Math.max(end, stop);
+      }
+      if (covered >= length * 0.8) continue;
+      const [x, z] = at((a.x + b.x) / 2, (a.y + b.y) / 2);
+      const rotationY = -Math.atan2(dy, dx);
+      nodes.push({
+        id: `balcony.guard.${space.id}.${i}.top`,
+        name: "Balcony guard rail (estimated)",
+        type: "wall",
+        geometry: { kind: "box", size: [length * M, 0.06, 0.06] },
+        position: [x, 1.02, z],
+        rotationY,
+        material: "floor.concrete",
+        tags: ["balcony", "guard", "estimated"],
+      });
+      nodes.push({
+        id: `balcony.guard.${space.id}.${i}.mid`,
+        name: "Balcony middle rail (estimated)",
+        type: "fixture",
+        geometry: { kind: "box", size: [length * M, 0.04, 0.04] },
+        position: [x, 0.55, z],
+        rotationY,
+        material: "floor.concrete",
+        tags: ["balcony", "guard", "estimated"],
+      });
+      const count = Math.max(1, Math.ceil(length / 1200));
+      for (let post = 0; post <= count; post++) {
+        const t = post / count;
+        const [px, pz] = at(a.x + dx * t, a.y + dy * t);
+        nodes.push({
+          id: `balcony.guard.${space.id}.${i}.post.${post}`,
+          name: "Balcony guard post (estimated)",
+          type: "fixture",
+          geometry: { kind: "box", size: [0.045, 1.04, 0.045] },
+          position: [px, 0.52, pz],
+          rotationY,
+          material: "floor.concrete",
+          tags: ["balcony", "guard", "estimated"],
+        });
+      }
+    }
+  }
+
   // Ceiling lights on a grid, kept out of the walls, so the rooms are lit and the realistic renderer has lights.
   const cell = 3500;
   if (!traced)

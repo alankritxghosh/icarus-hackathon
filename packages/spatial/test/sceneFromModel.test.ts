@@ -66,6 +66,48 @@ describe("sceneFromModel", () => {
     expect(stacked.viewpoints[1]?.position[1]).toBeCloseTo(4.8);
   });
 
+  it("guards exposed balcony edges without closing the wall-side doorway", () => {
+    const balcony = {
+      ...(model.spaces[0] as (typeof model.spaces)[number]),
+      id: "balcony",
+      name: "BALCONY",
+      kind: "exterior.balcony" as const,
+      boundary: {
+        outer: [
+          { x: -2000, y: 0 },
+          { x: 0, y: 0 },
+          { x: 0, y: 4000 },
+          { x: -2000, y: 4000 },
+        ],
+        holes: [],
+      },
+    };
+    const level = model.levels[0] as (typeof model.levels)[number];
+    const guarded = sceneFromModel({
+      ...model,
+      levels: [
+        {
+          ...level,
+          boundary: {
+            ...level.boundary,
+            outer: [
+              { x: -2000, y: 0 },
+              { x: 6000, y: 0 },
+              { x: 6000, y: 4000 },
+              { x: -2000, y: 4000 },
+            ],
+          },
+        },
+      ],
+      spaces: [...model.spaces, balcony],
+    }).scene.nodes.filter(
+      (node) => node.id.startsWith("balcony.guard.") && node.id.endsWith(".top"),
+    );
+    expect(guarded).toHaveLength(3);
+    expect(guarded.every((node) => node.type === "wall")).toBe(true);
+    expect(guarded.some((node) => Math.abs(node.position[0] - 2) < 0.01)).toBe(false);
+  });
+
   it("cuts a window and a doorway through their walls, with glass in the window only", () => {
     expect(nodes("window")).toHaveLength(1);
     expect(nodes("window")[0]?.material).toBe("glass");
