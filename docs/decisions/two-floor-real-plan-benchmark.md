@@ -93,6 +93,8 @@ The independent 100 mm clearance raster was rerun with the nine top rails includ
 
 A separate private crossing audit now samples the **rendered wall and furniture solids**, rather than reconstructing gaps from the model's wall and opening records. It found a 200 mm radius, 1.65 m high passage through **45/45** saved openings, allowing at most 200 mm lateral alignment. In a mutation run, adding a full-height solid at the upper wardrobe's north opening reduced the result to **44/45** and named that gap. This covers straight local crossings of the generated collision scene; it does not prove a continuous browser walk through every branch.
 
+A further private 100 mm raster independently searched the **generated scene's floor boxes and wall/furniture collision solids** as a continuous per-floor network. From the lower east entrance it reached 21/22 outlines; from the upper stair arrival it reached 19/20. The misses were again the 500 mm threshold patch and shallow shoe niche, neither a player-sized destination. Removing Bedroom 2's generated floor in a mutation made that room unreachable and failed the audit. Combined with the physical stair route, this is stronger evidence for supported continuous routes to the 40 player-sized destinations. It remains a sampled geometric check, not a browser visit or source-plan approval for every room.
+
 On that M1 balcony endpoint, the last moving-frame probe reported **22.3 ms p95**, 1,044 draw calls and 1,060,652 triangles at the standard 880 × 720 CSS viewport. This short sample meets the provisional integrated-GPU target; the software-WebGL route has not been repeated after adding the rails.
 
 ## In-app plan review experiment (1 November)
