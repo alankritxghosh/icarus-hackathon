@@ -20,8 +20,15 @@ const fails = (e: { issues: { severity: string }[] }) =>
 
 suite("design loop evaluation", () => {
   it("scores three variants on twelve briefs", { timeout: 1_800_000 }, async () => {
-    const fetcher = ((path: string, init?: RequestInit) =>
-      fetch(`${edge}${path}`, init)) as typeof fetch;
+    // One retry on a network error: Node reuses idle connections the local Worker has closed, which dropped 2 of 12
+    // briefs to the rules alone on 2 Nov 2026 without the request ever arriving. This measures the model, not sockets.
+    const fetcher = (async (path: string, init?: RequestInit) => {
+      try {
+        return await fetch(`${edge}${path}`, init);
+      } catch {
+        return fetch(`${edge}${path}`, init);
+      }
+    }) as typeof fetch;
     const rows: unknown[] = [];
     for (const { name, brief } of EVAL_BRIEFS) {
       const read = readBrief(brief);

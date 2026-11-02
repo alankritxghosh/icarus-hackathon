@@ -1,0 +1,249 @@
+{
+  "model": "muse-spark-1.3",
+  "asked": 20,
+  "validAnswers": 16,
+  "readRight": 12,
+  "doable": 16,
+  "unsupportedFlagged": 4,
+  "unsupportedCases": 4,
+  "rows": [
+    {
+      "text": "I would like the lounge pushed over to the northern end of the floor",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 14216,
+      "ok": true,
+      "ops": [
+        {
+          "op": "move_room",
+          "room": "lounge.1",
+          "to": "north"
+        }
+      ]
+    },
+    {
+      "text": "relocate the pantry so it sits on the east side",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 16007,
+      "ok": true,
+      "ops": [
+        {
+          "op": "move_room",
+          "room": "kitchen.1",
+          "to": "east"
+        }
+      ]
+    },
+    {
+      "text": "can the kitchen live down at the southern edge instead",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 6735,
+      "ok": true,
+      "ops": [
+        {
+          "op": "move_room",
+          "room": "kitchen.1",
+          "to": "south"
+        }
+      ]
+    },
+    {
+      "text": "put the lounge on the west side please",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 4653,
+      "ok": true,
+      "ops": [
+        {
+          "op": "move_room",
+          "room": "lounge.1",
+          "to": "west"
+        }
+      ]
+    },
+    {
+      "text": "the lounge feels cramped, give it noticeably more space",
+      "grammarWouldRead": false,
+      "status": 502,
+      "ms": 19937,
+      "ok": false,
+      "error": "the model's answer did not match what Icarus needs"
+    },
+    {
+      "text": "reception is bigger than we need, trim it a little",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 8059,
+      "ok": true,
+      "ops": [
+        {
+          "op": "resize_room",
+          "room": "reception.1",
+          "factor": 0.85
+        }
+      ]
+    },
+    {
+      "text": "we need two more places to hold meetings, each for about eight people",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 4427,
+      "ok": true,
+      "ops": [
+        {
+          "op": "add_room",
+          "kind": "meeting_room",
+          "count": 2,
+          "capacity": 8
+        }
+      ]
+    },
+    {
+      "text": "one of the meeting rooms is surplus, drop the last one",
+      "grammarWouldRead": false,
+      "status": 502,
+      "ms": 16590,
+      "ok": false,
+      "error": "the model's answer did not match what Icarus needs"
+    },
+    {
+      "text": "a couple more phone booths would be great",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 14253,
+      "ok": true,
+      "ops": [
+        {
+          "op": "add_phone_booths",
+          "count": 2
+        }
+      ]
+    },
+    {
+      "text": "we have one booth too many, take one out",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 13167,
+      "ok": true,
+      "ops": [
+        {
+          "op": "remove_phone_booths",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "text": "keep reception exactly where it is whatever else changes",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 6890,
+      "ok": true,
+      "ops": [
+        {
+          "op": "lock_room",
+          "room": "reception.1"
+        }
+      ]
+    },
+    {
+      "text": "the kitchen may move again now",
+      "grammarWouldRead": false,
+      "status": 502,
+      "ms": 16644,
+      "ok": false,
+      "error": "the model's answer did not match what Icarus needs"
+    },
+    {
+      "text": "trade places between the lounge and the kitchen",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 7108,
+      "ok": true,
+      "ops": [
+        {
+          "op": "swap_rooms",
+          "a": "lounge.1",
+          "b": "kitchen.1"
+        }
+      ]
+    },
+    {
+      "text": "swap round the front desk and the kitchen",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 17431,
+      "ok": true,
+      "ops": [
+        {
+          "op": "swap_rooms",
+          "a": "reception.1",
+          "b": "kitchen.1"
+        }
+      ]
+    },
+    {
+      "text": "send the kitchen east and give us one more phone booth",
+      "grammarWouldRead": false,
+      "status": 502,
+      "ms": 14206,
+      "ok": false,
+      "error": "the model's answer did not match what Icarus needs"
+    },
+    {
+      "text": "pin the lounge in place and then shove the kitchen to the north",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 3196,
+      "ok": true,
+      "ops": [
+        {
+          "op": "lock_room",
+          "room": "lounge.1"
+        },
+        {
+          "op": "move_room",
+          "room": "kitchen.1",
+          "to": "north"
+        }
+      ]
+    },
+    {
+      "text": "make the whole building two storeys",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 2768,
+      "ok": true,
+      "ops": [],
+      "unsupported": "Cannot make the building two storeys."
+    },
+    {
+      "text": "add a swimming pool next to reception",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 4764,
+      "ok": true,
+      "ops": [],
+      "unsupported": "Cannot add a swimming pool; only meeting rooms can be added."
+    },
+    {
+      "text": "paint all the walls blue",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 4529,
+      "ok": true,
+      "ops": [],
+      "unsupported": "Painting walls blue cannot be done - colours are not supported."
+    },
+    {
+      "text": "double the number of people who work here",
+      "grammarWouldRead": false,
+      "status": 200,
+      "ms": 3761,
+      "ok": true,
+      "ops": [],
+      "unsupported": "Doubling occupancy needs a larger workspace or shell, which cannot be added."
+    }
+  ]
+}
