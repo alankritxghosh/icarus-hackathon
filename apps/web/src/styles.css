@@ -312,7 +312,7 @@ button {
 }
 .walk-floors {
   position: absolute;
-  top: 124px;
+  top: 140px;
   left: 16px;
   display: flex;
   gap: 6px;
@@ -322,6 +322,7 @@ button {
   border: 0;
 }
 .walk-floors button,
+.walk-floors select,
 .walk-pad button {
   border: 1px solid #ffffff45;
   border-radius: 8px;
@@ -329,7 +330,8 @@ button {
   color: var(--text);
   font-weight: 600;
 }
-.walk-floors button {
+.walk-floors button,
+.walk-floors select {
   padding: 7px 10px;
   font-size: 12px;
 }

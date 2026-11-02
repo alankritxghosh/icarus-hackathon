@@ -156,7 +156,10 @@ describe("reviewed room outlines", () => {
     expect(scene.nodes.some((node) => node.geometry.kind === "asset")).toBe(true);
     expect(scene.nodes.some((node) => node.material === "floor.landscape")).toBe(true);
     expect(scene.nodes.some((node) => node.material === "floor.wood.light")).toBe(true);
-    expect(scene.nodes.some((node) => node.type === "light")).toBe(false);
+    // One ceiling light per indoor room; the garden is outdoors and gets none.
+    expect(scene.nodes.filter((node) => node.type === "light").map((node) => node.name)).toEqual([
+      "LIVING ROOM ceiling light",
+    ]);
     expect(scene.nodes.some((node) => node.tags.includes("roof"))).toBe(true);
   });
 

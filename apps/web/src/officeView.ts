@@ -40,6 +40,8 @@ export class OfficeView {
   private readonly orbit: OrbitControls;
   private readonly plan: OrbitControls;
   private readonly sun = new THREE.DirectionalLight(0xffe4c4, 2.4);
+  /** Warm light under the ceiling above the visitor, standing in for the room's lights where they walk. */
+  private readonly roomLight = new THREE.PointLight(0xffd9a8, 4.5, 7, 1.6);
   private readonly content = new THREE.Group();
   /** Fades the ground into the paper backdrop in the 3D view, so there is no horizon line. */
   private readonly haze = new THREE.Fog(PAPER, 60, 160);
@@ -192,6 +194,8 @@ export class OfficeView {
     this.three.add(this.avatar);
     this.three.add(new THREE.HemisphereLight(0xfff6ea, 0xcfc2ad, 0.8));
     this.three.add(this.sun, this.sun.target);
+    this.roomLight.visible = false;
+    this.three.add(this.roomLight);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
     this.sun.shadow.bias = -0.0004;
@@ -539,6 +543,7 @@ export class OfficeView {
       this.walkFrame = 0;
       this.walkKeys.clear();
       this.avatar.visible = false;
+      this.roomLight.visible = false;
       this.clearCameraGhosts();
       this.leaveEye();
     }
@@ -555,6 +560,7 @@ export class OfficeView {
     this.orbit.enabled = mode === "orbit";
     this.plan.enabled = mode === "plan";
     if (mode === "eye") this.avatar.visible = true;
+    this.roomLight.visible = mode === "eye" && !this.realistic;
     this.three.background = this.realistic ? this.skyTexture() : mode === "eye" ? SKY : PAPER;
     this.three.fog = mode === "orbit" && !this.realistic ? this.haze : null;
     this.applyCeiling();
@@ -763,6 +769,7 @@ export class OfficeView {
   private updateWalkCamera() {
     if (this.mode !== "eye") return;
     this.avatar.position.copy(this.playerAt);
+    this.roomLight.position.set(this.playerAt.x, this.playerAt.y + 2.5, this.playerAt.z);
     if (import.meta.env.DEV)
       this.renderer.domElement.dataset.walkPose = [
         this.playerAt.x.toFixed(2),
@@ -1259,6 +1266,7 @@ export class OfficeView {
       this.three.fog = this.mode === "orbit" ? this.haze : null;
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       this.sun.visible = true;
+      this.roomLight.visible = this.mode === "eye";
       this.renderer.toneMappingExposure = 1;
       for (const l of this.areaLights) this.three.remove(l);
       this.areaLights = [];
@@ -1275,6 +1283,7 @@ export class OfficeView {
     this.renderer.setPixelRatio(1);
     this.renderer.toneMappingExposure = 1.6;
     this.sun.visible = false;
+    this.roomLight.visible = false;
     this.resize();
     this.rebuildTracer();
   }

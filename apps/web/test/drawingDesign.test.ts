@@ -60,7 +60,8 @@ describe("reading a drawing in the chat", () => {
     expect(said).toMatch(/walls and 1 door or window/);
     expect(said).toMatch(/I furnished .*BEDROOM.*KITCHEN|I furnished .*KITCHEN.*BEDROOM/);
     expect(said).toMatch(/Every other room is as drawn/);
-    expect(d.viewpoints).toHaveLength(1);
+    expect(d.viewpoints[0]?.id).toBe("inside");
+    expect(d.viewpoints.slice(1).every((point) => point.id.startsWith("room."))).toBe(true);
   });
 
   it("asks for the scale when the sheet gives none and none was said", async () => {

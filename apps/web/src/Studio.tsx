@@ -88,6 +88,7 @@ export function Studio(props: Props) {
   const [menu, setMenu] = useState(false);
   const [roofVisible, setRoofVisible] = useState(false);
   const [walkPlace, setWalkPlace] = useState("");
+  const rooms = viewpoints.filter((point) => /(^|\.)room\./.test(point.id));
   const turnRef = useRef(0);
   const pendingRef = useRef(false);
   const latestScene = useRef(scene);
@@ -432,10 +433,10 @@ export function Studio(props: Props) {
               <b>{walkPlace || viewpoints[0]?.name || "Entrance"}</b>
               <span>WASD or arrow keys to move · Drag to look · Scroll to zoom</span>
             </div>
-            {plans && plans.length > 1 && (
+            {((plans && plans.length > 1) || rooms.length > 0) && (
               <fieldset className="walk-floors">
-                <legend className="sr">Visit floor</legend>
-                {plans.map((plan) => (
+                <legend className="sr">Visit floor or room</legend>
+                {(plans && plans.length > 1 ? plans : []).map((plan) => (
                   <button
                     key={plan.levelId}
                     type="button"
@@ -452,6 +453,26 @@ export function Studio(props: Props) {
                     {plan.name}
                   </button>
                 ))}
+                {rooms.length > 0 && (
+                  <select
+                    aria-label="Go to a room"
+                    value=""
+                    onChange={(e) => {
+                      const destination = rooms.find((room) => room.id === e.target.value);
+                      if (destination) {
+                        view.current?.setViewpoint(destination);
+                        setWalkPlace(destination.name);
+                      }
+                    }}
+                  >
+                    <option value="">Go to a room…</option>
+                    {rooms.map((room) => (
+                      <option key={room.id} value={room.id}>
+                        {room.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </fieldset>
             )}
             <fieldset className="walk-pad">

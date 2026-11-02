@@ -62,8 +62,9 @@ describe("sceneFromModel", () => {
       stacked.scene.nodes.length,
     );
     expect(stacked.scene.ceilingM).toBe(6.2);
-    expect(stacked.viewpoints[0]?.position[1]).toBeCloseTo(1.6);
-    expect(stacked.viewpoints[1]?.position[1]).toBeCloseTo(4.8);
+    const standing = stacked.viewpoints.filter((point) => point.id.endsWith(".inside"));
+    expect(standing[0]?.position[1]).toBeCloseTo(1.6);
+    expect(standing[1]?.position[1]).toBeCloseTo(4.8);
   });
 
   it("guards exposed balcony edges without closing the wall-side doorway", () => {
@@ -151,12 +152,23 @@ describe("sceneFromModel", () => {
       expect(["floor.tile", "floor.wood.light"]).toContain(n.material);
   });
 
-  it("names rooms where they are and gives one place to stand", () => {
+  it("names rooms where they are, gives one place to stand and a view inside each main room", () => {
     expect(labels.map((l) => l.name).sort()).toEqual(["BEDROOM", "KITCHEN"]);
     expect(labels.find((l) => l.name === "BEDROOM")?.w).toBeCloseTo(2.7, 1);
     expect(labels.find((l) => l.name === "BEDROOM")?.h).toBeCloseTo(3.6, 1);
-    expect(viewpoints).toHaveLength(1);
+    expect(viewpoints[0]?.id).toBe("inside");
     expect(viewpoints[0]?.position[1]).toBe(1.6);
+    const rooms = viewpoints.filter((point) => point.id.startsWith("room."));
+    expect(rooms.length).toBeGreaterThan(0);
+    for (const point of rooms) {
+      // Each view stands on that room's own floor, not in the doorway or the next room.
+      const room = labels.find((label) => label.name === point.name);
+      expect(room).toBeDefined();
+      if (!room) continue;
+      expect(Math.abs(point.position[0] - room.x)).toBeLessThan(room.w / 2);
+      expect(Math.abs(point.position[2] - room.y)).toBeLessThan(room.h / 2);
+      expect(point.position[1]).toBe(1.6);
+    }
   });
 
   it("furnishes only rooms whose names it recognises, and has no fixtures of its own", () => {

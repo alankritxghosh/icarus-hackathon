@@ -675,6 +675,27 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
           tags: ["light"],
         });
       }
+  // A traced plan has no grid: one ceiling light at the middle of each indoor room's largest part instead.
+  if (traced)
+    for (const s of model.spaces) {
+      if (s.kind.startsWith("exterior.") || area(s.boundary.outer) < 2e6) continue;
+      const largest = rectangles(s.boundary.outer).sort(
+        ([a, b, c, d], [e, f, g, h]) => (g - e) * (h - f) - (c - a) * (d - b),
+      )[0];
+      if (!largest) continue;
+      const [cx, cy] = at((largest[0] + largest[2]) / 2, (largest[1] + largest[3]) / 2);
+      nodes.push({
+        id: `light.${s.id}`,
+        name: `${s.name} ceiling light`,
+        type: "light",
+        roomId: s.id,
+        geometry: { kind: "box", size: [0.6, 0.03, 0.6] },
+        position: [cx, H - 0.02, cy],
+        rotationY: 0,
+        material: "light.warm",
+        tags: ["light"],
+      });
+    }
 
   // Furnish the rooms the walls enclose, by name; the rest stay as drawn.
   const furnished: string[] = [];
@@ -788,6 +809,71 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
       ...(biggest ? { roomId: biggest.id } : {}),
     },
   ];
+  // One view per main room: the visitor stands near the far side of the room from a door, facing away from it, so the
+  // walk camera behind them looks across the room from the door side. Never inside a piece of furniture.
+  const inside = (space: SpatialModel["spaces"][number], x: number, y: number) =>
+    rectangles(space.boundary.outer).some(
+      ([x0, y0, x1, y1]) => x > x0 && x < x1 && y > y0 && y < y1,
+    );
+  const clearOfFurniture = (x: number, z: number) =>
+    nodes.every((node) => {
+      if (
+        (node.type !== "furniture" && node.type !== "fixture") ||
+        node.geometry.kind === "cylinder"
+      )
+        return true;
+      const [w, , d] = node.geometry.size;
+      const dx = x - node.position[0];
+      const dz = z - node.position[2];
+      const cos = Math.cos(node.rotationY);
+      const sin = Math.sin(node.rotationY);
+      return (
+        Math.abs(cos * dx - sin * dz) > w / 2 + 0.35 || Math.abs(sin * dx + cos * dz) > d / 2 + 0.35
+      );
+    });
+  model.spaces.forEach((space, index) => {
+    const label = labels[index];
+    if (!label || /^(exterior|circulation)\./.test(space.kind) || area(space.boundary.outer) < 6e6)
+      return;
+    for (const door of model.openings) {
+      if (door.kind === "window") continue;
+      const wall = model.walls.find((item) => item.id === door.hostWallId);
+      if (!wall) continue;
+      const length = Math.hypot(wall.b.x - wall.a.x, wall.b.y - wall.a.y);
+      if (length < 1) continue;
+      const ux = (wall.b.x - wall.a.x) / length;
+      const uy = (wall.b.y - wall.a.y) / length;
+      const mid = door.offsetMm + door.widthMm / 2;
+      const mx = wall.a.x + ux * mid;
+      const my = wall.a.y + uy * mid;
+      const side = [1, -1].find((sign) =>
+        inside(space, mx - uy * sign * 700, my + ux * sign * 700),
+      );
+      if (side === undefined) continue;
+      const nx = -uy * side;
+      const ny = ux * side;
+      let far = 700;
+      while (inside(space, mx + nx * (far + 250), my + ny * (far + 250))) far += 250;
+      const depths: number[] = [];
+      for (let mm = far - 1100; mm >= 700; mm -= 300) depths.push(mm);
+      const depth = [...depths, 700].find((mm) => {
+        const [x, z] = at(mx + nx * mm, my + ny * mm);
+        return inside(space, mx + nx * mm, my + ny * mm) && clearOfFurniture(x, z);
+      });
+      if (depth === undefined) continue;
+      const [x, z] = at(mx + nx * depth, my + ny * depth);
+      const [tx, tz] = at(mx + nx * (depth + 2000), my + ny * (depth + 2000));
+      viewpoints.push({
+        id: `room.${space.id}`,
+        name: space.name,
+        position: [x, 1.6, z],
+        target: [tx, 1.3, tz],
+        fovDeg: 70,
+        roomId: space.id,
+      });
+      return;
+    }
+  });
   const lobby = labels.find((label) => /^lobby$/i.test(label.name));
   const foyer = labels.find((label) => /^foyer$/i.test(label.name));
   if (lobby && foyer) {
