@@ -32,6 +32,7 @@ const DARK = new THREE.Color("#0a0f0d");
 export class OfficeView {
   onWalkLevelChange?: (levelId: string) => void;
   private readonly renderer: THREE.WebGLRenderer;
+  private readonly softwareWebgl: boolean;
   private readonly three = new THREE.Scene();
   private readonly perspective = new THREE.PerspectiveCamera(45, 1, 0.1, 400);
   private readonly ortho = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 400);
@@ -61,6 +62,10 @@ export class OfficeView {
   private readonly walkKeys = new Set<string>();
   private walkFrame = 0;
   private walkTime = 0;
+  private walkDrawAt = 0;
+  private walkTicks = 0;
+  private readonly walkFrameIntervals: number[] = [];
+  private readonly walkRenderTimes: number[] = [];
   private walkLevelId?: string;
   private walkBaseY = 0;
   private readonly playerAt = new THREE.Vector3();
@@ -148,6 +153,11 @@ export class OfficeView {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     host.appendChild(this.renderer.domElement);
+    const gl = this.renderer.getContext();
+    const debug = gl.getExtension("WEBGL_debug_renderer_info");
+    const rendererName = debug ? String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)) : "";
+    this.softwareWebgl = /SwiftShader/i.test(rendererName);
+    if (import.meta.env.DEV) this.renderer.domElement.dataset.webglRenderer = rendererName;
     this.three.background = DARK;
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.rasterEnvironment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -298,7 +308,7 @@ export class OfficeView {
             );
       const def = scene.materials[node.material];
       let mat = material(node.material);
-      if (def?.pbr && node.geometry.kind === "box") {
+      if (def?.pbr && node.geometry.kind === "box" && !this.softwareWebgl) {
         const set = this.pbr(def.pbr);
         const [sx, sy, sz] = node.geometry.size;
         const tile = def.tileM ?? 1.5;
@@ -354,7 +364,6 @@ export class OfficeView {
           sin: Math.sin(node.rotationY),
         });
     }
-    const grass = this.pbr("leafy_grass");
     const groundMaterial = new THREE.MeshStandardMaterial({ color: "#9fb08c", roughness: 1 });
     const tiled = (t: THREE.Texture) => {
       const c = t.clone();
@@ -362,9 +371,12 @@ export class OfficeView {
       c.repeat.set(80, 80);
       return c;
     };
-    groundMaterial.map = tiled(grass.map);
-    groundMaterial.normalMap = tiled(grass.normal);
-    groundMaterial.roughnessMap = tiled(grass.arm);
+    if (!this.softwareWebgl) {
+      const grass = this.pbr("leafy_grass");
+      groundMaterial.map = tiled(grass.map);
+      groundMaterial.normalMap = tiled(grass.normal);
+      groundMaterial.roughnessMap = tiled(grass.arm);
+    }
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.06;
@@ -372,7 +384,7 @@ export class OfficeView {
     ground.userData.noExport = true;
     this.content.add(ground);
 
-    this.addLandscape(scene.shell, generation);
+    if (!this.softwareWebgl) this.addLandscape(scene.shell, generation);
 
     const { w, h } = scene.shell;
     this.sun.position.set(w * 0.2, 28, h * 1.2);
@@ -439,6 +451,18 @@ export class OfficeView {
   private addAsset(node: Scene["nodes"][number], generation: number) {
     if (node.geometry.kind !== "asset") return;
     const { id, size, scale } = node.geometry;
+    if (this.softwareWebgl) {
+      const block = new THREE.Mesh(
+        new THREE.BoxGeometry(...size),
+        new THREE.MeshStandardMaterial({ color: "#b49b7c", roughness: 1 }),
+      );
+      block.position.set(node.position[0], node.position[1] + size[1] / 2, node.position[2]);
+      block.rotation.y = node.rotationY;
+      block.userData = { nodeId: node.id, type: node.type, assetNode: node };
+      block.receiveShadow = true;
+      this.content.add(block);
+      return;
+    }
     let model = this.models.get(id);
     if (!model) {
       model = this.loader.loadAsync(`/assets/models/${id}/${id}.gltf`).then((gltf) => {
@@ -501,6 +525,15 @@ export class OfficeView {
       this.leaveEye();
     }
     this.mode = mode;
+    this.renderer.setPixelRatio(
+      this.softwareWebgl && mode === "eye"
+        ? 0.5
+        : this.realistic
+          ? 1
+          : Math.min(window.devicePixelRatio, 2),
+    );
+    this.sun.castShadow = !(this.softwareWebgl && mode === "eye");
+    this.resize();
     this.orbit.enabled = mode === "orbit";
     this.plan.enabled = mode === "plan";
     if (mode === "eye") this.avatar.visible = true;
@@ -525,6 +558,10 @@ export class OfficeView {
         ? prefix
         : undefined;
     this.walkBaseY = y - 1.6;
+    this.walkDrawAt = 0;
+    this.walkTicks = 0;
+    this.walkFrameIntervals.length = 0;
+    this.walkRenderTimes.length = 0;
     this.walkCameraDistance = this.walkDistance;
     this.cameraRecovering = false;
     this.playerAt.set(x, this.walkBaseY, z);
@@ -565,13 +602,16 @@ export class OfficeView {
       )
     ) {
       e.preventDefault();
+      if (!this.walkKeys.size) this.walkDrawAt = 0;
       this.walkKeys.add(e.key.toLowerCase());
     }
   }
 
   setWalkInput(direction: "w" | "a" | "s" | "d", pressed: boolean) {
-    if (pressed) this.walkKeys.add(direction);
-    else this.walkKeys.delete(direction);
+    if (pressed) {
+      if (!this.walkKeys.size) this.walkDrawAt = 0;
+      this.walkKeys.add(direction);
+    } else this.walkKeys.delete(direction);
   }
 
   private makeAvatar(): THREE.Group {
@@ -610,6 +650,10 @@ export class OfficeView {
     const forward = down("w", "arrowup") - down("s", "arrowdown");
     const strafe = down("d", "arrowright") - down("a", "arrowleft");
     if (forward || strafe) {
+      if (import.meta.env.DEV) {
+        this.walkTicks++;
+        this.renderer.domElement.dataset.walkTicks = String(this.walkTicks);
+      }
       const length = Math.hypot(forward, strafe);
       const step = (2.4 * dt) / length;
       const dx = (-Math.sin(this.look.yaw) * forward + Math.cos(this.look.yaw) * strafe) * step;
@@ -826,7 +870,29 @@ export class OfficeView {
     };
     for (const child of this.content.children) {
       if (child.userData.noExport || child instanceof THREE.Sprite) continue;
-      const copy = child.clone(true);
+      let copy: THREE.Object3D = child.clone(true);
+      const assetNode = child.userData.assetNode as Scene["nodes"][number] | undefined;
+      if (assetNode?.geometry.kind === "asset") {
+        const { id, scale } = assetNode.geometry;
+        let model = this.models.get(id);
+        if (!model) {
+          model = this.loader
+            .loadAsync(`/assets/models/${id}/${id}.gltf`)
+            .then((gltf) => gltf.scene);
+          this.models.set(id, model);
+        }
+        const source = (await model).clone(true);
+        if (scale) source.scale.set(...scale);
+        const box = new THREE.Box3().setFromObject(source);
+        const centre = box.getCenter(new THREE.Vector3());
+        source.position.set(-centre.x, -box.min.y, -centre.z);
+        const full = new THREE.Group();
+        full.position.set(...assetNode.position);
+        full.rotation.y = assetNode.rotationY;
+        full.userData = { nodeId: assetNode.id, type: assetNode.type };
+        full.add(source);
+        copy = full;
+      }
       copy.visible = true;
       const normal = child instanceof THREE.Mesh ? this.cameraGhosts.get(child)?.normal : undefined;
       if (normal && copy instanceof THREE.Mesh) copy.material = normal;
@@ -950,7 +1016,34 @@ export class OfficeView {
 
   private draw() {
     if (this.realistic && this.tracer && !this.tracerPreparing && this.mode !== "plan") return;
+    const started = performance.now();
     this.renderer.render(this.three, this.mode === "plan" ? this.ortho : this.perspective);
+    if (import.meta.env.DEV && this.mode === "eye" && this.walkKeys.size) {
+      const elapsed = performance.now() - started;
+      if (this.walkDrawAt) {
+        this.walkFrameIntervals.push(started - this.walkDrawAt);
+        this.walkRenderTimes.push(elapsed);
+      }
+      this.walkDrawAt = started;
+      if (this.walkFrameIntervals.length > 120) {
+        this.walkFrameIntervals.shift();
+        this.walkRenderTimes.shift();
+      }
+      if (
+        this.walkFrameIntervals.length > 0 &&
+        (this.walkFrameIntervals.length <= 10 || this.walkFrameIntervals.length % 10 === 0)
+      ) {
+        const percentile = (values: number[]) =>
+          [...values].sort((a, b) => a - b)[Math.floor(values.length * 0.95)] ?? 0;
+        this.renderer.domElement.dataset.walkPerf = JSON.stringify({
+          frames: this.walkFrameIntervals.length,
+          frameP95Ms: Math.round(percentile(this.walkFrameIntervals) * 10) / 10,
+          renderCpuP95Ms: Math.round(percentile(this.walkRenderTimes) * 10) / 10,
+          calls: this.renderer.info.render.calls,
+          triangles: this.renderer.info.render.triangles,
+        });
+      }
+    }
   }
 
   private cameraMoved() {
