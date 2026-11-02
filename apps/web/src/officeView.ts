@@ -81,6 +81,17 @@ export class OfficeView {
     cos: number;
     sin: number;
   }[] = [];
+  private walkFurniture: {
+    id: string;
+    x: number;
+    z: number;
+    halfW: number;
+    halfD: number;
+    minY: number;
+    maxY: number;
+    cos: number;
+    sin: number;
+  }[] = [];
   private walkFloors: {
     id: string;
     x: number;
@@ -267,6 +278,7 @@ export class OfficeView {
     this.resetCameraGhosts();
     this.disposeContent();
     this.walkWalls = [];
+    this.walkFurniture = [];
     this.walkFloors = [];
     this.cameraAssetBounds.length = 0;
     this.shell = scene.shell;
@@ -350,6 +362,22 @@ export class OfficeView {
       if (node.type === "wall" && node.geometry.kind === "box")
         this.walkWalls.push({
           mesh,
+          x: node.position[0],
+          z: node.position[2],
+          halfW: node.geometry.size[0] / 2,
+          halfD: node.geometry.size[2] / 2,
+          minY: node.position[1] - node.geometry.size[1] / 2,
+          maxY: node.position[1] + node.geometry.size[1] / 2,
+          cos: Math.cos(node.rotationY),
+          sin: Math.sin(node.rotationY),
+        });
+      if (
+        node.type === "furniture" &&
+        node.geometry.kind === "box" &&
+        node.geometry.size[1] >= 0.25
+      )
+        this.walkFurniture.push({
+          id: node.id,
           x: node.position[0],
           z: node.position[2],
           halfW: node.geometry.size[0] / 2,
@@ -458,6 +486,18 @@ export class OfficeView {
   private addAsset(node: Scene["nodes"][number], generation: number) {
     if (node.geometry.kind !== "asset") return;
     const { id, size, scale } = node.geometry;
+    if (node.type === "furniture" && size[1] >= 0.25)
+      this.walkFurniture.push({
+        id: node.id,
+        x: node.position[0],
+        z: node.position[2],
+        halfW: size[0] / 2,
+        halfD: size[2] / 2,
+        minY: node.position[1],
+        maxY: node.position[1] + size[1],
+        cos: Math.cos(node.rotationY),
+        sin: Math.sin(node.rotationY),
+      });
     if (this.softwareWebgl) {
       const block = new THREE.Mesh(
         new THREE.BoxGeometry(...size),
@@ -737,12 +777,21 @@ export class OfficeView {
       (part) =>
         part.maxY >= baseY + 0.25 && part.minY <= baseY + 1.65 && this.insideWall(part, x, z, 0.2),
     );
-    return wall
-      ? `${String(wall.mesh.userData.nodeId ?? "wall")} x=${wall.x.toFixed(3)} half=${wall.halfW.toFixed(3)} candidate=${x.toFixed(3)}`
-      : undefined;
+    if (wall)
+      return `${String(wall.mesh.userData.nodeId ?? "wall")} x=${wall.x.toFixed(3)} half=${wall.halfW.toFixed(3)} candidate=${x.toFixed(3)}`;
+    const furniture = this.walkFurniture.find(
+      (part) =>
+        part.maxY >= baseY + 0.25 && part.minY <= baseY + 1.65 && this.insideWall(part, x, z, 0.2),
+    );
+    return furniture ? `furniture ${furniture.id}` : undefined;
   }
 
-  private insideWall(wall: (typeof this.walkWalls)[number], x: number, z: number, padding = 0) {
+  private insideWall(
+    wall: Pick<(typeof this.walkFurniture)[number], "x" | "z" | "halfW" | "halfD" | "cos" | "sin">,
+    x: number,
+    z: number,
+    padding = 0,
+  ) {
     const dx = x - wall.x;
     const dz = z - wall.z;
     const lx = wall.cos * dx - wall.sin * dz;

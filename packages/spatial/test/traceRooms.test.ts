@@ -37,6 +37,81 @@ describe("reviewed room outlines", () => {
     expect(beds.every((node) => node.roomId === `trace.${levelId}.bedroom`)).toBe(true);
   });
 
+  it("keeps a dining-living hall clear for circulation", () => {
+    const base = modelFromEvidence(evidence).model;
+    const levelId = base.levels[0]?.id as string;
+    const reviewed = modelWithRoomTraces(base, [
+      { id: "hall", levelId, name: "DINING-LIVING HALL", rect: [0, 0, 4000, 3000] },
+    ]);
+    expect(reviewed.spaces[0]?.kind).toBe("circulation.hall");
+    expect(reviewed.walls).toHaveLength(4);
+    expect(sceneFromModel(reviewed).scene.nodes.some((node) => node.type === "furniture")).toBe(
+      false,
+    );
+  });
+
+  it("places a bedroom bed away from a reviewed entry on its default head wall", () => {
+    const base = modelFromEvidence(evidence).model;
+    const levelId = base.levels[0]?.id as string;
+    const traced = modelWithRoomTraces(base, [
+      { id: "bedroom", levelId, name: "BEDROOM", rect: [0, 0, 4000, 4000] },
+    ]);
+    const noDoorBed = sceneFromModel(traced).scene.nodes.find((node) => node.name === "bed");
+    const withDoor = modelWithReviewedOpenings(
+      traced,
+      [
+        {
+          id: "north-bedroom-entry",
+          hostWallId: `trace.${levelId}.bedroom.w0`,
+          kind: "passage",
+          offsetMm: 1500,
+          widthMm: 900,
+          sillMm: 0,
+          headMm: 2100,
+          entrance: false,
+          provenance: { source: "estimated", toleranceMm: 250, evidence: ["assumed:north-entry"] },
+        },
+      ],
+      true,
+    );
+    const entryBed = sceneFromModel(withDoor).scene.nodes.find((node) => node.name === "bed");
+    expect(entryBed?.position[2]).toBeGreaterThan((noDoorBed?.position[2] ?? 0) + 1);
+  });
+
+  it("keeps wardrobe shelving out of an explicit doorway clearance", () => {
+    const base = modelFromEvidence(evidence).model;
+    const levelId = base.levels[0]?.id as string;
+    const traced = modelWithRoomTraces(base, [
+      { id: "wardrobe", levelId, name: "WALK IN WARDROBE", rect: [0, 0, 4000, 3000] },
+    ]);
+    const countShelves = (model: typeof traced) =>
+      sceneFromModel(model).scene.nodes.filter((node) => node.name === "bookcase").length;
+    const before = countShelves(traced);
+    const withDoor = modelWithReviewedOpenings(
+      traced,
+      [
+        {
+          id: "wardrobe-entry",
+          hostWallId: `trace.${levelId}.wardrobe.w0`,
+          kind: "passage",
+          offsetMm: 1500,
+          widthMm: 900,
+          sillMm: 0,
+          headMm: 2100,
+          entrance: false,
+          provenance: {
+            source: "estimated",
+            toleranceMm: 250,
+            evidence: ["assumed:wardrobe-entry"],
+          },
+        },
+      ],
+      true,
+    );
+    expect(countShelves(withDoor)).toBeGreaterThan(0);
+    expect(countShelves(withDoor)).toBeLessThan(before);
+  });
+
   it("replaces partial extraction and renders the reviewed spaces with CC0 furniture and finishes", () => {
     const base = modelFromEvidence(evidence).model;
     const levelId = base.levels[0]?.id as string;

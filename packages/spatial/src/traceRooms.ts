@@ -14,6 +14,7 @@ function roomKind(name: string): string {
   if (/balcony|deck/.test(n)) return "exterior.balcony";
   if (/lift/.test(n)) return "circulation.lift";
   if (/stair/.test(n)) return "circulation.stair";
+  if (/transition|lobby|\bhall\b/.test(n)) return "circulation.hall";
   if (/foyer/.test(n)) return "residential.living";
   if (/bed ?room/.test(n)) return "residential.bedroom";
   if (/wardrobe|dressing/.test(n)) return "residential.wardrobe";
@@ -25,7 +26,6 @@ function roomKind(name: string): string {
   if (/dining/.test(n)) return "residential.dining";
   if (/\bstore\b|storage/.test(n)) return "residential.storage";
   if (/living|family|lounge/.test(n)) return "residential.living";
-  if (/transition|lobby/.test(n)) return "circulation.hall";
   return "drawing.room";
 }
 
@@ -79,7 +79,9 @@ export function modelWithRoomTraces(base: SpatialModel, traces: RoomTrace[]): Sp
       locked: false,
       provenance,
     });
-    if (outdoor || kind.startsWith("circulation.")) continue;
+    // A traced hall can have reviewed doorway hosts; transition and lobby
+    // outlines are open circulation surfaces without generated perimeter walls.
+    if (outdoor || (kind.startsWith("circulation.") && !/\bhall\b/i.test(trace.name))) continue;
     const edges = [
       [
         { x: x0, y: y0 },

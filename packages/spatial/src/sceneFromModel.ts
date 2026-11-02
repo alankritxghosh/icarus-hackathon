@@ -106,6 +106,7 @@ function furnishRoom(
   kind: string,
   box: [number, number, number, number],
   ceiling: number,
+  entryAtBack = false,
 ): SceneNode[] | undefined {
   const [x0, z0, x1, z1] = box;
   const w = x1 - x0;
@@ -160,14 +161,16 @@ function furnishRoom(
     });
   // The room seen along its long axis: the longest wall is the back, the other direction runs into the room.
   const long = w >= d ? "x" : "z";
-  const back = long === "x" ? "north" : "west";
-  const front = long === "x" ? "south" : "east";
+  const back = long === "x" ? (entryAtBack ? "south" : "north") : entryAtBack ? "east" : "west";
+  const front = long === "x" ? (entryAtBack ? "north" : "south") : entryAtBack ? "west" : "east";
   const L = long === "x" ? w : d;
   const S = long === "x" ? d : w;
   const along = (u: number, v: number, fromBack: boolean): [number, number] => {
     // u metres along the long wall from its middle, v metres in from the back (or the front) wall
-    const vv = fromBack ? v : S - v;
-    return long === "x" ? [cx + u, z0 + vv] : [x0 + vv, cz + u];
+    const edge = fromBack ? back : front;
+    return long === "x"
+      ? [cx + u, edge === "north" ? z0 + v : z1 - v]
+      : [edge === "west" ? x0 + v : x1 - v, cz + u];
   };
   const faceIn = TURNS[back];
   const faceOut = TURNS[front];
@@ -570,10 +573,59 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
     const [ax, ay] = at(Math.min(...xs), Math.min(...ys));
     const [bx2, by2] = at(Math.max(...xs), Math.max(...ys));
     // Keep a wall's thickness clear of the room edge.
-    const pieces = furnishRoom(s.id, s.name, s.kind, [ax + 0.1, ay + 0.1, bx2 - 0.1, by2 - 0.1], H);
+    const longX = bx2 - ax >= by2 - ay;
+    const backWall = `${s.id}.w${longX ? 0 : 3}`;
+    const entryAtBack =
+      (s.kind === "residential.bedroom" || s.kind === "residential.study") &&
+      model.openings.some(
+        (opening) => opening.hostWallId === backWall && opening.kind !== "window",
+      );
+    const pieces = furnishRoom(
+      s.id,
+      s.name,
+      s.kind,
+      [ax + 0.1, ay + 0.1, bx2 - 0.1, by2 - 0.1],
+      H,
+      entryAtBack,
+    );
     if (pieces?.length) {
-      nodes.push(...pieces);
-      furnished.push(s.name);
+      const clearances = model.openings.flatMap((opening) => {
+        if (opening.kind === "window" || !opening.hostWallId.startsWith(`${s.id}.w`)) return [];
+        const wall = model.walls.find((part) => part.id === opening.hostWallId);
+        if (!wall) return [];
+        const dx = wall.b.x - wall.a.x;
+        const dz = wall.b.y - wall.a.y;
+        const length = Math.hypot(dx, dz);
+        if (!length) return [];
+        const middle = opening.offsetMm + opening.widthMm / 2;
+        const [x, z] = at(wall.a.x + (dx * middle) / length, wall.a.y + (dz * middle) / length);
+        const side = Number(opening.hostWallId.at(-1));
+        const horizontal = side === 0 || side === 2;
+        const inward = side === 0 || side === 3 ? 0.55 : -0.55;
+        return [
+          {
+            x: x + (horizontal ? 0 : inward),
+            z: z + (horizontal ? inward : 0),
+            halfW: horizontal ? (opening.widthMm * M) / 2 + 0.2 : 0.6,
+            halfD: horizontal ? 0.6 : (opening.widthMm * M) / 2 + 0.2,
+          },
+        ];
+      });
+      const kept = pieces.filter((piece) => {
+        if (piece.geometry.kind !== "asset") return true;
+        const [w, , d] = piece.geometry.size;
+        const c = Math.abs(Math.cos(piece.rotationY));
+        const sn = Math.abs(Math.sin(piece.rotationY));
+        const halfW = (c * w + sn * d) / 2;
+        const halfD = (sn * w + c * d) / 2;
+        return !clearances.some(
+          (gap) =>
+            Math.abs(piece.position[0] - gap.x) < halfW + gap.halfW &&
+            Math.abs(piece.position[2] - gap.z) < halfD + gap.halfD,
+        );
+      });
+      nodes.push(...kept);
+      if (kept.length) furnished.push(s.name);
     }
   }
 
