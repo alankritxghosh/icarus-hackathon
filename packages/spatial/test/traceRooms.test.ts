@@ -112,6 +112,36 @@ describe("reviewed room outlines", () => {
     expect(countShelves(withDoor)).toBeLessThan(before);
   });
 
+  it("does not leave floating living-room accessories when an entry displaces the sofa", () => {
+    const base = modelFromEvidence(evidence).model;
+    const levelId = base.levels[0]?.id as string;
+    const traced = modelWithRoomTraces(base, [
+      { id: "foyer", levelId, name: "FOYER", rect: [0, 0, 4000, 3000] },
+    ]);
+    const withDoor = modelWithReviewedOpenings(
+      traced,
+      [
+        {
+          id: "foyer-north-entry",
+          hostWallId: `trace.${levelId}.foyer.w0`,
+          kind: "passage",
+          offsetMm: 1500,
+          widthMm: 900,
+          sillMm: 0,
+          headMm: 2100,
+          entrance: false,
+          provenance: { source: "estimated", toleranceMm: 250, evidence: ["assumed:foyer-entry"] },
+        },
+      ],
+      true,
+    );
+    const furniture = sceneFromModel(withDoor).scene.nodes.filter(
+      (node) => node.type === "furniture",
+    );
+    expect(furniture.some((node) => node.name === "sofaSmall")).toBe(false);
+    expect(furniture).toHaveLength(0);
+  });
+
   it("replaces partial extraction and renders the reviewed spaces with CC0 furniture and finishes", () => {
     const base = modelFromEvidence(evidence).model;
     const levelId = base.levels[0]?.id as string;

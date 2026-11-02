@@ -611,7 +611,7 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
           },
         ];
       });
-      const kept = pieces.filter((piece) => {
+      let kept = pieces.filter((piece) => {
         if (piece.geometry.kind !== "asset") return true;
         const [w, , d] = piece.geometry.size;
         const c = Math.abs(Math.cos(piece.rotationY));
@@ -624,6 +624,15 @@ function singleLevelSceneFromModel(model: SpatialModel, topLevel = true): DrawnS
             Math.abs(piece.position[2] - gap.z) < halfD + gap.halfD,
         );
       });
+      if (s.kind === "residential.living") {
+        if (!kept.some((piece) => piece.name === "sofaSmall")) kept = [];
+        else
+          kept = kept.filter(
+            (piece) =>
+              (piece.name !== "vase" || kept.some((part) => part.name === "sideTable")) &&
+              (piece.name !== "television" || kept.some((part) => part.name === "cabinet")),
+          );
+      }
       nodes.push(...kept);
       if (kept.length) furnished.push(s.name);
     }

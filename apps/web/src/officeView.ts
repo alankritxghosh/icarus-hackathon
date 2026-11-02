@@ -712,6 +712,7 @@ export class OfficeView {
       if (import.meta.env.DEV) {
         this.walkTicks++;
         this.renderer.domElement.dataset.walkTicks = String(this.walkTicks);
+        this.renderer.domElement.dataset.walkStop = "";
       }
       const length = Math.hypot(forward, strafe);
       const step = (2.4 * dt) / length;
@@ -741,7 +742,6 @@ export class OfficeView {
       if (import.meta.env.DEV) this.renderer.domElement.dataset.walkStop = wall;
       return;
     }
-    if (import.meta.env.DEV) this.renderer.domElement.dataset.walkStop = "";
     this.playerAt.set(x, floor.top, z);
     this.walkBaseY = floor.top;
     const level = floor.id.split(".")[0];
@@ -810,7 +810,7 @@ export class OfficeView {
         this.look.yaw.toFixed(3),
       ].join(",");
     const target = this.playerAt.clone().add(new THREE.Vector3(0, 1.2, 0));
-    const rise = this.walkDistance * 0.55 + this.look.pitch * 1.2 - 1.2;
+    const rise = this.walkDistance * 0.3 + this.look.pitch * 1.2 - 1.2;
     const boom = new THREE.Vector3(
       Math.sin(this.look.yaw),
       rise / this.walkDistance,
