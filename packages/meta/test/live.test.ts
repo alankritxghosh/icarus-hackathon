@@ -17,6 +17,7 @@ live("Meta Model API (live)", () => {
     const result = await client().respond({
       input: "A steel shaft is 25 millimetres in diameter and 130 millimetres long. Extract it.",
       schema: { name: "Shaft", type: z.object({ diameterMm: z.number(), lengthMm: z.number() }) },
+      reasoningEffort: "low",
     });
     expect(result.parsed).toEqual({ diameterMm: 25, lengthMm: 130 });
     expect(result.usage.inputTokens).toBeGreaterThan(0);

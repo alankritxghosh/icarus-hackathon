@@ -1,12 +1,28 @@
 import { z } from "zod";
 import { MetaError } from "./errors";
+import { flattenUnions, unflatten } from "./flatten";
 import type { RespondRequest, RespondResult, ToolCall } from "./types";
 import { DEFAULT_MODEL } from "./types";
 
-/** JSON Schema for a zod type, without the `$schema` marker the API does not need. */
+/**
+ * JSON Schema for a zod type, without the `$schema` marker the API does not need. Every `oneOf` becomes `anyOf`,
+ * since Meta's strict subset has no `oneOf`; zod writes `oneOf` for discriminated unions, whose branches cannot
+ * overlap, so `anyOf` accepts the same answers. Structured output goes further and flattens unions (see flatten.ts).
+ */
 export function jsonSchema(type: z.ZodType): Record<string, unknown> {
   const { $schema: _ignored, ...rest } = z.toJSONSchema(type) as Record<string, unknown>;
-  return rest;
+  return withoutOneOf(rest) as Record<string, unknown>;
+}
+
+function withoutOneOf(node: unknown): unknown {
+  if (Array.isArray(node)) return node.map(withoutOneOf);
+  if (!node || typeof node !== "object") return node;
+  return Object.fromEntries(
+    Object.entries(node).map(([key, value]) => [
+      key === "oneOf" ? "anyOf" : key,
+      withoutOneOf(value),
+    ]),
+  );
 }
 
 export function buildRespondBody<T>(request: RespondRequest<T>): Record<string, unknown> {
@@ -23,7 +39,7 @@ export function buildRespondBody<T>(request: RespondRequest<T>): Record<string, 
       format: {
         type: "json_schema",
         name: request.schema.name,
-        schema: jsonSchema(request.schema.type),
+        schema: flattenUnions(jsonSchema(request.schema.type)),
       },
     };
   if (request.tools?.length)
@@ -146,7 +162,7 @@ export function validateStructured<T>(
   } catch {
     throw new MetaError("invalid_response", `${schema.name}: model output was not JSON`);
   }
-  const result = schema.type.safeParse(json);
+  const result = schema.type.safeParse(unflatten(jsonSchema(schema.type), json));
   if (!result.success) {
     const issues = result.error.issues
       .slice(0, 3)

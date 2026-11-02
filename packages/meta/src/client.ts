@@ -46,13 +46,9 @@ export class MetaClient implements MetaApi {
         "invalid_request",
         "OpenRouter keeps no conversation state: send the full history instead of previousResponseId",
       );
-    // Only OpenRouter is known to accept a reasoning setting; the Meta API is not sent one.
-    const effort = this.provider === "openrouter" ? request.reasoningEffort : undefined;
-    const body = buildRespondBody({
-      ...request,
-      model: request.model ?? this.model,
-      reasoningEffort: effort,
-    });
+    // Both routes take reasoning.effort. Muse Spark reasons by default and its reasoning counts toward
+    // max_output_tokens, so without a low effort a long structured answer is cut off (seen live, 2 Nov 2026).
+    const body = buildRespondBody({ ...request, model: request.model ?? this.model });
     const result = readResponse(await this.transport.postJson("/responses", body));
     const parsed = request.schema ? validateStructured(result.text, request.schema) : undefined;
     return { ...result, parsed };

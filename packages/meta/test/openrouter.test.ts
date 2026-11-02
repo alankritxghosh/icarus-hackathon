@@ -188,7 +188,7 @@ describe("fetch is called as a bare function", () => {
 });
 
 describe("reasoning effort", () => {
-  it("is sent to OpenRouter and never to the Meta API", async () => {
+  it("is sent to OpenRouter and to the Meta API as reasoning.effort", async () => {
     const reply = () =>
       json({
         id: "r",
@@ -208,7 +208,7 @@ describe("reasoning effort", () => {
       input: "x",
       reasoningEffort: "low",
     });
-    expect(viaMeta.seen[0]?.body.reasoning).toBeUndefined();
+    expect(viaMeta.seen[0]?.body.reasoning).toEqual({ effort: "low" });
   });
 });
 

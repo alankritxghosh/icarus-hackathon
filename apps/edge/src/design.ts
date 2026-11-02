@@ -186,7 +186,7 @@ export async function handlePropose(request: Request, source: ModelSource): Prom
         instructions: proposeInstructions(),
         input: proposeInput(input.brief, readBrief(input.brief)),
         schema: { name: "Proposal", type: ProposalSchema },
-        maxOutputTokens: 3000,
+        maxOutputTokens: 6000,
         reasoningEffort: "low",
       }),
     );
@@ -208,7 +208,7 @@ export async function handleRevise(request: Request, source: ModelSource): Promi
         instructions: reviseInstructions(),
         input: reviseInput(input.program, input.issues, input.round),
         schema: { name: "Patch", type: PatchSchema },
-        maxOutputTokens: 2500,
+        maxOutputTokens: 5000,
         reasoningEffort: "low",
       }),
     );
@@ -238,7 +238,7 @@ export async function handleEdit(request: Request, source: ModelSource): Promise
           shell: input.shell,
         }),
         schema: { name: "Edit", type: EditSchema },
-        maxOutputTokens: 1200,
+        maxOutputTokens: 3000,
         reasoningEffort: "low",
       }),
     );

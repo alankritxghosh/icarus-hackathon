@@ -123,6 +123,29 @@ describe("MetaClient requests", () => {
     ]);
   });
 
+  it("sends a discriminated union as one flat object and reads the chosen branch back", async () => {
+    const Op = z.object({
+      ops: z.array(
+        z.discriminatedUnion("op", [
+          z.object({ op: z.literal("move"), room: z.string() }),
+          z.object({ op: z.literal("add"), count: z.number() }),
+        ]),
+      ),
+    });
+    const { client, seen } = scripted(ok([message('{"ops":[{"op":"add","room":"","count":2}]}')]));
+    const result = await client.respond({ input: "x", schema: { name: "Ops", type: Op } });
+    const format = (first(seen).body.text as { format: { schema: Record<string, unknown> } }).format
+      .schema;
+    const sent = JSON.stringify(format);
+    // Meta keeps only the first branch of a union, so no union is sent at all.
+    expect(sent).not.toMatch(/"(anyOf|oneOf)"/);
+    const op = (format.properties as { ops: { items: Record<string, unknown> } }).ops.items;
+    expect(op.required).toEqual(["op", "room", "count"]);
+    expect((op.properties as { op: { enum: string[] } }).op.enum).toEqual(["move", "add"]);
+    // The filler for the field the chosen branch lacks is dropped before validation.
+    expect(result.parsed).toEqual({ ops: [{ op: "add", count: 2 }] });
+  });
+
   it("rejects output that does not satisfy the schema, even though decoding was guided", async () => {
     const { client } = scripted(ok([message('{"parts":[{"id":"shaft","diameterMm":-3}]}')]));
     await expect(
