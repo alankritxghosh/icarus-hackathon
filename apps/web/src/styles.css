@@ -623,7 +623,27 @@ button {
   margin: 0;
   font-size: 30px;
   font-weight: 500;
-  animation: write 2s ease-in-out 0.4s both;
+  animation: rewrite 5s ease-in-out 0.4s infinite both;
+}
+/* Written out, held, faded, and written again, for as long as there is nothing to show. */
+@keyframes rewrite {
+  0% {
+    clip-path: inset(-20% 100% -20% 0);
+    opacity: 1;
+  }
+  40% {
+    clip-path: inset(-20% -2% -20% 0);
+    opacity: 1;
+  }
+  80% {
+    clip-path: inset(-20% -2% -20% 0);
+    opacity: 1;
+  }
+  95%,
+  100% {
+    clip-path: inset(-20% -2% -20% 0);
+    opacity: 0;
+  }
 }
 .real-caption {
   position: absolute;
