@@ -86,7 +86,7 @@ export function Studio(props: Props) {
   const [real, setReal] = useState<RealState>({ state: "off", samples: 0 });
   const [canReal, setCanReal] = useState(false);
   const [menu, setMenu] = useState(false);
-  const [roofVisible, setRoofVisible] = useState(true);
+  const [roofVisible, setRoofVisible] = useState(false);
   const [walkPlace, setWalkPlace] = useState("");
   const turnRef = useRef(0);
   const pendingRef = useRef(false);
@@ -131,10 +131,8 @@ export function Studio(props: Props) {
     view.current?.setLabels(labels);
   }, [scene, labels]);
 
-  useEffect(
-    () => setRoofVisible(Boolean(scene?.nodes.some((node) => node.tags.includes("roof")))),
-    [scene],
-  );
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each new building opens with its roof off, so its rooms show
+  useEffect(() => setRoofVisible(false), [scene]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: scroll to the newest message whenever the list changes
   useEffect(() => {

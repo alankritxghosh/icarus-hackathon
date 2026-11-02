@@ -46,7 +46,6 @@ shows a credit.
 | dirty_carpet | Dirty Carpet | Rohit Seervi | https://polyhaven.com/a/dirty_carpet |
 | denim_fabric_03 | Denim Fabric 03 | colormass, Rico Cilliers | https://polyhaven.com/a/denim_fabric_03 |
 | red_brick | Red Brick | Rob Tuytel | https://polyhaven.com/a/red_brick |
-| clay_roof_tiles_02 | Clay Roof Tiles 02 | Amal Kumar | https://polyhaven.com/a/clay_roof_tiles_02 |
 | leafy_grass | Leafy Grass | Charlotte Baglioni | https://polyhaven.com/a/leafy_grass |
 
 ## Sky (HDRI)

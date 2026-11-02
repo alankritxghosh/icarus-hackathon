@@ -17,7 +17,7 @@ const DRAWING_MATERIALS: Scene["materials"] = {
     opacity: 0.3,
   },
   "wall.traced": {
-    color: "#e4d7c6",
+    color: "#f3ede3",
     pbr: "plastered_wall",
     tileM: 2,
     roughness: 0.9,
@@ -33,8 +33,8 @@ const DRAWING_MATERIALS: Scene["materials"] = {
     opacity: 1,
   },
   "roof.terrace": {
-    color: "#f0e8dc",
-    pbr: "clay_roof_tiles_02",
+    color: "#e9e4da",
+    pbr: "concrete_floor_02",
     tileM: 1.5,
     roughness: 1,
     metalness: 0,

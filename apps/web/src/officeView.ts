@@ -23,7 +23,8 @@ export interface RealState {
 const SAMPLE_CAP = 600;
 
 const SKY = new THREE.Color("#cfdfe8");
-const DARK = new THREE.Color("#0a0f0d");
+// A warm paper ground and backdrop, so the building reads as a model on a table rather than a field.
+const PAPER = new THREE.Color("#efeae1");
 
 /**
  * Renders a core Scene with three.js. Rendering is on demand: it draws when the camera moves,
@@ -38,8 +39,10 @@ export class OfficeView {
   private readonly ortho = new THREE.OrthographicCamera(-10, 10, 10, -10, 0.1, 400);
   private readonly orbit: OrbitControls;
   private readonly plan: OrbitControls;
-  private readonly sun = new THREE.DirectionalLight(0xffffff, 1.5);
+  private readonly sun = new THREE.DirectionalLight(0xffe4c4, 2.4);
   private readonly content = new THREE.Group();
+  /** Fades the ground into the paper backdrop in the 3D view, so there is no horizon line. */
+  private readonly haze = new THREE.Fog(PAPER, 60, 160);
   private rasterEnvironment?: THREE.Texture;
   private mode: ViewMode = "orbit";
   private showCeiling = false;
@@ -177,16 +180,17 @@ export class OfficeView {
     const rendererName = debug ? String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL)) : "";
     this.softwareWebgl = /SwiftShader/i.test(rendererName);
     if (import.meta.env.DEV) this.renderer.domElement.dataset.webglRenderer = rendererName;
-    this.three.background = DARK;
+    this.three.background = PAPER;
+    this.three.fog = this.haze;
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     this.rasterEnvironment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     this.three.environment = this.rasterEnvironment;
-    this.three.environmentIntensity = 0.55;
+    this.three.environmentIntensity = 0.4;
     pmrem.dispose();
     this.three.add(this.content);
     this.avatar.visible = false;
     this.three.add(this.avatar);
-    this.three.add(new THREE.HemisphereLight(0xffffff, 0xb9bec4, 1.0));
+    this.three.add(new THREE.HemisphereLight(0xfff6ea, 0xcfc2ad, 0.8));
     this.three.add(this.sun, this.sun.target);
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(2048, 2048);
@@ -284,7 +288,7 @@ export class OfficeView {
     this.walkFloors = [];
     this.cameraAssetBounds.length = 0;
     this.shell = scene.shell;
-    this.showCeiling = scene.nodes.some((node) => node.tags.includes("roof"));
+    this.showCeiling = false;
     const materials = new Map<string, THREE.MeshStandardMaterial>();
     const material = (id: string) => {
       let m = materials.get(id);
@@ -402,19 +406,7 @@ export class OfficeView {
           sin: Math.sin(node.rotationY),
         });
     }
-    const groundMaterial = new THREE.MeshStandardMaterial({ color: "#9fb08c", roughness: 1 });
-    const tiled = (t: THREE.Texture) => {
-      const c = t.clone();
-      c.needsUpdate = true;
-      c.repeat.set(80, 80);
-      return c;
-    };
-    if (!this.softwareWebgl) {
-      const grass = this.pbr("leafy_grass");
-      groundMaterial.map = tiled(grass.map);
-      groundMaterial.normalMap = tiled(grass.normal);
-      groundMaterial.roughnessMap = tiled(grass.arm);
-    }
+    const groundMaterial = new THREE.MeshStandardMaterial({ color: "#e6dfd2", roughness: 1 });
     const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), groundMaterial);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -0.06;
@@ -422,10 +414,11 @@ export class OfficeView {
     ground.userData.noExport = true;
     this.content.add(ground);
 
-    if (!this.softwareWebgl) this.addLandscape(scene.shell, generation);
-
     const { w, h } = scene.shell;
-    this.sun.position.set(w * 0.2, 28, h * 1.2);
+    // A low afternoon sun from the left of the opening view, so the walls facing the camera differ in light and the
+    // shadows fall towards it instead of hiding behind the building.
+    const reach = Math.max(w, h);
+    this.sun.position.set(w / 2 - reach * 0.8, reach * 0.8 + 6, h / 2 + reach * 0.8);
     this.sun.target.position.set(w / 2, 0, h / 2);
     const span = Math.max(w, h) * 0.9;
     Object.assign(this.sun.shadow.camera, {
@@ -434,8 +427,10 @@ export class OfficeView {
       top: span,
       bottom: -span,
       near: 1,
-      far: 90,
+      far: reach * 3 + 30,
     });
+    this.haze.near = reach * 2.5;
+    this.haze.far = reach * 7;
     this.sun.shadow.camera.updateProjectionMatrix();
     this.sky?.dispose();
     this.sky = undefined;
@@ -444,45 +439,6 @@ export class OfficeView {
     if (this.mode === "eye") this.updateWalkCamera();
     this.requestRender();
     this.rebuildTracer();
-  }
-
-  /** Low garden plants around the outside of the building, so it stands in a place and not on a plain. Not exported. */
-  private addLandscape(shell: { w: number; h: number }, generation: number) {
-    const kinds = ["anthurium_botany_01", "calathea_orbifolia_01", "fern_02"];
-    const spots: [number, number][] = [];
-    const gap = 2.2;
-    for (let x = 1; x < shell.w; x += 3.6) spots.push([x, shell.h + gap], [x + 1.4, -gap]);
-    for (let z = 2; z < shell.h; z += 3.6) spots.push([shell.w + gap, z], [-gap, z + 1.2]);
-    spots.forEach(([x, z], i) => {
-      const id = kinds[i % kinds.length] as string;
-      let model = this.models.get(id);
-      if (!model) {
-        model = this.loader.loadAsync(`/assets/models/${id}/${id}.gltf`).then((gltf) => {
-          gltf.scene.traverse((o) => {
-            if (o instanceof THREE.Mesh) o.castShadow = true;
-          });
-          return gltf.scene;
-        });
-        this.models.set(id, model);
-      }
-      const group = new THREE.Group();
-      group.position.set(x, 0, z);
-      group.rotation.y = i * 1.7;
-      group.userData = { noExport: true };
-      this.content.add(group);
-      model
-        .then((source) => {
-          if (generation !== this.generation) return;
-          const copy = source.clone(true);
-          copy.scale.setScalar(0.45);
-          const box = new THREE.Box3().setFromObject(copy);
-          const c = box.getCenter(new THREE.Vector3());
-          copy.position.set(-c.x, -box.min.y, -c.z);
-          group.add(copy);
-          this.requestRender();
-        })
-        .catch(() => undefined);
-    });
   }
 
   /** Loads a modelled object once, then places a clone: centred on its footprint, resting on its base. */
@@ -599,7 +555,8 @@ export class OfficeView {
     this.orbit.enabled = mode === "orbit";
     this.plan.enabled = mode === "plan";
     if (mode === "eye") this.avatar.visible = true;
-    this.three.background = this.realistic ? this.skyTexture() : mode === "eye" ? SKY : DARK;
+    this.three.background = this.realistic ? this.skyTexture() : mode === "eye" ? SKY : PAPER;
+    this.three.fog = mode === "orbit" && !this.realistic ? this.haze : null;
     this.applyCeiling();
     this.applyLabels();
     if (this.realistic && mode !== "plan") {
@@ -1150,8 +1107,10 @@ export class OfficeView {
     const { w, h } = this.shell;
     const centre = new THREE.Vector3(w / 2, 0, h / 2);
     const reach = Math.max(w, h);
-    this.perspective.position.set(w * 0.5, reach * 0.95, h + reach * 0.8);
-    this.orbit.target.copy(centre);
+    // A three-quarter view from a corner, low enough to see into the rooms.
+    this.perspective.fov = 38;
+    this.perspective.position.set(w / 2 + reach * 0.95, reach * 0.9, h / 2 + reach * 1.2);
+    this.orbit.target.set(centre.x, 1, centre.z);
     this.orbit.update();
     this.ortho.position.set(centre.x, 60, centre.z);
     this.plan.target.copy(centre);
@@ -1295,8 +1254,9 @@ export class OfficeView {
       this.tracerFrame = 0;
       clearTimeout(this.tracerTimer);
       this.three.environment = this.rasterEnvironment ?? null;
-      this.three.environmentIntensity = 0.55;
-      this.three.background = this.mode === "eye" ? SKY : DARK;
+      this.three.environmentIntensity = 0.4;
+      this.three.background = this.mode === "eye" ? SKY : PAPER;
+      this.three.fog = this.mode === "orbit" ? this.haze : null;
       this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       this.sun.visible = true;
       this.renderer.toneMappingExposure = 1;
@@ -1342,6 +1302,7 @@ export class OfficeView {
     this.three.environment = this.skyTexture();
     this.three.environmentIntensity = 1.1;
     this.three.background = this.skyTexture();
+    this.three.fog = null;
     for (const l of this.areaLights) this.three.remove(l);
     this.areaLights = [];
     for (const child of this.content.children) {
