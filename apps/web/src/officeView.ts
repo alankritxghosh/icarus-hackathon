@@ -54,6 +54,7 @@ export class OfficeView {
   private look = { yaw: 0, pitch: 0 };
   private walkDistance = 7.5;
   private walkCameraDistance = 7.5;
+  private walkCameraShoulder = 0;
   private cameraRecovering = false;
   private drag?: { x: number; y: number };
   private readonly keys = (e: KeyboardEvent) => this.onKey(e);
@@ -94,6 +95,7 @@ export class OfficeView {
   }[] = [];
   private walkFloors: {
     id: string;
+    name: string;
     x: number;
     z: number;
     halfW: number;
@@ -390,6 +392,7 @@ export class OfficeView {
       if (node.type === "floor" && node.geometry.kind === "box")
         this.walkFloors.push({
           id: node.id,
+          name: node.name,
           x: node.position[0],
           z: node.position[2],
           halfW: node.geometry.size[0] / 2,
@@ -622,6 +625,7 @@ export class OfficeView {
     this.walkFrameIntervals.length = 0;
     this.walkRenderTimes.length = 0;
     this.walkCameraDistance = this.walkDistance;
+    this.walkCameraShoulder = 0;
     this.cameraRecovering = false;
     this.playerAt.set(x, this.walkBaseY, z);
     this.perspective.fov = view.fovDeg;
@@ -811,10 +815,27 @@ export class OfficeView {
       ].join(",");
     const target = this.playerAt.clone().add(new THREE.Vector3(0, 1.2, 0));
     const rise = this.walkDistance * 0.3 + this.look.pitch * 1.2 - 1.2;
+    // In a shallow toilet, glance toward the side with more room so the
+    // fixtures remain visible; movement still follows the person's look yaw.
+    const smallToilet = this.walkFloors.find(
+      (floor) =>
+        /^toilet\b/i.test(floor.name) &&
+        Math.min(floor.halfW, floor.halfD) < 1.2 &&
+        Math.abs(floor.top - this.playerAt.y) < 0.1 &&
+        this.insideWall(floor, this.playerAt.x, this.playerAt.z),
+    );
+    const rightX = Math.cos(this.look.yaw);
+    const rightZ = -Math.sin(this.look.yaw);
+    const sideRoom = smallToilet
+      ? (smallToilet.x - this.playerAt.x) * rightX + (smallToilet.z - this.playerAt.z) * rightZ
+      : 0;
+    const shoulderTarget = Math.abs(sideRoom) > 0.25 ? Math.sign(sideRoom) * 0.6 : 0;
+    this.walkCameraShoulder += (shoulderTarget - this.walkCameraShoulder) * 0.2;
+    const cameraYaw = this.look.yaw + this.walkCameraShoulder;
     const boom = new THREE.Vector3(
-      Math.sin(this.look.yaw),
+      Math.sin(cameraYaw),
       rise / this.walkDistance,
-      Math.cos(this.look.yaw),
+      Math.cos(cameraYaw),
     ).normalize();
     const wanted = Math.hypot(this.walkDistance, rise);
     const obstacles = this.content.children.filter(
@@ -886,12 +907,16 @@ export class OfficeView {
         }
       }
     }
-    this.cameraRecovering = clear - this.walkCameraDistance > 0.01;
+    this.cameraRecovering =
+      clear - this.walkCameraDistance > 0.01 ||
+      Math.abs(shoulderTarget - this.walkCameraShoulder) > 0.01;
     const desired = target.clone().addScaledVector(boom, this.walkCameraDistance);
     if (import.meta.env.DEV)
       this.renderer.domElement.dataset.walkCameraInside = String(
         insideCameraWall(this.walkCameraDistance),
       );
+    if (import.meta.env.DEV)
+      this.renderer.domElement.dataset.walkCameraShoulder = this.walkCameraShoulder.toFixed(3);
     this.perspective.position.copy(desired);
     this.perspective.lookAt(target);
     this.fadeCameraWalls();
