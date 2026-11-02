@@ -860,8 +860,38 @@ export class OfficeView {
       clear < this.walkCameraDistance
         ? clear
         : this.walkCameraDistance + (clear - this.walkCameraDistance) * 0.2;
+    const insideCameraWall = (distance: number) => {
+      const point = target.clone().addScaledVector(boom, distance);
+      return this.walkWalls.some(
+        (wall) =>
+          wall.mesh.visible &&
+          point.y >= wall.minY &&
+          point.y <= wall.maxY &&
+          this.insideWall(wall, point.x, point.z),
+      );
+    };
+    // Easing can put the camera inside a wall even when the target position is clear.
+    if (insideCameraWall(this.walkCameraDistance)) {
+      const eased = this.walkCameraDistance;
+      for (let offset = 0.05; offset <= wanted; offset += 0.05) {
+        const inward = eased - offset;
+        const outward = eased + offset;
+        if (inward >= 0.3 && !insideCameraWall(inward)) {
+          this.walkCameraDistance = inward;
+          break;
+        }
+        if (outward <= wanted && !insideCameraWall(outward)) {
+          this.walkCameraDistance = outward;
+          break;
+        }
+      }
+    }
     this.cameraRecovering = clear - this.walkCameraDistance > 0.01;
     const desired = target.clone().addScaledVector(boom, this.walkCameraDistance);
+    if (import.meta.env.DEV)
+      this.renderer.domElement.dataset.walkCameraInside = String(
+        insideCameraWall(this.walkCameraDistance),
+      );
     this.perspective.position.copy(desired);
     this.perspective.lookAt(target);
     this.fadeCameraWalls();
