@@ -29,12 +29,13 @@ import modal
 MAX_GLB_BYTES = 60 * 1024 * 1024
 
 app = modal.App("icarus-render")
-# Blender as a Python module. bpy 4.2 (LTS) is built for Python 3.11 only. The X and GL libraries are what the wheel
-# links against even when nothing is displayed.
+# Blender as a Python module. bpy 5.2 is built for Python 3.13 only; 4.2 crashed while loading textures for a bake
+# (4 Nov 2026), on Modal and on a Mac alike. The X and GL libraries are what the wheel links against even when nothing
+# is displayed.
 image = (
-    modal.Image.debian_slim(python_version="3.11")
+    modal.Image.debian_slim(python_version="3.13")
     .apt_install("libxi6", "libxxf86vm1", "libxfixes3", "libxrender1", "libgl1", "libsm6", "libxkbcommon0", "libgomp1")
-    .pip_install("bpy==4.2.0", "fastapi[standard]")
+    .pip_install("bpy==5.2.3", "fastapi[standard]")
 )
 
 
@@ -455,12 +456,37 @@ with image.imports():
     scaledown_window=120,
 )
 def light(glb: bytes, view: dict) -> dict:
-    # Blender segfaults when it resets for a second job and took the whole container with it (3 Nov 2026). Each bake
-    # runs in a fresh child; a crash ends only that child.
+    # Blender can segfault, and once took the whole container with it (3 Nov 2026). Each bake runs in a fresh child,
+    # watched: a crash ends only that child and is reported at once instead of leaving the caller waiting forever.
     import multiprocessing
+    import queue
 
-    with multiprocessing.get_context("spawn").Pool(1) as pool:
-        return pool.apply(bake, (glb, view))
+    context = multiprocessing.get_context("spawn")
+    answers = context.Queue()
+    child = context.Process(target=bake_in_child, args=(glb, view, answers))
+    child.start()
+    while True:
+        try:
+            kind, value = answers.get(timeout=5)
+            break
+        except queue.Empty:
+            if not child.is_alive():
+                raise RuntimeError(f"Blender stopped (exit code {child.exitcode})") from None
+    child.join()
+    if kind == "bad":
+        raise ValueError(value)
+    if kind == "failed":
+        raise RuntimeError(value)
+    return value
+
+
+def bake_in_child(glb: bytes, view: dict, answers) -> None:
+    try:
+        answers.put(("ok", bake(glb, view)))
+    except ValueError as e:
+        answers.put(("bad", str(e)))
+    except Exception as e:
+        answers.put(("failed", repr(e)))
 
 
 def authorised(request) -> None:

@@ -9,6 +9,19 @@ import { surface } from "./textures";
 
 export type ViewMode = "orbit" | "plan" | "eye";
 
+/** Scene node kinds, which start an office's node ids; a storey's id never is one. */
+const NODE_KINDS = new Set([
+  "floor",
+  "ceiling",
+  "wall",
+  "door",
+  "window",
+  "frame",
+  "furniture",
+  "fixture",
+  "light",
+]);
+
 /** The building's own surfaces, which get baked light. Furniture keeps its live lighting. */
 const LIT_TYPES = new Set(["floor", "wall", "ceiling", "door", "frame"]);
 
@@ -701,6 +714,8 @@ export class OfficeView {
     if (
       level &&
       level !== "stair" &&
+      // A multi-storey drawing prefixes ids with its level; an office's ids start with the node's kind ("floor.").
+      !NODE_KINDS.has(level) &&
       level !== this.walkLevelId &&
       this.content.children.some((child) =>
         String(child.userData.nodeId ?? "").startsWith(`${level}.`),
