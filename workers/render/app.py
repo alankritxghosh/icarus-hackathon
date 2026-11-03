@@ -169,35 +169,6 @@ def clear_glass() -> None:
             shader.inputs["Roughness"].default_value = 0.02
 
 
-def metered_exposure(scene, folder: str) -> float:
-    """
-    Meter the view like a camera: a quick small render, then the exposure that puts the scene's log-average luminance
-    at mid grey, ignoring the brightest 3% (windows, lamps). Clamped so an odd frame cannot blow out or go black.
-    """
-    import bpy
-    import numpy
-
-    settings = scene.render
-    keep = (settings.resolution_percentage, scene.cycles.samples, scene.cycles.use_denoising)
-    settings.resolution_percentage = 25
-    scene.cycles.samples = 16
-    scene.cycles.use_denoising = False
-    path = os.path.join(folder, "meter.exr")
-    settings.image_settings.file_format = "OPEN_EXR"
-    settings.filepath = path
-    bpy.ops.render.render(write_still=True)
-    settings.resolution_percentage, scene.cycles.samples, scene.cycles.use_denoising = keep
-    image = bpy.data.images.load(path)
-    pixels = numpy.empty(len(image.pixels), dtype=numpy.float32)
-    image.pixels.foreach_get(pixels)
-    bpy.data.images.remove(image)
-    rgb = pixels.reshape(-1, 4)[:, :3]
-    luminance = rgb @ numpy.array([0.2126, 0.7152, 0.0722], dtype=numpy.float32)
-    luminance = numpy.sort(luminance)[: max(1, int(len(luminance) * 0.97))]
-    average = float(numpy.exp(numpy.mean(numpy.log(luminance + 1e-4))))
-    return max(-4.0, min(4.0, math.log2(0.18 / average)))
-
-
 def stage(glb: bytes, view: dict) -> dict:
     """Import the model and set up Cycles, daylight, the model's own lamps and the camera, for a still or a bake."""
     import bpy
