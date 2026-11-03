@@ -1,9 +1,10 @@
 """
-Renders one view of an Icarus model with Blender Cycles on a Modal GPU, for "Make it real".
+Bakes the light of a whole Icarus building with Blender Cycles on a Modal GPU, for "Make it real".
 
-The browser exports the model it is showing (a GLB, the same file "Export for Blender" gives) and the camera it is
-looking through; this worker imports that file, places the same camera, lights it with a sky and a sun, and path
-traces it on the GPU. It owns no scene state and adds nothing to the model: what it draws is what the browser drew.
+The browser exports the building as a GLB with light-map coordinates on every floor, wall, ceiling, door and frame,
+plus the camera the visitor is looking through. This worker imports it, lights it with a sky, a sun and the model's
+own lamps, path-traces the diffuse light falling on each of those surfaces, and returns one light map per surface.
+The camera only meters the exposure. It owns no scene state and adds nothing to the model.
 
 Deploying creates a Modal app and a secret in the author's workspace:
 
@@ -55,6 +56,8 @@ def parse_view(raw: str) -> dict:
     if not (isinstance(fov, (int, float)) and 10 <= fov <= 120):
         raise ValueError("fov must be 10 to 120 degrees")
     out["fov"] = float(fov)
+    if view.get("kind") != "light":
+        raise ValueError("kind must be light")
     for key, low, high in (("width", 64, 2400), ("height", 64, 2400), ("samples", 16, 1024)):
         value = view.get(key)
         if not (isinstance(value, int) and low <= value <= high):
@@ -90,6 +93,9 @@ def add_ceiling(camera_at) -> float | None:
     """
     import bpy
 
+    own = [world_box(obj)[2] for obj in bpy.data.objects if obj.get("type") == "ceiling"]
+    if own:
+        return max(own) if camera_at.z < max(own) else None
     walls = []
     for obj in bpy.data.objects:
         if obj.type != "MESH":
@@ -145,7 +151,8 @@ def light_fixtures() -> None:
         if luminance > 0.5:
             # Office LED fittings are about 4000 K: near white. The browser's warm glow colour tints the whole room.
             colour_input.default_value = (1.0, 0.94, 0.86, 1.0)
-            shader.inputs["Emission Strength"].default_value = 12.0
+            # Strong enough that a small downlight disc lights its room like a real 1,000-lumen fitting.
+            shader.inputs["Emission Strength"].default_value = 30.0
         else:
             shader.inputs["Emission Strength"].default_value = 0.0
 
@@ -191,7 +198,8 @@ def metered_exposure(scene, folder: str) -> float:
     return max(-4.0, min(4.0, math.log2(0.18 / average)))
 
 
-def render(glb: bytes, view: dict) -> dict:
+def stage(glb: bytes, view: dict) -> dict:
+    """Import the model and set up Cycles, daylight, the model's own lamps and the camera, for a still or a bake."""
     import bpy
     from mathutils import Vector
 
@@ -300,41 +308,115 @@ def render(glb: bytes, view: dict) -> dict:
     scene.collection.objects.link(camera)
     camera.location = camera_at
     look = Vector(to_blender(view["target"])) - camera_at
-    pitch = math.atan2(look.z, math.hypot(look.x, look.y))
-    fov = math.radians(view["fov"])
-    if ceiling_z is not None and abs(pitch) < math.radians(35):
-        # An architectural photograph: the camera stays level so walls stay vertical, and the lens shifts to keep the
-        # same point at the same height in the frame. Wider than 60 degrees stretches the foreground like a fisheye.
-        fov = min(fov, math.radians(60))
-        level = Vector((look.x, look.y, 0.0))
-        camera.rotation_euler = level.to_track_quat("-Z", "Y").to_euler()
-        rise = math.tan(pitch) / (2 * math.tan(fov / 2))
-        camera_data.shift_y = max(-0.3, min(0.3, rise)) * view["height"] / max(view["width"], view["height"])
-    else:
-        camera.rotation_euler = look.to_track_quat("-Z", "Y").to_euler()
-    camera_data.angle_y = fov
+    camera.rotation_euler = look.to_track_quat("-Z", "Y").to_euler()
+    camera_data.angle_y = math.radians(view["fov"])
     scene.camera = camera
 
-    with tempfile.TemporaryDirectory() as d:
-        scene.view_settings.exposure = metered_exposure(scene, d)
-        out = os.path.join(d, "view.jpg")
-        scene.render.image_settings.file_format = "JPEG"
-        scene.render.image_settings.quality = 90
-        scene.render.filepath = out
-        bpy.ops.render.render(write_still=True)
-        with open(out, "rb") as f:
-            jpeg = f.read()
-    done = time.time()
-    return {
-        "jpegBase64": base64.b64encode(jpeg).decode("ascii"),
-        "device": device,
-        "samples": view["samples"],
-        "exposure": round(scene.view_settings.exposure, 2),
-        "ceiling": ceiling_z is not None,
-        "importMs": round((imported - started) * 1000),
-        "renderMs": round((done - imported) * 1000),
-    }
+    return {"scene": scene, "device": device, "ceiling": ceiling_z, "importMs": round((imported - started) * 1000)}
 
+
+# What the bake lights: the building's own surfaces, each carrying light-map coordinates (TEXCOORD_1) and a texture size
+# (extras.lightmap) set by the browser. Furniture keeps its materials and is lit live in the browser.
+BAKED_TYPES = ("floor", "wall", "ceiling", "door", "frame")
+# Stored light is scaled by 1 / LIGHT_RANGE so bright pools near lamps and windows still fit in 8 bits; the browser
+# multiplies it back.
+LIGHT_RANGE = 4.0
+
+
+def smooth(pixels, height: int, width: int):
+    """A small Gaussian blur (sigma about 1 texel; three passes make about 1.8): light varies slowly, noise does not."""
+    import numpy
+
+    taps = numpy.array([0.06, 0.24, 0.40, 0.24, 0.06], dtype=numpy.float32)
+    image = pixels.reshape(height, width, -1)
+    for axis in (0, 1):
+        padded = numpy.pad(image, [(2, 2) if a == axis else (0, 0) for a in range(3)], mode="edge")
+        image = sum(
+            taps[i] * numpy.take(padded, range(i, i + image.shape[axis]), axis=axis) for i in range(5)
+        )
+    return image.reshape(-1, pixels.shape[-1]) if pixels.ndim == 2 else image.reshape(-1)
+
+
+def bake(glb: bytes, view: dict) -> dict:
+    """
+    Path-trace the light falling on every floor, wall, ceiling, door and frame into a light map, so the browser can walk
+    through the building with that light in real time. Only diffuse light is baked, not colour: the browser keeps each
+    surface's own sharp texture and multiplies the light in. Returns one JPEG per scene node id.
+    """
+    import bpy
+    import numpy
+
+    started = time.time()
+    staged = stage(glb, view)
+    scene = staged["scene"]
+    scene.cycles.use_denoising = False
+    with tempfile.TemporaryDirectory() as d:
+        exposure = metered_exposure(scene, d)
+    # A light map has no denoiser: clamping indirect light removes the bright specks that would read as grime.
+    scene.cycles.sample_clamp_indirect = 4.0
+
+    targets = []
+    bpy.ops.object.select_all(action="DESELECT")
+    for obj in bpy.data.objects:
+        if obj.type != "MESH" or obj.get("type") not in BAKED_TYPES or not obj.get("nodeId") or not obj.get("lightmap"):
+            continue
+        if len(obj.data.uv_layers) < 2:
+            continue
+        side = int(obj["lightmap"])
+        if not 16 <= side <= 2048:
+            continue
+        obj.data.uv_layers.active = obj.data.uv_layers[1]
+        image = bpy.data.images.new(f"light-{obj['nodeId']}", side, side, float_buffer=True)
+        for slot in obj.material_slots:
+            # Each surface bakes into its own image, so each needs its own copy of a shared material.
+            material = slot.material.copy() if slot.material else bpy.data.materials.new("plain")
+            material.use_nodes = True
+            node = material.node_tree.nodes.new("ShaderNodeTexImage")
+            node.image = image
+            material.node_tree.nodes.active = node
+            slot.material = material
+        obj.select_set(True)
+        targets.append((obj, image))
+    if not targets:
+        raise ValueError("the model has no surfaces prepared for light")
+    bpy.context.view_layer.objects.active = targets[0][0]
+    scene.render.bake.margin = 4
+    bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"})
+    baked = time.time()
+
+    surfaces = {}
+    scale = (2.0**exposure) / LIGHT_RANGE
+    for obj, image in targets:
+        side = image.size[0]
+        pixels = numpy.empty(side * side * 4, dtype=numpy.float32)
+        image.pixels.foreach_get(pixels)
+        rgb = pixels.reshape(-1, 4)[:, :3]
+        for _ in range(3):
+            rgb = smooth(rgb, side, side)
+        rgb = rgb * scale
+        rgb = numpy.clip(rgb, 0.0, 1.0)
+        encoded = numpy.where(rgb <= 0.0031308, rgb * 12.92, 1.055 * numpy.power(rgb, 1 / 2.4) - 0.055)
+        out = bpy.data.images.new(f"out-{obj['nodeId']}", side, side)
+        out.colorspace_settings.name = "Non-Color"
+        rgba = numpy.concatenate([encoded, numpy.ones((encoded.shape[0], 1), dtype=numpy.float32)], axis=1)
+        out.pixels.foreach_set(rgba.astype(numpy.float32).ravel())
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "light.jpg")
+            out.filepath_raw = path
+            out.file_format = "JPEG"
+            scene.render.image_settings.quality = 88
+            out.save()
+            with open(path, "rb") as f:
+                surfaces[str(obj["nodeId"])] = base64.b64encode(f.read()).decode("ascii")
+    return {
+        "lightmaps": surfaces,
+        "range": LIGHT_RANGE,
+        "device": staged["device"],
+        "samples": scene.cycles.samples,
+        "exposure": round(exposure, 2),
+        "importMs": staged["importMs"],
+        "bakeMs": round((baked - started) * 1000) - staged["importMs"],
+    }
 
 with image.imports():
     from fastapi import HTTPException, Request
@@ -345,7 +427,8 @@ with image.imports():
     # The first GPU type with capacity: L4s ran out on 2 Nov 2026 and a render waited over 400 s for one.
     gpu=["L4", "A10G", "L40S"],
     secrets=[modal.Secret.from_name("icarus-render")],
-    timeout=300,
+    # A whole-building light bake takes a few minutes on one GPU.
+    timeout=600,
     max_containers=2,
     scaledown_window=120,
 )
@@ -364,6 +447,6 @@ async def draw(request: Request):
         import multiprocessing
 
         with multiprocessing.get_context("spawn").Pool(1) as pool:
-            return await asyncio.to_thread(pool.apply, render, (glb, view))
+            return await asyncio.to_thread(pool.apply, bake, (glb, view))
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e

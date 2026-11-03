@@ -90,10 +90,9 @@ export function Studio(props: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [mode, setMode] = useState<ViewMode>("orbit");
-  // A GPU render of the current view, made on the server; the live model stays under it.
+  // Path-traced light for the whole building, baked on the server and worn by the live model.
   const [real, setReal] = useState<{
     state: "off" | "rendering" | "done" | "failed";
-    image?: string;
     note?: string;
   }>({ state: "off" });
   const [menu, setMenu] = useState(false);
@@ -172,49 +171,61 @@ export function Studio(props: Props) {
     return id;
   };
 
-  /** Send this view and the model as it is drawn to the GPU renderer, and show the picture over the model. */
+  /**
+   * Make the whole building real: send it to the GPU, which path-traces the light falling on every floor, wall and
+   * ceiling, then walk through it in first person with that light.
+   */
   const makeReal = async (): Promise<string> => {
     const v = view.current;
-    const stage = host.current;
-    if (!v || !stage) return "There is nothing to render yet.";
+    if (!v || !scene) return "There is nothing to make real yet.";
     setReal({ state: "rendering" });
     const started = performance.now();
     try {
-      // The picture is 1600 px on its long side whatever the panel's size: a phone panel would otherwise get a thumbnail.
-      const scale = 1600 / Math.max(stage.clientWidth, stage.clientHeight);
-      const camera = {
-        ...v.renderView(),
-        width: Math.max(64, Math.round(stage.clientWidth * scale)),
-        height: Math.max(64, Math.round(stage.clientHeight * scale)),
-        samples: 128,
-      };
-      const model = await v.exportGlb(plainExport, true);
+      if (modeRef.current !== "eye") {
+        const vp = viewpoints[0];
+        if (vp) {
+          setMode("eye");
+          v.setViewpoint(vp);
+          setWalkPlace(vp.name);
+        }
+      }
+      // The camera only meters the exposure; the light is baked for the whole building.
+      const camera = { ...v.renderView(), width: 480, height: 300, samples: 128, kind: "light" };
+      const model = await v.exportForLight();
       const res = await fetch("/api/render", {
         method: "POST",
         headers: { "content-type": "model/gltf-binary", "x-icarus-view": JSON.stringify(camera) },
         body: model,
       });
-      const data = (await res.json().catch(() => ({}))) as { jpegBase64?: string; error?: string };
-      if (!res.ok || !data.jpegBase64) throw new Error(data.error ?? "the renderer failed");
+      const data = (await res.json().catch(() => ({}))) as {
+        lightmaps?: Record<string, string>;
+        range?: number;
+        error?: string;
+      };
+      if (!res.ok || !data.lightmaps || !data.range)
+        throw new Error(data.error ?? "the GPU failed");
+      await v.wearLight(data.lightmaps, data.range);
       const seconds = Math.round((performance.now() - started) / 1000);
-      setReal({ state: "done", image: `data:image/jpeg;base64,${data.jpegBase64}` });
-      return `Rendered this view on a GPU in ${seconds} s.`;
+      setReal({ state: "done" });
+      return `The building now has path-traced light (${seconds} s on a GPU). Walk anywhere with W A S D; drag to look.`;
     } catch (error) {
-      const note = error instanceof Error ? error.message : "the renderer failed";
+      const note = error instanceof Error ? error.message : "the GPU failed";
       setReal({ state: "failed", note });
-      return `I could not render this view: ${note}.`;
+      return `I could not make it real: ${note}.`;
     }
   };
 
   const setReality = (on: boolean) => {
     if (on) void makeReal().then((t) => say({ role: "icarus", text: t }));
-    else setReal({ state: "off" });
+    else {
+      view.current?.takeOffLight();
+      setReal({ state: "off" });
+    }
   };
 
   const goto = (m: ViewMode) => {
     setMode(m);
     if (m === "eye") {
-      if (real.state !== "off") setReality(false);
       const vp = viewpoints[0];
       if (vp) {
         view.current?.setViewpoint(vp);
@@ -225,10 +236,7 @@ export function Studio(props: Props) {
 
   /** Stand in a room; the first visit also takes its picture for the views strip. */
   const visit = (point: Viewpoint) => {
-    if (modeRef.current !== "eye") {
-      if (real.state !== "off") setReality(false);
-      setMode("eye");
-    }
+    if (modeRef.current !== "eye") setMode("eye");
     view.current?.setViewpoint(point);
     setWalkPlace(point.name);
     if (shots[point.id]) return;
@@ -275,7 +283,7 @@ export function Studio(props: Props) {
       return "There is nothing to look at yet. Describe a building or attach a floor plan first.";
     if (cmd.kind === "real") {
       if (!cmd.on) {
-        setReal({ state: "off" });
+        setReality(false);
         return "Back to the model.";
       }
       return makeReal();
@@ -690,7 +698,11 @@ export function Studio(props: Props) {
                   disabled={real.state === "rendering"}
                   onClick={() => setReality(real.state !== "done")}
                 >
-                  {real.state === "rendering" ? "Rendering…" : "✦ Make it real"}
+                  {real.state === "rendering"
+                    ? "Making it real…"
+                    : real.state === "done"
+                      ? "Back to the model"
+                      : "✦ Make it real"}
                 </button>
               )}
             </div>
@@ -789,34 +801,13 @@ export function Studio(props: Props) {
           )}
           {real.state === "rendering" && (
             <p className="real-caption" role="status">
-              Rendering this view on a GPU…
+              Path-tracing the light of the whole building on a GPU…
             </p>
           )}
           {real.state === "failed" && (
             <p className="real-caption" role="status">
-              Could not render: {real.note}
+              Could not make it real: {real.note}
             </p>
-          )}
-          {real.state === "done" && real.image && (
-            <div className="real-shot">
-              <img src={real.image} alt="A path-traced render of this view" />
-              <div className="row">
-                <button
-                  type="button"
-                  className="btn small"
-                  onClick={() => setReal({ state: "off" })}
-                >
-                  Back to the model
-                </button>
-                <a
-                  className="btn small primary"
-                  href={real.image}
-                  download={`icarus-${slug(title ?? "building")}.jpg`}
-                >
-                  Save picture
-                </a>
-              </div>
-            </div>
           )}
         </div>
         {scene && (

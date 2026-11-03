@@ -2,10 +2,10 @@ import { z } from "zod";
 import type { Env } from "./env";
 
 const MAX_GLB_BYTES = 60 * 1024 * 1024;
-const MAX_JPEG_BASE64 = 12 * 1024 * 1024;
+const MAX_JPEG_BASE64 = 4 * 1024 * 1024;
 
 const Vec = z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]);
-/** What the browser may ask for: its camera, the sun's direction and a modest picture size. */
+/** What the browser may ask for: its camera (which meters the exposure), the sun's direction and the sample count. */
 const View = z.object({
   position: Vec,
   target: Vec,
@@ -14,13 +14,19 @@ const View = z.object({
   width: z.int().min(64).max(2400),
   height: z.int().min(64).max(2400),
   samples: z.int().min(16).max(1024),
+  kind: z.literal("light"),
 });
-const Rendered = z.object({
-  jpegBase64: z.string().max(MAX_JPEG_BASE64),
+/** One light map per scene node id, each a JPEG; a building has a few hundred surfaces at most. */
+const Baked = z.object({
+  lightmaps: z
+    .record(z.string().max(200), z.string().max(MAX_JPEG_BASE64))
+    .refine((maps) => Object.keys(maps).length <= 2000, "too many surfaces"),
+  range: z.number().positive().max(64),
   device: z.string().max(20),
   samples: z.int(),
+  exposure: z.number(),
   importMs: z.int(),
-  renderMs: z.int(),
+  bakeMs: z.int(),
 });
 
 const json = (body: unknown, status = 200) =>
@@ -28,7 +34,8 @@ const json = (body: unknown, status = 200) =>
 
 /**
  * POST /api/render with the model as a GLB body and the camera in the x-icarus-view header. Hands both to the Modal
- * render worker, which path traces that view on a GPU with Blender Cycles, and returns the picture. The edge decides
+ * render worker, which path traces the light falling on every floor, wall and ceiling with Blender Cycles on a GPU,
+ * and returns one light map per surface. The edge decides
  * nothing about the model; it checks the file and the view, forwards them with a token the browser never sees, and
  * checks the reply.
  */
@@ -95,7 +102,7 @@ export async function handleRender(
   } catch {
     return json({ error: "the renderer sent something unexpected" }, 502);
   }
-  const rendered = Rendered.safeParse(raw);
+  const rendered = Baked.safeParse(raw);
   if (!rendered.success) return json({ error: "the renderer sent something unexpected" }, 502);
   return json(rendered.data);
 }

@@ -1043,27 +1043,6 @@ button {
 }
 
 /* A GPU render of the current view, over the live model */
-.real-shot {
-  position: absolute;
-  z-index: 5;
-  inset: 0;
-  display: grid;
-  background: #efeae1;
-}
-.real-shot img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-.real-shot .row {
-  position: absolute;
-  right: 14px;
-  bottom: 14px;
-}
-.real-shot a.btn {
-  text-decoration: none;
-}
-
 /* The front page */
 a.logo {
   color: inherit;

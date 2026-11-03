@@ -4,9 +4,13 @@ import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { boxLightmap } from "./lightmap";
 import { surface } from "./textures";
 
 export type ViewMode = "orbit" | "plan" | "eye";
+
+/** The building's own surfaces, which get baked light. Furniture keeps its live lighting. */
+const LIT_TYPES = new Set(["floor", "wall", "ceiling", "door", "frame"]);
 
 const SKY = new THREE.Color("#cfdfe8");
 // A warm paper ground and backdrop, so the building reads as a model on a table rather than a field.
@@ -83,6 +87,9 @@ export class OfficeView {
   private rasterEnvironment?: THREE.Texture;
   private mode: ViewMode = "orbit";
   private showCeiling = false;
+  /** While the building wears path-traced light, Walk is first person under its own ceiling. */
+  private real = false;
+  private beforeReal = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
   private shell = { w: 20, h: 12 };
   private frame = 0;
   private generation = 0;
@@ -281,6 +288,10 @@ export class OfficeView {
     this.cameraAssetBounds.length = 0;
     this.shell = scene.shell;
     this.showCeiling = false;
+    // A new scene is new geometry: any baked light belonged to the old one.
+    this.real = false;
+    this.beforeReal.clear();
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     const materials = new Map<string, THREE.MeshStandardMaterial>();
     const material = (id: string) => {
       let m = materials.get(id);
@@ -533,7 +544,7 @@ export class OfficeView {
     this.resize();
     this.orbit.enabled = mode === "orbit";
     this.plan.enabled = mode === "plan";
-    if (mode === "eye") this.avatar.visible = true;
+    if (mode === "eye") this.avatar.visible = !this.real;
     this.roomLight.visible = mode === "eye";
     this.three.background = mode === "eye" ? SKY : PAPER;
     this.three.fog = mode === "orbit" ? this.haze : null;
@@ -741,6 +752,22 @@ export class OfficeView {
     if (this.mode !== "eye") return;
     this.avatar.position.copy(this.playerAt);
     this.roomLight.position.set(this.playerAt.x, this.playerAt.y + 2.5, this.playerAt.z);
+    if (this.real) {
+      // In real light the visitor sees through their own eyes: no avatar, no boom, nothing faded.
+      this.avatar.visible = false;
+      const eye = this.playerAt.clone().add(new THREE.Vector3(0, 1.55, 0));
+      const down = this.look.pitch - 0.2;
+      const ahead = new THREE.Vector3(
+        -Math.sin(this.look.yaw) * Math.cos(down),
+        -Math.sin(down),
+        -Math.cos(this.look.yaw) * Math.cos(down),
+      );
+      this.perspective.position.copy(eye);
+      this.perspective.lookAt(eye.add(ahead));
+      this.cameraRecovering = false;
+      this.cameraMoved();
+      return;
+    }
     if (import.meta.env.DEV)
       this.renderer.domElement.dataset.walkPose = [
         this.playerAt.x.toFixed(2),
@@ -1050,6 +1077,89 @@ export class OfficeView {
     return result;
   }
 
+  /**
+   * The whole building as a GLB for the light bake: every floor, wall, ceiling, door and frame gets light-map
+   * coordinates (uv1, exported as TEXCOORD_1) and its texture size in userData.lightmap (exported as extras).
+   */
+  async exportForLight(): Promise<ArrayBuffer> {
+    for (const child of this.content.children) {
+      if (!(child instanceof THREE.Mesh) || !LIT_TYPES.has(child.userData.type)) continue;
+      if (!(child.geometry instanceof THREE.BoxGeometry)) continue;
+      if (!child.geometry.getAttribute("uv1")) {
+        const { width, height, depth } = child.geometry.parameters;
+        const { uv, side } = boxLightmap(width, height, depth);
+        child.geometry.setAttribute("uv1", new THREE.BufferAttribute(uv, 2));
+        child.userData.lightmap = side;
+      }
+    }
+    return this.exportGlb(false, false);
+  }
+
+  /**
+   * Dress the building in baked light: each surface keeps its own colour and texture and multiplies in its light map,
+   * unlit, so what shows is the path-traced light. Walk turns first person with the ceiling on. `range` is the factor
+   * the worker divided the light by to fit it in a JPEG.
+   */
+  async wearLight(lightmaps: Record<string, string>, range: number) {
+    this.takeOffLight();
+    const loader = new THREE.TextureLoader();
+    const loads: Promise<void>[] = [];
+    for (const child of this.content.children) {
+      if (!(child instanceof THREE.Mesh)) continue;
+      const jpeg = lightmaps[String(child.userData.nodeId ?? "")];
+      if (!jpeg || !child.geometry.getAttribute("uv1")) continue;
+      const original = child.material as THREE.MeshStandardMaterial;
+      loads.push(
+        loader.loadAsync(`data:image/jpeg;base64,${jpeg}`).then((light) => {
+          // Blender's texture rows run bottom up and the glTF round trip flipped v once: no second flip here.
+          light.flipY = false;
+          light.colorSpace = THREE.SRGBColorSpace;
+          light.channel = 1;
+          this.beforeReal.set(child, child.material);
+          // Painted walls and ceilings are smooth: the plaster scan's mottling reads as grime under real light.
+          const painted = child.userData.type === "wall" || child.userData.type === "ceiling";
+          child.material = new THREE.MeshBasicMaterial({
+            color: original.color,
+            map: painted ? null : (original.map ?? null),
+            lightMap: light,
+            lightMapIntensity: range * Math.PI,
+            side: original.side,
+          });
+        }),
+      );
+    }
+    await Promise.all(loads);
+    this.real = true;
+    this.renderer.toneMapping = THREE.AgXToneMapping;
+    this.clearCameraGhosts();
+    this.avatar.visible = false;
+    this.applyCeiling();
+    this.updateWalkCamera();
+    this.requestRender();
+  }
+
+  /** Back to the live model's own materials and the third-person walk. */
+  takeOffLight() {
+    if (!this.real && !this.beforeReal.size) return;
+    for (const [mesh, material] of this.beforeReal) {
+      const worn = mesh.material as THREE.MeshBasicMaterial;
+      worn.lightMap?.dispose();
+      worn.dispose();
+      mesh.material = material;
+    }
+    this.beforeReal.clear();
+    this.real = false;
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    if (this.mode === "eye") this.avatar.visible = true;
+    this.applyCeiling();
+    this.updateWalkCamera();
+    this.requestRender();
+  }
+
+  get wearingLight() {
+    return this.real;
+  }
+
   /** The camera as it stands and the sun's direction, so a GPU render can draw exactly this view. */
   renderView() {
     if (this.mode === "eye") {
@@ -1132,7 +1242,8 @@ export class OfficeView {
       } else if (child.userData.type === "ceiling") {
         // The complete roof is visible from outside. In third person it becomes a cutaway so the
         // player and lower rooms stay visible while the building still owns those roof meshes.
-        child.visible = this.mode === "orbit" && this.showCeiling;
+        child.visible =
+          (this.mode === "orbit" && this.showCeiling) || (this.mode === "eye" && this.real);
       } else if (id) child.visible = true;
     }
   }

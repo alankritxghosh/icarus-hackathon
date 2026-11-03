@@ -15,6 +15,7 @@ const VIEW = {
   width: 1280,
   height: 800,
   samples: 128,
+  kind: "light",
 };
 const glb = () => new TextEncoder().encode("glTF\u0002\u0000\u0000\u0000body");
 const post = (body: BodyInit, view: unknown = VIEW, ip = "203.0.113.9") =>
@@ -24,16 +25,18 @@ const post = (body: BodyInit, view: unknown = VIEW, ip = "203.0.113.9") =>
     headers: { "x-icarus-view": JSON.stringify(view), "cf-connecting-ip": ip },
   });
 const GOOD = {
-  jpegBase64: "/9j/AA==",
+  lightmaps: { "floor.open_workspace.1": "/9j/AA==", "wall.0": "/9j/AA==" },
+  range: 4,
   device: "OPTIX",
   samples: 128,
+  exposure: 0.4,
   importMs: 1500,
-  renderMs: 5000,
+  bakeMs: 60000,
 };
 const limiter = (allow: boolean) => ({ limit: async () => ({ success: allow }) });
 
 describe("POST /api/render", () => {
-  it("forwards the model and the checked view with the token, and returns the picture", async () => {
+  it("forwards the model and the checked view with the token, and returns the light maps", async () => {
     const seen: { url: string; init: RequestInit }[] = [];
     const send = (async (url: string, init: RequestInit) => {
       seen.push({ url, init });
