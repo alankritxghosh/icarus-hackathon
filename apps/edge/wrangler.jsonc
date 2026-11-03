@@ -2,8 +2,17 @@
   "name": "icarus",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
-  // Workers AI is the only binding: no API token ever reaches the browser or the repository.
+  // Workers AI answers when Muse Spark is refused, busy or down. MODEL_API_KEY is a secret, never in this file.
   "ai": { "binding": "AI" },
+  // The day's Muse Spark spend, shared by every Worker instance so the daily cap holds.
+  "kv_namespaces": [{ "binding": "BUDGET", "id": "3cefd6c21eb94fb5b8faa14827e813a3" }],
+  // Muse Spark 1.3 prices per million tokens, and the daily cap the paid route refuses to exceed.
+  "vars": {
+    "ICARUS_PROVIDER": "meta",
+    "ICARUS_DAILY_BUDGET_USD": "5",
+    "ICARUS_PRICE_IN_USD_PER_MTOK": "1.25",
+    "ICARUS_PRICE_OUT_USD_PER_MTOK": "4.25"
+  },
   // The built web app is served from the same Worker, so the browser has one origin: every /api path runs this Worker,
   // everything else is a static file (and any unknown path falls back to the app's index.html).
   "assets": {
