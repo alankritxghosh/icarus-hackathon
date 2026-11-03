@@ -34,7 +34,7 @@ app = modal.App("icarus-render")
 # is displayed.
 image = (
     modal.Image.debian_slim(python_version="3.13")
-    .apt_install("libxi6", "libxxf86vm1", "libxfixes3", "libxrender1", "libgl1", "libsm6", "libxkbcommon0", "libgomp1")
+    .apt_install("libxi6", "libxxf86vm1", "libxfixes3", "libxrender1", "libgl1", "libsm6", "libxkbcommon0", "libgomp1", "libegl1")
     .pip_install("bpy==5.2.3", "fastapi[standard]")
 )
 
@@ -314,6 +314,9 @@ def denoiser():
     scene.render.image_settings.file_format = "OPEN_EXR"
     scene.render.image_settings.color_depth = "32"
     scene.view_settings.view_transform = "Standard"
+    # Blender 5's compositor reaches for the GPU through EGL, which aborted the process on Modal (4 Nov 2026).
+    if hasattr(scene.render, "compositor_device"):
+        scene.render.compositor_device = "CPU"
     if hasattr(scene, "compositing_node_group"):
         tree = bpy.data.node_groups.new("denoise", "CompositorNodeTree")
         tree.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
