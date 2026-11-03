@@ -13,6 +13,55 @@ const SKY = new THREE.Color("#cfdfe8");
 const PAPER = new THREE.Color("#efeae1");
 
 /**
+ * GLTFExporter flips the green channel of a normal map on meshes without tangents, and caches that flip per texture
+ * object. Every wall and floor holds its own copy of a texture (for its own repeat), so each one wrote another full
+ * flipped image: 75 copies of one normal map, 64 MB of images where 13 MB were distinct (3 Nov 2026). Flip each image
+ * once here, share it, and mark the material so the exporter leaves it alone.
+ */
+function shareFlippedNormals(root: THREE.Object3D) {
+  const flipped = new Map<THREE.TextureSource<unknown>, THREE.TextureSource<unknown>>();
+  const materials = new Map<THREE.Material, THREE.Material>();
+  const flip = (source: THREE.TextureSource<unknown>) => {
+    let done = flipped.get(source);
+    if (!done) {
+      const image = source.data as CanvasImageSource & { width: number; height: number };
+      const canvas = document.createElement("canvas");
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return source;
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 1; i < pixels.data.length; i += 4) pixels.data[i] = 255 - (pixels.data[i] ?? 0);
+      context.putImageData(pixels, 0, 0);
+      done = new THREE.TextureSource(canvas);
+      flipped.set(source, done);
+    }
+    return done;
+  };
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh) || object.geometry.getAttribute("tangent")) return;
+    const swap = (material: THREE.Material) => {
+      const m = material as THREE.MeshStandardMaterial;
+      if (!m.normalMap || m.normalScale.y <= 0 || !m.normalMap.source.data) return material;
+      let made = materials.get(material);
+      if (!made) {
+        const copy = m.clone();
+        copy.normalMap = m.normalMap.clone();
+        copy.normalMap.source = flip(m.normalMap.source);
+        copy.normalScale = new THREE.Vector2(m.normalScale.x, -m.normalScale.y);
+        made = copy;
+        materials.set(material, made);
+      }
+      return made;
+    };
+    object.material = Array.isArray(object.material)
+      ? object.material.map(swap)
+      : swap(object.material);
+  });
+}
+
+/**
  * Renders a core Scene with three.js. Rendering is on demand: it draws when the camera moves,
  * the window resizes or the scene changes, so an idle office costs nothing.
  */
@@ -991,6 +1040,7 @@ export class OfficeView {
         });
       out.add(copy);
     }
+    shareFlippedNormals(out);
     const result = await new GLTFExporter().parseAsync(out, {
       binary: true,
       onlyVisible: true,
@@ -1002,6 +1052,22 @@ export class OfficeView {
 
   /** The camera as it stands and the sun's direction, so a GPU render can draw exactly this view. */
   renderView() {
+    if (this.mode === "eye") {
+      // Walking, the photograph is taken where the visitor stands, at eye height and facing where they face: the
+      // follow camera behind them often looks through a wall it has faded, which no real camera could do.
+      const eye = this.playerAt.clone().add(new THREE.Vector3(0, 1.55, 0));
+      const ahead = new THREE.Vector3(-Math.sin(this.look.yaw), 0, -Math.cos(this.look.yaw));
+      return {
+        position: eye.toArray() as [number, number, number],
+        target: eye.clone().addScaledVector(ahead, 10).toArray() as [number, number, number],
+        fov: this.perspective.fov,
+        sun: this.sun.position.clone().sub(this.sun.target.position).toArray() as [
+          number,
+          number,
+          number,
+        ],
+      };
+    }
     this.perspective.updateMatrixWorld();
     const ahead = this.perspective.getWorldDirection(new THREE.Vector3()).multiplyScalar(10);
     return {

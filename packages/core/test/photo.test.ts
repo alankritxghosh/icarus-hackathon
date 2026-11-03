@@ -77,8 +77,17 @@ describe("applyStyle", () => {
     const m = applyStyle(StyleSchema.parse({ floor: "concrete", accent: "#3050a0" }));
     expect(m["fabric.green"]?.color).toBe("#3050a0");
     expect(m["floor.oak"]?.texture).toBeUndefined();
-    expect(m["floor.oak"]?.color).toBe("#a9a8a3");
+    // Concrete is the scanned concrete set, shown as photographed.
+    expect(m["floor.oak"]?.pbr).toBe("concrete_floor_02");
+    expect(m["floor.oak"]?.color).toBe("#ffffff");
     expect(JSON.stringify(MATERIALS)).toBe(before);
+  });
+
+  it("keeps a measured floor colour as a plain finish instead of tinting a scan", () => {
+    const m = applyStyle(StyleSchema.parse({ floor: "oak", floorColor: "#8a6a47" }));
+    expect(m["floor.oak"]?.pbr).toBeUndefined();
+    expect(m["floor.oak"]?.color).toBe("#8a6a47");
+    expect(m["floor.oak"]?.texture).toBe("planks");
   });
 
   it("the default style is the warm oak and green house style", () => {

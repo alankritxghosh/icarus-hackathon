@@ -27,15 +27,55 @@ export const StyleSchema = z.object({
 });
 export type Style = z.infer<typeof StyleSchema>;
 
-const FLOOR_MATERIAL: Record<FloorKind, Pick<MaterialDef, "color" | "texture" | "roughness">> = {
-  oak: { color: "#c79d6a", texture: "planks", roughness: 0.55 },
-  light_oak: { color: "#dcc49c", texture: "planks", roughness: 0.55 },
-  dark_wood: { color: "#7a5436", texture: "planks", roughness: 0.5 },
-  concrete: { color: "#a9a8a3", roughness: 0.8 },
+type FloorFinish = Pick<MaterialDef, "color" | "texture" | "roughness" | "pbr" | "tileM">;
+
+/**
+ * Each floor's procedural look (the software renderer's fallback) and, where a scanned CC0 set fits, its photographic
+ * material. A photographic set is multiplied by `pbrTint`, so a tint of white shows the scan as it was photographed.
+ */
+const FLOOR_MATERIAL: Record<FloorKind, FloorFinish & { pbrTint?: string }> = {
+  oak: {
+    color: "#c79d6a",
+    texture: "planks",
+    roughness: 0.55,
+    pbr: "laminate_floor_02",
+    tileM: 1.5,
+    pbrTint: "#ffffff",
+  },
+  light_oak: {
+    color: "#dcc49c",
+    texture: "planks",
+    roughness: 0.55,
+    pbr: "herringbone_parquet",
+    tileM: 1.2,
+    pbrTint: "#ffffff",
+  },
+  dark_wood: {
+    color: "#7a5436",
+    texture: "planks",
+    roughness: 0.5,
+    pbr: "laminate_floor_02",
+    tileM: 1.5,
+    pbrTint: "#9c7d64",
+  },
+  concrete: {
+    color: "#a9a8a3",
+    roughness: 0.8,
+    pbr: "concrete_floor_02",
+    tileM: 2,
+    pbrTint: "#ffffff",
+  },
   carpet_grey: { color: "#8b9298", texture: "carpet", roughness: 1 },
   patterned_carpet: { color: "#7d7466", texture: "carpet", roughness: 1 },
-  tile: { color: "#d6d8d6", roughness: 0.4 },
+  tile: { color: "#d6d8d6", roughness: 0.4, pbr: "interior_tiles", tileM: 1.2, pbrTint: "#ffffff" },
 };
+
+/** A floor finish as a scene material: the photographic set unless a measured colour asks for the plain one. */
+function floorFinish(floor: (typeof FLOOR_MATERIAL)[FloorKind], color?: string): FloorFinish {
+  const { pbrTint, pbr, tileM, ...plain } = floor;
+  if (color || !pbr) return { ...plain, ...(color ? { color } : {}) };
+  return { ...plain, pbr, tileM, color: pbrTint ?? "#ffffff" };
+}
 
 /** Shift a colour toward white, to make a carpet from an accent. */
 function lighten(color: string, amount: number): string {
@@ -54,16 +94,14 @@ export function applyStyle(style: Style): Record<string, MaterialDef> {
   const floor = FLOOR_MATERIAL[style.floor];
   const materials: Record<string, MaterialDef> = { ...MATERIALS };
   const base = { metalness: 0, opacity: 1 };
-  const floorColor = style.floorColor ?? floor.color;
-  materials["floor.oak"] = { ...base, ...floor, color: floorColor };
+  materials["floor.oak"] = { ...base, ...floorFinish(floor, style.floorColor) };
   materials["floor.oak.light"] = {
     ...base,
-    ...floor,
-    color: style.floorColor
-      ? lighten(style.floorColor, 0.12)
+    ...(style.floorColor
+      ? floorFinish(floor, lighten(style.floorColor, 0.12))
       : style.floor === "oak"
-        ? "#d9bd92"
-        : floor.color,
+        ? floorFinish(FLOOR_MATERIAL.light_oak)
+        : floorFinish(floor)),
   };
   materials["floor.carpet.green"] = {
     ...base,
@@ -73,7 +111,14 @@ export function applyStyle(style: Style): Record<string, MaterialDef> {
   };
   materials["fabric.green"] = { ...base, color: style.accent, roughness: 0.95 };
   materials["felt.green"] = { ...base, color: style.accent, roughness: 1 };
-  materials["wall.interior"] = { ...base, color: style.walls, roughness: 0.9 };
+  // The plaster scan is nearly white, so the wall colour tints it without darkening it.
+  materials["wall.interior"] = {
+    ...base,
+    color: style.walls,
+    pbr: "plastered_wall",
+    tileM: 2,
+    roughness: 0.9,
+  };
   if (style.ceiling === "exposed_dark")
     materials.ceiling = { ...base, color: "#2a2c2d", roughness: 0.95, emissive: "#3a3c3d" };
   return materials;

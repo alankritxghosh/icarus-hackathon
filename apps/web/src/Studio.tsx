@@ -180,7 +180,8 @@ export function Studio(props: Props) {
     setReal({ state: "rendering" });
     const started = performance.now();
     try {
-      const scale = Math.min(1, 1600 / Math.max(stage.clientWidth, stage.clientHeight));
+      // The picture is 1600 px on its long side whatever the panel's size: a phone panel would otherwise get a thumbnail.
+      const scale = 1600 / Math.max(stage.clientWidth, stage.clientHeight);
       const camera = {
         ...v.renderView(),
         width: Math.max(64, Math.round(stage.clientWidth * scale)),
