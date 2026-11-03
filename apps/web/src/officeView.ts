@@ -980,7 +980,8 @@ export class OfficeView {
     // The camera was just moved; its world matrix is otherwise only updated at render.
     this.perspective.updateMatrixWorld();
     const grid = new THREE.Raycaster();
-    grid.far = this.perspective.position.distanceTo(target) - 0.3;
+    // Up to just past the visitor, so a wall they stand in line with (at a threshold) fades too.
+    grid.far = this.perspective.position.distanceTo(target) + 0.25;
     const frameHits: THREE.Intersection[] = [];
     for (let i = 0; i < 9; i++)
       for (let j = 0; j < 5; j++) {

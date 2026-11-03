@@ -1,0 +1,391 @@
+{
+  "note": "The 35-person studio as designed on the live site on 4 Nov 2026 with Muse Spark; its meeting rooms got no Walk view.",
+  "program": {
+    "company": {
+      "headcount": 35
+    },
+    "shell": {
+      "widthM": 24,
+      "depthM": 16,
+      "ceilingM": 2.9,
+      "windows": ["south", "east"],
+      "entrance": "west"
+    },
+    "rooms": [
+      {
+        "kind": "open_workspace",
+        "count": 1
+      },
+      {
+        "kind": "meeting_room",
+        "count": 3,
+        "capacity": 6
+      },
+      {
+        "kind": "kitchen",
+        "count": 1
+      },
+      {
+        "kind": "lounge",
+        "count": 1
+      },
+      {
+        "kind": "reception",
+        "count": 1
+      },
+      {
+        "kind": "storage",
+        "count": 1
+      },
+      {
+        "kind": "server_room",
+        "count": 1
+      },
+      {
+        "kind": "restroom",
+        "count": 2
+      }
+    ],
+    "phoneBooths": 2,
+    "assumptions": [
+      {
+        "topic": "headcount",
+        "statement": "35 people, as stated.",
+        "source": "brief",
+        "confidence": 0.95
+      },
+      {
+        "topic": "shell",
+        "statement": "24 m by 16 m shell, as stated (limited to 6 to 80 m a side).",
+        "source": "brief",
+        "confidence": 0.95
+      },
+      {
+        "topic": "windows",
+        "statement": "Windows on the south and east walls, as stated.",
+        "source": "brief",
+        "confidence": 0.95
+      },
+      {
+        "topic": "entrance",
+        "statement": "Entrance on the west wall, as stated.",
+        "source": "brief",
+        "confidence": 0.95
+      },
+      {
+        "topic": "restrooms",
+        "statement": "2 restrooms assumed.",
+        "source": "catalog",
+        "confidence": 0.6
+      }
+    ],
+    "style": {
+      "floor": "oak",
+      "accent": "#4d7558",
+      "walls": "#f1efe9",
+      "ceiling": "white"
+    },
+    "preferences": {
+      "adjacent": [
+        {
+          "a": "open_workspace",
+          "b": "kitchen",
+          "weight": 1
+        }
+      ],
+      "apart": [],
+      "areaScale": {
+        "kitchen": 1.15,
+        "reception": 0.9,
+        "server_room": 0.9
+      }
+    },
+    "locks": []
+  },
+  "plan": {
+    "shell": {
+      "w": 24,
+      "h": 16,
+      "ceilingM": 2.9,
+      "windows": ["south", "east"],
+      "entrance": "west"
+    },
+    "rooms": [
+      {
+        "id": "reception.1",
+        "kind": "reception",
+        "name": "Reception",
+        "rect": {
+          "x": 2,
+          "y": 0,
+          "w": 3.5,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 14,
+        "door": {
+          "side": "west",
+          "x": 2,
+          "y": 1.912543850784622,
+          "widthM": 1.8,
+          "opensTo": "lobby"
+        }
+      },
+      {
+        "id": "storage.1",
+        "kind": "storage",
+        "name": "Storage",
+        "rect": {
+          "x": 5.5,
+          "y": 0,
+          "w": 1.8054054054054056,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 8,
+        "door": {
+          "side": "south",
+          "x": 6.402702702702703,
+          "y": 3.825087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "server_room.1",
+        "kind": "server_room",
+        "name": "Server room",
+        "rect": {
+          "x": 7.305405405405406,
+          "y": 0,
+          "w": 1.8000000000000007,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 6,
+        "door": {
+          "side": "south",
+          "x": 8.205405405405406,
+          "y": 3.825087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "restroom.1",
+        "kind": "restroom",
+        "name": "Restroom 1",
+        "rect": {
+          "x": 9.105405405405406,
+          "y": 0,
+          "w": 2.369594594594595,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 10.5,
+        "door": {
+          "side": "south",
+          "x": 10.290202702702704,
+          "y": 3.825087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "restroom.2",
+        "kind": "restroom",
+        "name": "Restroom 2",
+        "rect": {
+          "x": 11.475000000000001,
+          "y": 0,
+          "w": 2.369594594594595,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 10.5,
+        "door": {
+          "side": "south",
+          "x": 12.659797297297299,
+          "y": 3.825087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "meeting_room.3",
+        "kind": "meeting_room",
+        "name": "Meeting room 3",
+        "rect": {
+          "x": 13.844594594594597,
+          "y": 0,
+          "w": 3.385135135135137,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 15,
+        "door": {
+          "side": "south",
+          "x": 15.537162162162165,
+          "y": 3.825087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "meeting_room.1",
+        "kind": "meeting_room",
+        "name": "Meeting room 1",
+        "rect": {
+          "x": 17.229729729729733,
+          "y": 0,
+          "w": 3.385135135135137,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 15,
+        "door": {
+          "side": "south",
+          "x": 18.922297297297302,
+          "y": 3.825087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "meeting_room.2",
+        "kind": "meeting_room",
+        "name": "Meeting room 2",
+        "rect": {
+          "x": 20.61486486486487,
+          "y": 0,
+          "w": 3.385135135135137,
+          "h": 3.825087701569244
+        },
+        "targetAreaM2": 15,
+        "door": {
+          "side": "south",
+          "x": 22.30743243243244,
+          "y": 3.825087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "lounge.1",
+        "kind": "lounge",
+        "name": "Lounge",
+        "rect": {
+          "x": 2,
+          "y": 5.425087701569244,
+          "w": 4,
+          "h": 10.574912298430757
+        },
+        "targetAreaM2": 21,
+        "door": {
+          "side": "north",
+          "x": 4,
+          "y": 5.425087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "kitchen.1",
+        "kind": "kitchen",
+        "name": "Kitchen",
+        "rect": {
+          "x": 6,
+          "y": 5.425087701569244,
+          "w": 3,
+          "h": 10.574912298430757
+        },
+        "targetAreaM2": 20.3,
+        "door": {
+          "side": "north",
+          "x": 7.5,
+          "y": 5.425087701569244,
+          "widthM": 0.9,
+          "opensTo": "corridor.0"
+        }
+      },
+      {
+        "id": "open_workspace.1",
+        "kind": "open_workspace",
+        "name": "Open workspace",
+        "rect": {
+          "x": 9,
+          "y": 5.425087701569244,
+          "w": 15,
+          "h": 10.574912298430757
+        },
+        "targetAreaM2": 210,
+        "door": {
+          "side": "north",
+          "x": 16.5,
+          "y": 5.425087701569244,
+          "widthM": 1.8,
+          "opensTo": "corridor.0"
+        }
+      }
+    ],
+    "circulation": [
+      {
+        "id": "lobby",
+        "kind": "lobby",
+        "rect": {
+          "x": 0,
+          "y": 0,
+          "w": 2,
+          "h": 16
+        }
+      },
+      {
+        "id": "corridor.0",
+        "kind": "corridor",
+        "rect": {
+          "x": 2,
+          "y": 3.825087701569244,
+          "w": 22,
+          "h": 1.6
+        }
+      }
+    ],
+    "entrance": {
+      "side": "west",
+      "x": 0,
+      "y": 8,
+      "widthM": 1.8
+    },
+    "diagnostics": [
+      {
+        "level": "warn",
+        "room": "open_workspace.1",
+        "message": "Open workspace is 76% of its target size, below the 80% this kind of room should keep."
+      },
+      {
+        "level": "info",
+        "message": "The front door is placed at the middle of the west wall, on the entrance lobby; an offset along the wall is not used."
+      }
+    ],
+    "search": {
+      "seed": 1,
+      "rows": [
+        [
+          "reception.1",
+          "storage.1",
+          "server_room.1",
+          "restroom.1",
+          "restroom.2",
+          "meeting_room.3",
+          "meeting_room.1",
+          "meeting_room.2"
+        ],
+        ["lounge.1", "kitchen.1", "open_workspace.1"]
+      ],
+      "cost": 45.011673200054396
+    },
+    "breakdown": {
+      "total": 45.011673200054396,
+      "shrink": 31.799348603192886,
+      "aspect": 3.149824596861511,
+      "depth": 0,
+      "daylight": 6,
+      "adjacency": 4.0625,
+      "entrance": 0,
+      "crowded": 0
+    }
+  }
+}

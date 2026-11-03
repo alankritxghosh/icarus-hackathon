@@ -50,7 +50,7 @@ function clearOf(scene: Scene | undefined) {
 
 /**
  * Standing inside the room, facing away from its door, so the walk camera behind the visitor looks
- * across the room from the door side. The deepest spot clear of furniture wins, up to 3 m in.
+ * across the room from the door side. The deepest spot clear of furniture wins, up to 3 m in, down to the threshold.
  */
 function fromDoor(
   room: PlanRoom,
@@ -61,10 +61,11 @@ function fromDoor(
   const [nx, nz] = inward[room.door.side];
   const across = nx === 0 ? r.h : r.w;
   const inRoom = (x: number, z: number) =>
-    x > r.x + 0.4 && x < r.x + r.w - 0.4 && z > r.y + 0.4 && z < r.y + r.h - 0.4;
+    x > r.x + 0.2 && x < r.x + r.w - 0.2 && z > r.y + 0.2 && z < r.y + r.h - 0.2;
   const depths: number[] = [];
   for (let depth = Math.min(3, across - 1.1); depth > 0.8; depth -= 0.3) depths.push(depth);
-  for (const depth of [...depths, 0.8])
+  // Last, the threshold itself: in a small room a long table can reach to within half a metre of the door.
+  for (const depth of [...depths, 0.8, 0.55, 0.3])
     for (const side of [0, 0.8, -0.8, 1.6, -1.6]) {
       const x = room.door.x + nx * depth + nz * side;
       const z = room.door.y + nz * depth + nx * side;

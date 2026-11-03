@@ -1,5 +1,15 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { EYE_HEIGHT_M, furnish, layoutOffice, type Program, type Side, viewpoints } from "../src";
+import {
+  EYE_HEIGHT_M,
+  type FloorPlan,
+  furnish,
+  layoutOffice,
+  type Program,
+  ProgramSchema,
+  type Side,
+  viewpoints,
+} from "../src";
 import { demoProgram, must } from "./fixtures";
 
 const sides: Side[] = ["north", "south", "east", "west"];
@@ -88,6 +98,26 @@ describe("viewpoints", () => {
         const gap = Math.max(Math.abs(lx) - w / 2, Math.abs(lz) - d / 2);
         expect(gap, `${v.name} vs ${n.name}`).toBeGreaterThan(0.3);
       }
+    }
+  });
+
+  it("finds a view in every meeting room of the live 4 Nov design, where a long table reaches the door", () => {
+    const saved = JSON.parse(readFileSync(new URL("./studio-4nov.json", import.meta.url), "utf8"));
+    const program = ProgramSchema.parse(saved.program);
+    const plan = saved.plan as FloorPlan;
+    const { scene } = furnish(plan, program);
+    const views = viewpoints(plan, scene);
+    for (const room of plan.rooms.filter((r) =>
+      ["meeting_room", "kitchen", "lounge", "reception", "open_workspace"].includes(r.kind),
+    )) {
+      const view = views.find((v) => v.roomId === room.id);
+      expect(view, room.id).toBeDefined();
+      if (!view) continue;
+      const [x, , z] = view.position;
+      const r = room.rect;
+      expect(x > r.x && x < r.x + r.w && z > r.y && z < r.y + r.h, `${room.id} stands inside`).toBe(
+        true,
+      );
     }
   });
 });

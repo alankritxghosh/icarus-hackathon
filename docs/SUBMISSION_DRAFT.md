@@ -34,7 +34,8 @@ planned and **are not in the product**.
 
 - **Walk room views** on the 35-person studio's rules-only layout: 7 room views (workspace, reception, lounge, kitchen,
   three meeting rooms), each standing on its own room's floor at least 0.3 m from every piece of furniture (unit test).
-  The live designs of 4 Nov offered no meeting-room view; the cause is not yet found. Walls cover
+  The live design of 4 Nov had narrower meeting rooms whose table reached the door, and got no meeting-room view; views
+  may now stand at the threshold, and that design is a regression test. Walls cover
   11% to 37% of the frame once the camera settles, by ray casting the 3D view; one reading taken while the camera was
   still moving was 54%.
 - **Furnishing:** 35/35 desks, 2/2 phone booths and 18/18 meeting seats placed. The lounge and kitchen cover about 13%
