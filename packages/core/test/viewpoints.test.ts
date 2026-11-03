@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EYE_HEIGHT_M, layoutOffice, type Program, type Side, viewpoints } from "../src";
+import { EYE_HEIGHT_M, furnish, layoutOffice, type Program, type Side, viewpoints } from "../src";
 import { demoProgram, must } from "./fixtures";
 
 const sides: Side[] = ["north", "south", "east", "west"];
@@ -49,10 +49,45 @@ describe("viewpoints", () => {
 
   it("looks from the workspace corner away from the windows", () => {
     const plan = layoutOffice(must(demoProgram()), { seed: 1 });
-    const view = viewpoints(plan).find((v) => v.name === "Open workspace");
+    const view = viewpoints(plan).find((v) => v.roomId?.startsWith("open_workspace"));
     if (!view) throw new Error("no workspace view");
     // The demo has windows on the south and east, so the view starts north-west and looks south-east.
     expect(view.target[0]).toBeGreaterThan(view.position[0]);
     expect(view.target[2]).toBeGreaterThan(view.position[2]);
+  });
+
+  it("offers the 35-person studio's workspace, meeting rooms and kitchen, each on clear floor", () => {
+    const program = must(demoProgram());
+    const plan = layoutOffice(program, { seed: 1 });
+    const { scene } = furnish(plan, program);
+    const views = viewpoints(plan, scene).filter((v) => v.id.startsWith("room."));
+    const kinds = new Set(views.map((v) => plan.rooms.find((r) => r.id === v.roomId)?.kind));
+    for (const kind of ["open_workspace", "meeting_room", "kitchen"]) expect(kinds).toContain(kind);
+    expect(views.filter((v) => v.roomId?.startsWith("meeting_room")).length).toBe(3);
+    for (const v of views) {
+      const [x, , z] = v.position;
+      // Read from the scene, not the plan: the floor slab under the visitor belongs to the view's room.
+      const floor = scene.nodes.find(
+        (n) =>
+          n.type === "floor" &&
+          n.geometry.kind === "box" &&
+          Math.abs(x - n.position[0]) < n.geometry.size[0] / 2 &&
+          Math.abs(z - n.position[2]) < n.geometry.size[2] / 2 &&
+          n.roomId === v.roomId,
+      );
+      expect(floor, `${v.name} stands on its own floor`).toBeDefined();
+      for (const n of scene.nodes) {
+        if (n.type !== "furniture" && n.type !== "fixture") continue;
+        if (n.geometry.kind === "cylinder") continue;
+        const [w, , d] = n.geometry.size;
+        // The visitor's point in the piece's own frame must sit at least 0.3 m outside its footprint.
+        const dx = x - n.position[0];
+        const dz = z - n.position[2];
+        const lx = Math.cos(n.rotationY) * dx - Math.sin(n.rotationY) * dz;
+        const lz = Math.sin(n.rotationY) * dx + Math.cos(n.rotationY) * dz;
+        const gap = Math.max(Math.abs(lx) - w / 2, Math.abs(lz) - d / 2);
+        expect(gap, `${v.name} vs ${n.name}`).toBeGreaterThan(0.3);
+      }
+    }
   });
 });

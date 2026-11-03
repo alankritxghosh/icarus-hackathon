@@ -662,7 +662,7 @@ export function App() {
           w: r.rect.w,
           h: r.rect.h,
         })),
-        views: viewpoints(plan) as Viewpoint[],
+        views: viewpoints(plan, scene) as Viewpoint[],
       };
     }
     if (session?.drawing)
@@ -684,17 +684,11 @@ export function App() {
     [session],
   );
 
-  const eye = useMemo(() => {
-    const v = shown.views;
-    if (session?.drawing) return v;
-    return [v.find((x) => x.name === "Entrance") ?? v[0]].filter((x): x is Viewpoint => Boolean(x));
-  }, [shown.views, session?.drawing]);
-
   return (
     <Studio
       scene={shown.scene}
       labels={shown.labels}
-      viewpoints={eye}
+      viewpoints={shown.views}
       title={session?.brief}
       summary={summary}
       builds={[...builds, ...drawings]

@@ -872,7 +872,26 @@ export class OfficeView {
       0.2,
       lowerLength,
     ).intersectObjects(furniture, false);
-    const hits = [...caster.intersectObjects(walls, false), ...furnitureHits];
+    // Across the whole frame, any wall, door or frame nearer the camera than the visitor stands
+    // between them and the room (the wall pieces beside a doorway, the door leaf), so it fades too.
+    const screens = this.content.children.filter(
+      (child) =>
+        child.visible &&
+        (child.userData.type === "wall" ||
+          child.userData.type === "door" ||
+          child.userData.type === "frame"),
+    );
+    // The camera was just moved; its world matrix is otherwise only updated at render.
+    this.perspective.updateMatrixWorld();
+    const grid = new THREE.Raycaster();
+    grid.far = this.perspective.position.distanceTo(target) - 0.3;
+    const frameHits: THREE.Intersection[] = [];
+    for (let i = 0; i < 9; i++)
+      for (let j = 0; j < 5; j++) {
+        grid.setFromCamera(new THREE.Vector2(i / 4 - 1, j / 2 - 1), this.perspective);
+        frameHits.push(...grid.intersectObjects(screens, true));
+      }
+    const hits = [...caster.intersectObjects(walls, false), ...furnitureHits, ...frameHits];
     const faded = new Set<THREE.Mesh>();
     for (const hit of hits) {
       const mesh = hit.object;
