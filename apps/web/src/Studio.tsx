@@ -197,13 +197,21 @@ export function Studio(props: Props) {
         headers: { "content-type": "model/gltf-binary", "x-icarus-view": JSON.stringify(camera) },
         body: model,
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        lightmaps?: Record<string, string>;
-        range?: number;
-        error?: string;
-      };
-      if (!res.ok || !data.lightmaps || !data.range)
-        throw new Error(data.error ?? "the GPU failed");
+      const start = (await res.json().catch(() => ({}))) as { job?: string; error?: string };
+      if (!res.ok || !start.job) throw new Error(start.error ?? "the GPU failed");
+      // A bake takes minutes, longer than one request may wait: ask every few seconds, for up to 15 minutes.
+      type Baked = { lightmaps?: Record<string, string>; range?: number; error?: string };
+      let data: Baked = {};
+      for (let tries = 0; ; tries++) {
+        if (tries > 300) throw new Error("the GPU took too long");
+        await new Promise((done) => setTimeout(done, 3000));
+        const poll = await fetch(`/api/render?job=${encodeURIComponent(start.job)}`);
+        if (poll.status === 202) continue;
+        data = (await poll.json().catch(() => ({}))) as Baked;
+        if (!poll.ok) throw new Error(data.error ?? "the GPU failed");
+        break;
+      }
+      if (!data.lightmaps || !data.range) throw new Error("the GPU failed");
       await v.wearLight(data.lightmaps, data.range);
       const seconds = Math.round((performance.now() - started) / 1000);
       setReal({ state: "done" });

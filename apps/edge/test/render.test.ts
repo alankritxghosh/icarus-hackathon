@@ -33,22 +33,62 @@ const GOOD = {
   importMs: 1500,
   bakeMs: 60000,
 };
+const JOB_ID = "fc-01KABCDEF123456789";
 const limiter = (allow: boolean) => ({ limit: async () => ({ success: allow }) });
 
 describe("POST /api/render", () => {
-  it("forwards the model and the checked view with the token, and returns the light maps", async () => {
+  it("forwards the model and the checked view with the token, and returns the bake's job", async () => {
     const seen: { url: string; init: RequestInit }[] = [];
     const send = (async (url: string, init: RequestInit) => {
       seen.push({ url, init });
-      return Response.json(GOOD);
+      return Response.json({ job: JOB_ID });
     }) as never;
     const res = await handleRender(post(glb()), env, send);
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual(GOOD);
+    expect(res.status).toBe(202);
+    expect(await res.json()).toEqual({ job: JOB_ID });
     expect(seen[0]?.url).toBe("https://worker.example/draw");
     const headers = seen[0]?.init.headers as Record<string, string>;
     expect(headers.authorization).toBe("Bearer render-secret");
     expect(JSON.parse(headers["x-icarus-view"] as string)).toEqual(VIEW);
+  });
+
+  it("answers a job check with pending, then the checked light maps, without spending the limit", async () => {
+    const seen: string[] = [];
+    let ready = false;
+    const send = (async (url: string, init: RequestInit) => {
+      seen.push(url);
+      expect((init.headers as Record<string, string>).authorization).toBe("Bearer render-secret");
+      return ready ? Response.json(GOOD) : Response.json({ pending: true }, { status: 202 });
+    }) as never;
+    const limited = {
+      ...env,
+      RENDER_LIMIT_CALLER: limiter(false),
+      RENDER_LIMIT_ALL: limiter(false),
+    };
+    const check = () =>
+      handleRender(new Request(`https://x/api/render?job=${JOB_ID}`), limited, send);
+    expect((await check()).status).toBe(202);
+    ready = true;
+    const res = await check();
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(GOOD);
+    expect(seen[1]).toBe(`https://worker.example/draw/jobs/${JOB_ID}`);
+  });
+
+  it("refuses a job id that is not one", async () => {
+    const never = (async () => {
+      throw new Error("must not be called");
+    }) as never;
+    for (const job of ["", "../secret", "fc-x/y", "abc"])
+      expect(
+        (
+          await handleRender(
+            new Request(`https://x/api/render?job=${encodeURIComponent(job)}`),
+            env,
+            never,
+          )
+        ).status,
+      ).toBe(400);
   });
 
   it("limits before reading the model or calling the GPU", async () => {
@@ -80,6 +120,9 @@ describe("POST /api/render", () => {
     );
     const odd = (async () => Response.json({ image: "x" })) as never;
     expect((await handleRender(post(glb()), env, odd)).status).toBe(502);
+    expect(
+      (await handleRender(new Request(`https://x/api/render?job=${JOB_ID}`), env, odd)).status,
+    ).toBe(502);
     const refused = (async () => new Response("bad", { status: 400 })) as never;
     expect((await handleRender(post(glb()), env, refused)).status).toBe(422);
   });

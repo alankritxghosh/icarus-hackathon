@@ -3,6 +3,8 @@ import type { Env } from "./env";
 
 const MAX_GLB_BYTES = 60 * 1024 * 1024;
 const MAX_JPEG_BASE64 = 4 * 1024 * 1024;
+/** A Modal function-call id. */
+const JOB = /^fc-[A-Za-z0-9]{8,64}$/;
 
 const Vec = z.tuple([z.number().finite(), z.number().finite(), z.number().finite()]);
 /** What the browser may ask for: its camera (which meters the exposure), the sun's direction and the sample count. */
@@ -44,9 +46,11 @@ export async function handleRender(
   env: Env,
   send: typeof fetch = fetch,
 ): Promise<Response> {
-  if (request.method !== "POST") return json({ error: "method not allowed" }, 405);
+  if (request.method !== "POST" && request.method !== "GET")
+    return json({ error: "method not allowed" }, 405);
   if (!env.RENDER_WORKER_URL || !env.RENDER_WORKER_TOKEN)
     return json({ error: "realistic rendering is not set up on this server" }, 503);
+  if (request.method === "GET") return checkJob(request, env, send);
 
   // A GPU is paid by the second: one caller cannot queue renders, and neither can a crowd.
   const caller = request.headers.get("cf-connecting-ip") ?? "unknown";
@@ -96,13 +100,30 @@ export async function handleRender(
   if (upstream.status === 400)
     return json({ error: "the renderer could not read that model" }, 422);
   if (!upstream.ok) return json({ error: "the renderer failed" }, 502);
-  let raw: unknown;
+  const started = Started.safeParse(await upstream.json().catch(() => null));
+  if (!started.success) return json({ error: "the renderer sent something unexpected" }, 502);
+  return json(started.data, 202);
+}
+
+const Started = z.object({ job: z.string().regex(JOB) });
+
+/** GET /api/render?job=<id>: 202 while the bake runs, then the light maps. Polling costs no GPU, so it is not limited. */
+async function checkJob(request: Request, env: Env, send: typeof fetch): Promise<Response> {
+  const job = new URL(request.url).searchParams.get("job") ?? "";
+  if (!JOB.test(job)) return json({ error: "no such bake" }, 400);
+  let upstream: Response;
   try {
-    raw = await upstream.json();
+    upstream = await send(`${(env.RENDER_WORKER_URL ?? "").replace(/\/$/, "")}/jobs/${job}`, {
+      headers: { authorization: `Bearer ${env.RENDER_WORKER_TOKEN}` },
+    });
   } catch {
-    return json({ error: "the renderer sent something unexpected" }, 502);
+    return json({ error: "the renderer could not be reached" }, 502);
   }
-  const rendered = Baked.safeParse(raw);
-  if (!rendered.success) return json({ error: "the renderer sent something unexpected" }, 502);
-  return json(rendered.data);
+  if (upstream.status === 202) return json({ pending: true }, 202);
+  if (upstream.status === 400)
+    return json({ error: "the renderer could not read that model" }, 422);
+  if (!upstream.ok) return json({ error: "the renderer failed" }, 502);
+  const baked = Baked.safeParse(await upstream.json().catch(() => null));
+  if (!baked.success) return json({ error: "the renderer sent something unexpected" }, 502);
+  return json(baked.data);
 }

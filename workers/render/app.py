@@ -441,34 +441,68 @@ def bake(glb: bytes, view: dict) -> dict:
     }
 
 with image.imports():
-    from fastapi import HTTPException, Request
+    from fastapi import FastAPI, HTTPException, Request
+    from fastapi.responses import JSONResponse
 
 
 @app.function(
     image=image,
     # The first GPU type with capacity: L4s ran out on 2 Nov 2026 and a render waited over 400 s for one.
     gpu=["L4", "A10G", "L40S"],
-    secrets=[modal.Secret.from_name("icarus-render")],
     # A whole-building light bake takes a few minutes on one GPU.
-    timeout=600,
+    timeout=900,
     max_containers=2,
     scaledown_window=120,
 )
-@modal.fastapi_endpoint(method="POST")
-async def draw(request: Request):
+def light(glb: bytes, view: dict) -> dict:
+    # Blender segfaults when it resets for a second job and took the whole container with it (3 Nov 2026). Each bake
+    # runs in a fresh child; a crash ends only that child.
+    import multiprocessing
+
+    with multiprocessing.get_context("spawn").Pool(1) as pool:
+        return pool.apply(bake, (glb, view))
+
+
+def authorised(request) -> None:
     token = os.environ.get("RENDER_WORKER_TOKEN", "")
     given = request.headers.get("authorization", "").removeprefix("Bearer ")
     if not token or not hmac.compare_digest(given.encode(), token.encode()):
         raise HTTPException(status_code=401, detail="unauthorised")
-    try:
-        view = parse_view(request.headers.get("x-icarus-view", ""))
-        glb = await request.body()
-        # Blender segfaults when it resets for a second job and took the whole container with it, so every click was a
-        # cold start (3 Nov 2026). Each render runs in a fresh child; a crash ends only that child.
-        import asyncio
-        import multiprocessing
 
-        with multiprocessing.get_context("spawn").Pool(1) as pool:
-            return await asyncio.to_thread(pool.apply, bake, (glb, view))
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
+
+@app.function(image=image, secrets=[modal.Secret.from_name("icarus-render")])
+@modal.asgi_app()
+def draw():
+    """
+    POST / starts a bake and answers at once with its job id; GET /jobs/<id> answers 202 while it runs and the light
+    maps when done. A bake outlasts the 150 s a Modal web request may wait, so the browser asks again.
+    """
+    web = FastAPI()
+
+    @web.post("/")
+    async def start(request: Request):
+        authorised(request)
+        try:
+            view = parse_view(request.headers.get("x-icarus-view", ""))
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        glb = await request.body()
+        if glb[:4] != b"glTF" or len(glb) > MAX_GLB_BYTES:
+            raise HTTPException(status_code=400, detail="that is not a GLB file of a sensible size")
+        call = await light.spawn.aio(glb, view)
+        return {"job": call.object_id}
+
+    @web.get("/jobs/{job}")
+    async def check(job: str, request: Request):
+        authorised(request)
+        try:
+            call = modal.FunctionCall.from_id(job)
+            return await call.get.aio(timeout=0)
+        except TimeoutError:
+            return JSONResponse({"pending": True}, status_code=202)
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e)) from e
+        except Exception as e:
+            raise HTTPException(status_code=500, detail="the bake failed") from e
+
+    return web
