@@ -90,6 +90,9 @@ export class OfficeView {
   /** While the building wears path-traced light, Walk is first person under its own ceiling. */
   private real = false;
   private beforeReal = new Map<THREE.Mesh, THREE.Material | THREE.Material[]>();
+  /** A tiny linear copy of the frame, metered twice a second so exposure adapts from room to room. */
+  private meter?: THREE.WebGLRenderTarget;
+  private meteredAt = 0;
   private shell = { w: 20, h: 12 };
   private frame = 0;
   private generation = 0;
@@ -292,6 +295,7 @@ export class OfficeView {
     this.real = false;
     this.beforeReal.clear();
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1;
     const materials = new Map<string, THREE.MeshStandardMaterial>();
     const material = (id: string) => {
       let m = materials.get(id);
@@ -765,6 +769,7 @@ export class OfficeView {
       this.perspective.position.copy(eye);
       this.perspective.lookAt(eye.add(ahead));
       this.cameraRecovering = false;
+      this.adaptExposure();
       this.cameraMoved();
       return;
     }
@@ -1102,6 +1107,8 @@ export class OfficeView {
    */
   async wearLight(lightmaps: Record<string, string>, range: number) {
     this.takeOffLight();
+    // Faded walls get their own materials back and are forgotten first, or clearing the fade later would undo the light.
+    this.resetCameraGhosts();
     const loader = new THREE.TextureLoader();
     const loads: Promise<void>[] = [];
     for (const child of this.content.children) {
@@ -1131,11 +1138,40 @@ export class OfficeView {
     await Promise.all(loads);
     this.real = true;
     this.renderer.toneMapping = THREE.AgXToneMapping;
-    this.clearCameraGhosts();
     this.avatar.visible = false;
     this.applyCeiling();
     this.updateWalkCamera();
     this.requestRender();
+  }
+
+  /**
+   * Like an eye or a camera, settle the exposure for the room in view: meter the log-average brightness of a 48 x 30
+   * linear copy of the frame and ease toward mid grey. Limited to two stops either way of the baked exposure.
+   */
+  private adaptExposure() {
+    const now = performance.now();
+    if (now - this.meteredAt < 500) return;
+    this.meteredAt = now;
+    this.meter ??= new THREE.WebGLRenderTarget(48, 30, { type: THREE.HalfFloatType });
+    this.perspective.updateMatrixWorld();
+    this.renderer.setRenderTarget(this.meter);
+    this.renderer.render(this.three, this.perspective);
+    this.renderer.setRenderTarget(null);
+    const pixels = new Uint16Array(48 * 30 * 4);
+    this.renderer.readRenderTargetPixels(this.meter, 0, 0, 48, 30, pixels);
+    let sum = 0;
+    for (let i = 0; i < pixels.length; i += 4) {
+      const y =
+        0.2126 * THREE.DataUtils.fromHalfFloat(pixels[i] ?? 0) +
+        0.7152 * THREE.DataUtils.fromHalfFloat(pixels[i + 1] ?? 0) +
+        0.0722 * THREE.DataUtils.fromHalfFloat(pixels[i + 2] ?? 0);
+      sum += Math.log(y + 1e-4);
+    }
+    const average = Math.exp(sum / (48 * 30));
+    const wanted = Math.min(4, Math.max(0.25, 0.18 / average));
+    const current = this.renderer.toneMappingExposure;
+    this.renderer.toneMappingExposure = current + (wanted - current) * 0.35;
+    if (Math.abs(wanted - this.renderer.toneMappingExposure) > 0.02) this.requestRender();
   }
 
   /** Back to the live model's own materials and the third-person walk. */
@@ -1150,6 +1186,7 @@ export class OfficeView {
     this.beforeReal.clear();
     this.real = false;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1;
     if (this.mode === "eye") this.avatar.visible = true;
     this.applyCeiling();
     this.updateWalkCamera();

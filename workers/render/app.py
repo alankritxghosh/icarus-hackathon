@@ -323,18 +323,59 @@ BAKED_TYPES = ("floor", "wall", "ceiling", "door", "frame")
 LIGHT_RANGE = 4.0
 
 
-def smooth(pixels, height: int, width: int):
-    """A small Gaussian blur (sigma about 1 texel; three passes make about 1.8): light varies slowly, noise does not."""
+def denoiser():
+    """
+    A small scene whose compositor runs Intel Open Image Denoise on one image: the same denoiser Cycles uses for
+    renders, which bakes do not get on their own. Blender 4.2 keeps the compositor on the scene; 5.x on a node group.
+    Returns a function from a (side, side, 3) float array to its denoised copy.
+    """
+    import bpy
     import numpy
 
-    taps = numpy.array([0.06, 0.24, 0.40, 0.24, 0.06], dtype=numpy.float32)
-    image = pixels.reshape(height, width, -1)
-    for axis in (0, 1):
-        padded = numpy.pad(image, [(2, 2) if a == axis else (0, 0) for a in range(3)], mode="edge")
-        image = sum(
-            taps[i] * numpy.take(padded, range(i, i + image.shape[axis]), axis=axis) for i in range(5)
-        )
-    return image.reshape(-1, pixels.shape[-1]) if pixels.ndim == 2 else image.reshape(-1)
+    scene = bpy.data.scenes.new("denoise")
+    scene.render.engine = "CYCLES"
+    scene.cycles.samples = 1
+    scene.cycles.device = "CPU"
+    scene.camera = bpy.data.objects.new("denoise-camera", bpy.data.cameras.new("denoise-camera"))
+    scene.collection.objects.link(scene.camera)
+    scene.render.resolution_percentage = 100
+    scene.render.image_settings.file_format = "OPEN_EXR"
+    scene.render.image_settings.color_depth = "32"
+    scene.view_settings.view_transform = "Standard"
+    if hasattr(scene, "compositing_node_group"):
+        tree = bpy.data.node_groups.new("denoise", "CompositorNodeTree")
+        tree.interface.new_socket("Image", in_out="OUTPUT", socket_type="NodeSocketColor")
+        scene.compositing_node_group = tree
+        output = tree.nodes.new("NodeGroupOutput")
+    else:
+        scene.use_nodes = True
+        tree = scene.node_tree
+        tree.nodes.clear()
+        output = tree.nodes.new("CompositorNodeComposite")
+    source = tree.nodes.new("CompositorNodeImage")
+    clean = tree.nodes.new("CompositorNodeDenoise")
+    tree.links.new(source.outputs["Image"], clean.inputs["Image"])
+    tree.links.new(clean.outputs["Image"], output.inputs[0])
+
+    def run(rgb, folder: str):
+        side = rgb.shape[0]
+        image = bpy.data.images.new("noisy", side, side, float_buffer=True)
+        rgba = numpy.concatenate([rgb, numpy.ones((side, side, 1), dtype=numpy.float32)], axis=2)
+        image.pixels.foreach_set(rgba.astype(numpy.float32).ravel())
+        source.image = image
+        scene.render.resolution_x = side
+        scene.render.resolution_y = side
+        path = os.path.join(folder, "clean.exr")
+        scene.render.filepath = path
+        bpy.ops.render.render(write_still=True, scene=scene.name)
+        done = bpy.data.images.load(path)
+        out = numpy.empty(side * side * 4, dtype=numpy.float32)
+        done.pixels.foreach_get(out)
+        bpy.data.images.remove(done)
+        bpy.data.images.remove(image)
+        return out.reshape(side, side, 4)[:, :, :3]
+
+    return run
 
 
 def bake(glb: bytes, view: dict) -> dict:
@@ -350,8 +391,6 @@ def bake(glb: bytes, view: dict) -> dict:
     staged = stage(glb, view)
     scene = staged["scene"]
     scene.cycles.use_denoising = False
-    with tempfile.TemporaryDirectory() as d:
-        exposure = metered_exposure(scene, d)
     # A light map has no denoiser: clamping indirect light removes the bright specks that would read as grime.
     scene.cycles.sample_clamp_indirect = 4.0
 
@@ -384,16 +423,27 @@ def bake(glb: bytes, view: dict) -> dict:
     bpy.ops.object.bake(type="DIFFUSE", pass_filter={"DIRECT", "INDIRECT"})
     baked = time.time()
 
-    surfaces = {}
-    scale = (2.0**exposure) / LIGHT_RANGE
+    # Exposure from the light itself: the geometric mean of every lit texel becomes 1, so a surface shows its own colour
+    # under typical light. The browser then adapts from room to room like an eye. (Metering with a second render first
+    # crashed Blender 4.2.)
+    lights = {}
+    logs = []
     for obj, image in targets:
         side = image.size[0]
         pixels = numpy.empty(side * side * 4, dtype=numpy.float32)
         image.pixels.foreach_get(pixels)
-        rgb = pixels.reshape(-1, 4)[:, :3]
-        for _ in range(3):
-            rgb = smooth(rgb, side, side)
-        rgb = rgb * scale
+        rgb = pixels.reshape(side, side, 4)[:, :, :3]
+        lights[obj.name] = rgb
+        luminance = rgb @ numpy.array([0.2126, 0.7152, 0.0722], dtype=numpy.float32)
+        logs.append(numpy.log(luminance[luminance > 1e-4]))
+    exposure = -float(numpy.mean(numpy.concatenate(logs))) / math.log(2)
+    surfaces = {}
+    scale = (2.0**exposure) / LIGHT_RANGE
+    clean = denoiser()
+    folder = tempfile.mkdtemp()
+    for obj, image in targets:
+        side = image.size[0]
+        rgb = clean(lights[obj.name], folder).reshape(-1, 3) * scale
         rgb = numpy.clip(rgb, 0.0, 1.0)
         encoded = numpy.where(rgb <= 0.0031308, rgb * 12.92, 1.055 * numpy.power(rgb, 1 / 2.4) - 0.055)
         out = bpy.data.images.new(f"out-{obj['nodeId']}", side, side)
@@ -416,6 +466,7 @@ def bake(glb: bytes, view: dict) -> dict:
         "exposure": round(exposure, 2),
         "importMs": staged["importMs"],
         "bakeMs": round((baked - started) * 1000) - staged["importMs"],
+        "denoiseMs": round((time.time() - baked) * 1000),
     }
 
 with image.imports():
