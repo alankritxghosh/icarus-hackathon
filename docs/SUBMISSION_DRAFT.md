@@ -1,29 +1,58 @@
 # Icarus submission draft
 
-31 October 2026. Local review draft. No repository publication, deployment or submission is authorized by this file.
+3 November 2026, replacing the draft of 31 October. For the founder to read and approve before submitting.
 
-The [Meta event page](https://dev.meta.ai/events/global-hackathon) lists the Indie developer track, the “Push the Frontier” theme and a 4 November 2026, 9 PM ET deadline. It says Indie entries are judged on creativity, technical ambition and whether the project works. Check the participant portal and official rules before finalizing fields or eligibility.
+The [Meta event page](https://dev.meta.ai/events/global-hackathon) lists the Indie developer track, the "Push the
+Frontier" theme and a 4 November 2026, 9 PM ET deadline. Indie entries are judged on creativity, technical ambition and
+whether the project works. Check the participant portal and official rules before finalizing fields.
 
-## Proposed short description
+**Live:** https://icarus.dream-studio.workers.dev
 
-Icarus turns a written office brief into a measured floor plan and a walkable 3D concept. A person can ask for a change in the same conversation, see which other rooms moved, undo, and hand off a DXF plan or GLB scene. It reports when the requested office does not fit.
+## Short description
 
-## What the demo proves
+Icarus turns a written office brief into a measured floor plan and a walkable 3D concept, and changes it when you say
+what to change. Muse Spark proposes what the brief left out and reads plain-word edits; a deterministic layout engine
+places every room and checks the plan, so the model never draws geometry. "Make it real" renders the view with Blender
+Cycles on a cloud GPU.
 
-The 12-person starter asks for two meeting rooms, one phone booth, a kitchen, reception and two restrooms in a 14 × 10 m shell. Icarus places 5 of 12 workstations there and says so. It offers a checked 16.5 × 11.5 m shell; after the user accepts, the concept has 12 of 12 workstations and one booth. A kitchen move says that Meeting room 1 also moved 3 m. The recording shows Plan and Walk, both exports, undo and reopening the saved project.
+## The demo path
 
-The uncut 75.68-second browser recording, exact brief and replies, SHA-256 hashes and exports are local under ignored `fixtures/private/qa-demo/`. The GLB passed the Khronos glTF Validator with zero errors and 73 tangent warnings. The DXF passed `ezdxf audit` with zero errors and 67 entities. Browser tests at 1440, 390 and 320 px, the 158-request edit audit and `pnpm verify` passed. See [OPEN_GATES.md](OPEN_GATES.md) for the evidence and limits.
+Brief → Muse Spark proposal → edit by words → walk → Make it real, on the 35-person studio starter.
 
-## Model use and limits to state accurately
+## Meta models
 
-The repository supports Meta Llama models through Cloudflare Workers AI; its local offline rules path works without a key. The captured demo used that local path. The direct Meta Model API route has not been live-smoke-tested in this worktree because no key is configured. Muse Spark, voice transcription and SAM-based plan reading are not demonstrated. Do not describe this as general “prompt anything” 3D creation, code-compliant architecture or construction design.
+| Model | Role | Measured |
+|---|---|---|
+| Muse Spark 1.3 (Meta Model API) | Layout proposals, plan revision, reading free-form edit requests | 20 edit sentences: 20/20 usable answers, 16/16 doable read right, 4/4 impossible flagged, median 9.4 s per request (3 Nov, local Worker, [run5](reference/edit-model-eval/run5-muse-spark-3nov.json)). Design loop over 12 briefs: total plan cost 346.5 against 371.3 without a model, 6.7% lower; better on 4 briefs, worse on 4, level on 4 ([META_CREDITS.md](META_CREDITS.md)). |
+| Llama 3.3 70B (Workers AI) | Answers when Muse Spark is refused, busy, down or past the $5 daily cap | Design loop: 361.8 on the same briefs. |
+| Llama 4 Scout (Workers AI) | Reading a reference photo into a style | Not evaluated. |
 
-The drawing importer is also incomplete: a real residential A3 sheet enclosed 5 of 23 labelled rooms. A second A3 sheet required a printed scale. The drawing edit shown in tests covers straight, identifiable partitions in simple vector evidence, not arbitrary plans. No workplace designer has independently approved a result. Projects stay in one browser.
+Muse Voice Transcribe (spoken edits), SAM 3.1 (reading plans from images) and a Muse Spark critique of renders were
+planned and **are not in the product**.
 
-## Release decisions still required
+## Other measured numbers, with their limits
 
-- Verify the participant portal's submission fields, official rules and any demo or repository requirements.
-- Confirm which live Meta-model path can be shown with an authorized key and spending limit, and update the model-use sentence with the measured result.
-- Get an independent workplace-design review and representative office-plan benchmark, or keep both limitations explicit in the submission.
-- Review final copy, licences, tracked files and demo media for publication. The recorded GLB and DXF are local evidence, not public assets yet.
-- Obtain the founder's explicit approval before pushing, making the repository public, deploying, using paid resources or submitting.
+- **Walk room views** on the 35-person studio: 7 room views (workspace, reception, lounge, kitchen, three meeting
+  rooms), each standing on its own room's floor at least 0.3 m from every piece of furniture (unit test). Walls cover
+  11% to 37% of the frame once the camera settles, by ray casting the 3D view; one reading taken while the camera was
+  still moving was 54%.
+- **Furnishing:** 35/35 desks, 2/2 phone booths and 18/18 meeting seats placed. The lounge and kitchen cover about 13%
+  and 12% of their floor; they have no target to measure against.
+- **Make it real:** cold and warm times from button to picture are in [REALISTIC_RENDERING.md](REALISTIC_RENDERING.md).
+- **Exports (31 Oct):** a GLB passed the Khronos glTF Validator with zero errors; a DXF passed `ezdxf audit` with zero
+  errors.
+
+## Limits to state
+
+- Concept design only: no building-code check, no structural assessment, not a construction document.
+- The drawing importer is incomplete: a real residential A3 sheet enclosed 5 of 23 labelled rooms. Drawing edits cover
+  straight, identifiable partitions only.
+- Rectangular, single-floor offices only in the app. Projects stay in one browser.
+- **Independent review:** the walkthrough has not been independently reviewed, and the founder is not independent of
+  the work.
+
+## Before submitting
+
+- Founder reads and approves this file and the README.
+- Record the demo video on the live site and link it from the homepage and README.
+- Check the participant portal's fields and rules.

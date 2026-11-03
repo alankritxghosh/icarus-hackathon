@@ -42,9 +42,28 @@ The picture is a still of one view, not a walkable scene. The quick 3D view stay
 - **Cost:** about 10 to 20 s of GPU time per render, roughly 0.3 to 1 US cent at Modal's list prices for these GPUs. The
   worker scales to zero after 2 minutes idle.
 
+### 3 Nov 2026, the 35-person studio starter
+
+From the Make it real click to the picture in the app, open workspace view, in the in-app browser on an Apple M1,
+through the **local** Worker (the same Modal render worker the live site uses; the live Worker was not yet redeployed).
+Measured by a script that clicks the button and waits for the picture; picture 480 px wide in the panel.
+
+| Run | Worker state | Seconds |
+|---|---|---|
+| 1 | not known (first render of the session) | 16.8 |
+| 2 | warm | 24.6 |
+| 3 | warm | 18.7 |
+| 4 | warm | 14.7 |
+| 5 | **cold**, about 10 minutes idle | **41.3** |
+| 6 | warm | 14.9 |
+| 7 | warm | 16.2 |
+
+Warm: 14.7 to 24.6 s (median 16.2 s, 5 runs). Cold: one clean run, 41.3 s. Two more cold runs were planned; the browser
+paused their timers while hidden and they ran warm, so they are counted as warm. Which GPU served each run was not
+recorded.
+
 ## Not done
 
-- The deployed edge Worker on workers.dev does not have this route or its two secrets yet: the Cloudflare login on this
-  machine expired. Until it is redeployed, Make it real works only with the local Worker.
+- Cold and warm times on the live site itself are not yet measured; the 3 Nov numbers are through the local Worker.
 - Multi-floor projects export plain colours (`plainExport`), so their renders have no textures.
 - The worker returns 500 for a Cycles failure; the app shows it as "the renderer failed" without the cause.
