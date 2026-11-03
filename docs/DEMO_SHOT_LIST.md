@@ -11,11 +11,11 @@ data first if the Wi-Fi's DNS still caches the old subdomain. Type the sentences
 | 0:35–0:50 | Edit by words | Type: `the lounge feels cramped, give it noticeably more space` and send. Then type `a couple more phone booths would be great` and send. | "Change it in plain words. Muse Spark reads the sentence into edits, and the validators decide what is kept." |
 | 0:50–0:56 | A refusal | Type: `add a swimming pool next to reception` and send. Show the reply. | "What it can't do, it says, instead of guessing." |
 | 0:56–1:12 | Walk | Open **Walkthrough**. Click **Kitchen** in the views strip, then **Meeting room 1**. Walk a few steps with W. | "Walk through it, room by room." |
-| 1:12–1:25 | Make it real | In the open workspace view, click **✦ Make it real** and wait for the picture. Cut the wait if it runs past 20 s. | "Make it real renders the same model with Blender Cycles on a cloud GPU." |
+| 1:12–1:25 | Make it real | Click **✦ Make it real**, cut the wait (about 4 minutes), then walk from the open workspace into the lounge with W. | "Make it real path-traces the light of the whole building on a cloud GPU, and you walk through it." |
 | 1:25–1:30 | End card | Hold on the render. | "Icarus. Concept design only." |
 
 ## Before recording
 
-- Design the starter once on the live site, so the Make it real worker is warm (a cold start took about 40 s on 3 Nov).
+- Make it real takes about 4 minutes; record the bake once beforehand so the cut is clean.
 - All three sentences are from the 20 measured in `apps/web/test/eval/editModel.eval.test.ts` (run5: each read right
   or flagged). Run them once on the live site before recording; cut any shot that does not behave.

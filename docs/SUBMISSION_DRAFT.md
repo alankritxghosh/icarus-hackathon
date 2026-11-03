@@ -12,8 +12,8 @@ whether the project works. Check the participant portal and official rules befor
 
 Icarus turns a written office brief into a measured floor plan and a walkable 3D concept, and changes it when you say
 what to change. Muse Spark proposes what the brief left out and reads plain-word edits; a deterministic layout engine
-places every room and checks the plan, so the model never draws geometry. "Make it real" renders the view with Blender
-Cycles on a cloud GPU.
+places every room and checks the plan, so the model never draws geometry. "Make it real" path-traces the light of the whole building with Blender
+Cycles on a cloud GPU, and you walk anywhere in it in first person.
 
 ## The demo path
 
@@ -32,13 +32,15 @@ planned and **are not in the product**.
 
 ## Other measured numbers, with their limits
 
-- **Walk room views** on the 35-person studio: 7 room views (workspace, reception, lounge, kitchen, three meeting
-  rooms), each standing on its own room's floor at least 0.3 m from every piece of furniture (unit test). Walls cover
+- **Walk room views** on the 35-person studio's rules-only layout: 7 room views (workspace, reception, lounge, kitchen,
+  three meeting rooms), each standing on its own room's floor at least 0.3 m from every piece of furniture (unit test).
+  The live designs of 4 Nov offered no meeting-room view; the cause is not yet found. Walls cover
   11% to 37% of the frame once the camera settles, by ray casting the 3D view; one reading taken while the camera was
   still moving was 54%.
 - **Furnishing:** 35/35 desks, 2/2 phone booths and 18/18 meeting seats placed. The lounge and kitchen cover about 13%
   and 12% of their floor; they have no target to measure against.
-- **Make it real:** cold and warm times from button to picture are in [REALISTIC_RENDERING.md](REALISTIC_RENDERING.md).
+- **Make it real:** 240.6 s and 245.0 s from click to walking in baked light on the live site (two runs, cold GPU
+  worker); details and limits in [REALISTIC_RENDERING.md](REALISTIC_RENDERING.md).
 - **Exports (31 Oct):** a GLB passed the Khronos glTF Validator with zero errors; a DXF passed `ezdxf audit` with zero
   errors.
 

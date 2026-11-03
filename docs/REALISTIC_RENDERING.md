@@ -1,69 +1,73 @@
-# Make it real: the model rendered with Cycles on a Modal GPU
+# Make it real: the whole building lit by path tracing, then walked
 
-3 Nov 2026. "Make it real" renders the view on screen with Blender Cycles on a Modal GPU and shows the picture over the
-live model. It replaces the browser path tracer of 30 Oct, which the founder found slow and weak on his laptop: it used
-the viewer's own GPU, and Modal played no part.
+4 Nov 2026. "Make it real" path-traces the light of the whole building with Blender Cycles on a Modal GPU and dresses
+the live model in it, so the visitor walks anywhere, in first person and in real time, under that light. It replaces
+the single still picture of 3 Nov: the founder wanted the whole project to become real and roamable, not one image.
 
 ## What it is
 
-1. `apps/web/src/Studio.tsx` (`makeReal`) asks the 3D view for its camera and sun (`OfficeView.renderView`) and for the
-   model as a GLB with only what is on screen (`exportGlb(plain, true)`: no hidden roof or upper floor, and no wall the
-   walk camera has faded to see past). It posts both to `/api/render`.
-2. `apps/edge/src/render.ts` limits each caller to 4 renders a minute and everyone to 30, checks the view and that the
-   body is a GLB of at most 60 MB, and forwards both with a bearer token the browser never sees. It checks the reply's
-   shape before passing the picture back.
-3. `workers/render/app.py` (Modal app `icarus-render`) imports the GLB into Blender 4.2 (`bpy`), places the same camera,
-   adds a matte paper ground, a physical sky (its own sun disc off) and a sun from the browser's sun direction, and
-   renders 128 samples with Cycles on the GPU (OptiX), denoised with OpenImageDenoise, in AgX. It adds nothing to the
-   model.
+1. `apps/web/src/officeView.ts` (`exportForLight`) gives every floor, wall, ceiling, door and frame light-map
+   coordinates (`apps/web/src/lightmap.ts`: the six faces of each box on one square texture, 4 texels apart, about 28
+   texels a metre, at most 1024 px) and exports the whole building as a GLB, the coordinates as `TEXCOORD_1` and each
+   texture size in the node's extras.
+2. `apps/edge/src/render.ts` limits each caller to 4 bakes a minute and everyone to 30, checks the view and the file,
+   and starts the bake with a token the browser never sees. A bake takes minutes, longer than one web request may wait
+   on Modal (about 150 s), so POST answers at once with a job id and the browser asks `GET /api/render?job=...` every
+   3 s. Asking is not rate limited; job ids are checked before they reach the worker.
+3. `workers/render/app.py` (Modal app `icarus-render`, bpy 5.2.3) imports the GLB, lights it with a physical sky, a
+   sun from the browser's direction and the model's own light fittings (bright emissive surfaces at about 4000 K and
+   strength 30, so a downlight disc lights its room), makes glass clear, and bakes diffuse light only (direct and
+   indirect, no colour) into one image per surface. Each image goes through Intel Open Image Denoise in Blender's
+   compositor, on the CPU. Exposure is set so the geometric mean of all baked light is 1. The bake runs in a watched
+   child process: a Blender crash is reported in seconds instead of leaving the browser waiting.
+4. Back in the browser (`wearLight`), each surface keeps its own colour and texture and multiplies in its light map,
+   unlit, so what shows is the path-traced light. Painted walls and ceilings drop the plaster scan, whose mottling reads
+   as grime under real light. Walk turns first person under the ceiling, with no avatar and nothing faded, and exposure
+   adapts from room to room: twice a second the view meters a 48 x 30 linear copy of the frame and eases toward mid
+   grey, within two stops.
 
-The picture is a still of one view, not a walkable scene. The quick 3D view stays in the browser for moving around.
+Furniture is not baked: it keeps the live model's lighting, so it reads a little less real than the room around it.
 
 ## Why this and not the alternatives
 
 | Option | Verdict |
 |---|---|
-| Path tracing in the browser (30 Oct to 2 Nov) | Real bounced light on the live model at no server cost, but as slow as the viewer's GPU: about 1 sample a second walking on an M1, on an 8-room office. The two-floor plan is about a million triangles. Removed with its two packages and sky image. |
-| Image-model repaint of a snapshot | A picture, not the model; invents details the model does not have. Rejected earlier by the founder. |
-| **Cycles on a Modal GPU** | The same model and camera, path traced on a data-centre GPU in seconds, and the same on a phone as on a desktop. Paid per second and static. Chosen. |
+| One path-traced still of the view (3 Nov) | Photographic, but one picture: you cannot walk it. Replaced. |
+| 360 degree panoramas at each room view | Photographic and cheap, but you hop between fixed points. Offered on 4 Nov; the founder chose free walking. |
+| Path tracing in the browser (30 Oct to 2 Nov) | As slow as the viewer's GPU: about 1 sample a second on an M1. Removed earlier. |
+| **Light baked on a GPU, walked live** | The building's own light, walkable anywhere at browser frame rates. The light is static: an edit needs a new bake. Chosen. |
 
 ## Measured, with its limits
 
-2 to 3 Nov 2026, the private two-floor plan (42 spaces), a 3.3 MB GLB without textures:
+The 35-person studio starter: 171 surfaces, a 24.5 MB GLB, 128 samples.
 
-- **GPU supply.** With only L4 allowed, a render waited over 400 s for capacity and never started. The worker now takes
-  the first free of L4, A10G or L40S; which one served each run was not recorded.
-- **Warm worker:** 3.6 to 7.1 s of Cycles rendering at 960 × 600 to 1280 × 800, 1.5 to 1.9 s to import the model, and 8
-  to 16 s from button to picture in the app, including the export and the upload.
-- **Cold start** was not measured cleanly: the first calls after deploys failed on the OptiX denoiser (fixed by using
-  OpenImageDenoise) or reached a crashed container.
-- **Light** was set by eye over seven renders of the same view (sun 2.6, sky 0.4 with no sun disc, exposure -1.1). It
-  has not been compared with a photograph or judged by a designer.
-- **Cost:** about 10 to 20 s of GPU time per render, roughly 0.3 to 1 US cent at Modal's list prices for these GPUs. The
-  worker scales to zero after 2 minutes idle.
+- **Live, button to walking:** 240.6 s and 245.0 s on 4 Nov, both on a cold GPU worker: exporting, uploading, the
+  worker starting, the bake, denoising and loading the maps. Which GPU served each run was not recorded. A run between
+  them aborted in the denoiser (Blender 5 reached for EGL); the compositor now runs on the CPU, and the 245 s run came
+  after that fix.
+- **Light maps:** 171 JPEGs, about 0.8 MB in all.
+- **Denoiser,** against a known image (a gradient under heavy multiplicative noise): RMS error 0.639 before, 0.045
+  after, on Blender 4.2 and 5.2 alike.
+- **Light-map layout:** a unit test checks every face of walls, slabs, doors and frames stays inside its texture, at
+  least 2 texels from the next, and in proportion.
+- **On the founder's M1 (Metal),** the same bake took 4 to 7 minutes at 64 to 128 samples; one run read 96 minutes,
+  most likely while the machine slept, so it is not a measurement.
+- **Look:** judged by eye in screenshots of the workspace, lounge, kitchen and reception. It has not been compared with
+  photographs or judged by a designer.
 
-### 3 Nov 2026, the 35-person studio starter
+## Faults found on the way (4 Nov)
 
-From the Make it real click to the picture in the app, open workspace view, in the in-app browser on an Apple M1,
-through the **local** Worker (the same Modal render worker the live site uses; the live Worker was not yet redeployed).
-Measured by a script that clicks the button and waits for the picture; picture 480 px wide in the panel.
-
-| Run | Worker state | Seconds |
-|---|---|---|
-| 1 | not known (first render of the session) | 16.8 |
-| 2 | warm | 24.6 |
-| 3 | warm | 18.7 |
-| 4 | warm | 14.7 |
-| 5 | **cold**, about 10 minutes idle | **41.3** |
-| 6 | warm | 14.9 |
-| 7 | warm | 16.2 |
-
-Warm: 14.7 to 24.6 s (median 16.2 s, 5 runs). Cold: one clean run, 41.3 s. Two more cold runs were planned; the browser
-paused their timers while hidden and they ran warm, so they are counted as warm. Which GPU served each run was not
-recorded.
+- Blender 4.2 crashed while loading textures for a bake, on Modal and on a Mac, and the process pool then waited
+  forever. Moved to bpy 5.2.3 and a watched child.
+- The browser export wrote one flipped copy of a normal map per wall: 64 MB of images where 13 MB were distinct.
+  Flipping each image once cut the studio's GLB from 75 MB to 24 MB.
+- Walking in an office hid every wall after the first step: office floor ids start with "floor.", which Walk took for
+  the name of a storey. Fixed.
+- Clearing the walk camera's faded walls after the light went on undid the light on six walls. Fixed.
 
 ## Not done
 
-- Cold and warm times on the live site itself are not yet measured; the 3 Nov numbers are through the local Worker.
-- Multi-floor projects export plain colours (`plainExport`), so their renders have no textures.
-- The worker returns 500 for a Cycles failure; the app shows it as "the renderer failed" without the cause.
+- Furniture is lit live, not baked.
+- An edit or a new design needs a new bake; the light is not updated in place.
+- Multi-floor projects from drawings have not been baked.
+- Warm-worker bake time, and time across GPU types, are not yet measured.
