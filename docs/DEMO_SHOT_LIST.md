@@ -1,8 +1,6 @@
 # Demo video: 3-minute shot list
 
-Record on the live site, https://icarus.dream-studio.workers.dev, in a desktop browser. **Use a window wider than
-1500 CSS px** (for example 1600 × 1000) until the change-log fix (`258c296`) is deployed. At 1500 px or narrower, the
-live site hides the conversation after about eight changes (QA report P0-1). Test on mobile data first if the Wi-Fi's DNS
+Record on the live site, https://icarus.dream-studio.workers.dev, in a desktop browser at 1440 px wide or more. Test on mobile data first if the Wi-Fi's DNS
 still caches the old subdomain.
 
 Type the sentences exactly. Each one behaved as described on the live site on 4 Nov 2026 (QA report). The layout depends
