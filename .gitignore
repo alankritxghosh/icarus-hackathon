@@ -15,3 +15,5 @@ node_modules/
 playwright-report/
 test-results/
 workers/cad/.venv/
+# Demo video renders stay local; they are large and are uploaded separately.
+Demo/
