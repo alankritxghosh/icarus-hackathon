@@ -1,21 +1,36 @@
-# Demo video: 90-second shot list
+# Demo video: 3-minute shot list
 
-Record on the live site, https://icarus.dream-studio.workers.dev, in a desktop browser at 1440 px wide. Test on mobile
-data first if the Wi-Fi's DNS still caches the old subdomain. Type the sentences exactly; they are the ones measured.
+Record on the live site, https://icarus.dream-studio.workers.dev, in a desktop browser. **Use a window wider than
+1500 CSS px** (for example 1600 × 1000) until the change-log fix (`258c296`) is deployed. At 1500 px or narrower, the
+live site hides the conversation after about eight changes (QA report P0-1). Test on mobile data first if the Wi-Fi's DNS
+still caches the old subdomain.
+
+Type the sentences exactly. Each one behaved as described on the live site on 4 Nov 2026 (QA report). The layout depends
+on Muse Spark's proposal and can differ between runs, so **rehearse once and cut any shot that misbehaves**. Do not
+resize a meeting room in the demo: on the live build that silently renames another meeting room (P1-1).
+
+The voice-over may say "Icarus". On-screen text uses the lowercase `icarus` wordmark.
 
 | Time | Shot | Do | Say (voice-over) |
 |---|---|---|---|
-| 0:00–0:08 | Homepage | Show the hero, click **Follow that dream**. | "Icarus designs an office from a sentence." |
-| 0:08–0:25 | Studio, brief | Click the **35-person design studio** starter. Let the "Building your space" steps run. | "Muse Spark proposes what the brief left out. A layout engine places every room and checks the plan; the model never draws geometry." |
-| 0:25–0:35 | 3D overview | Orbit the model once. Open **Floor Plan** for two seconds, back to **3D**. | "Rooms, corridors, furniture and light, in about thirty seconds." |
-| 0:35–0:50 | Edit by words | Type: `the lounge feels cramped, give it noticeably more space` and send. Then type `a couple more phone booths would be great` and send. | "Change it in plain words. Muse Spark reads the sentence into edits, and the validators decide what is kept." |
-| 0:50–0:56 | A refusal | Type: `add a swimming pool next to reception` and send. Show the reply. | "What it can't do, it says, instead of guessing." |
-| 0:56–1:12 | Walk | Open **Walkthrough**. Click **Kitchen** in the views strip, then **Meeting room 1**. Walk a few steps with W. | "Walk through it, room by room." |
-| 1:12–1:25 | Make it real | Click **✦ Make it real**, cut the wait (about 4 minutes), then walk from the open workspace into the lounge with W. | "Make it real path-traces the light of the whole building on a cloud GPU, and you walk through it." |
-| 1:25–1:30 | End card | Hold on the render. | "Icarus. Concept design only." |
+| 0:00–0:20 | Homepage | Show the hero, then click **Follow that dream**. | "Planning an office today means a broker's floor plan, a designer's first sketch or a spreadsheet of seats. Icarus designs the office from a sentence." |
+| 0:20–0:50 | Studio, brief | Click the **35-person design studio** starter. Let the "Building your space" steps run (about 45 s; cut the middle), and hold on "Weighed the model's proposal". | "Muse Spark reads the brief and proposes what an office like this needs. A deterministic layout engine places every room, furnishes it and checks the plan, and keeps only the ideas that fit. The model never draws geometry." |
+| 0:50–1:00 | 3D overview | Orbit once. Open **Floor Plan** for two seconds, then back to **3D**. | "Rooms, corridors, furniture and light, in under a minute." |
+| 1:00–1:12 | Edit by words | Type `a couple more phone booths would be great` and send (about 13 s; cut the wait). Show "Added 2 phone booths". | "Change it in plain words. Muse Spark reads the sentence into edits; the engine decides what is kept." |
+| 1:12–1:27 | Collateral named | Type `we need one more meeting room for client calls` and send (about 12 s). Hold on the reply: it names the open workspace moving, and says when the plan measures worse. | "When one change moves something else, it says so, and it tells you when a change makes the plan worse." |
+| 1:27–1:35 | A refusal | Type `add a swimming pool next to reception` and send (about 4 s). Show "I could not do that." | "What it can't do, it says, instead of guessing." |
+| 1:35–1:40 | Undo | Type `undo` and send. | "And anything can be undone." |
+| 1:40–2:05 | Walk | Open **Walkthrough**. Click **Kitchen** in the views strip, then **Meeting room 1**. Walk a few steps with W. | "Walk through it, room by room." |
+| 2:05–2:35 | Make it real | Click **✦ Make it real**. Cut the wait (about 4–5 minutes; use the bake recorded beforehand), then walk from the open workspace into the lounge with W. | "Make it real path-traces the light of the whole building with Blender on a cloud GPU, and you walk through it." |
+| 2:35–2:50 | Exports, how it works | Open **Export ↗** and show both choices. | "Take it into Blender, or into CAD as a floor plan. The model proposes; the engine decides." |
+| 2:50–3:00 | End card | Hold an end card: `icarus`, "Concept design only". | "Icarus. Concept design only: not a building-code check, a structural design or a construction document." |
 
 ## Before recording
 
-- Make it real takes about 4 minutes; record the bake once beforehand so the cut is clean.
-- All three sentences are from the 20 measured in `apps/web/test/eval/editModel.eval.test.ts` (run5: each read right
-  or flagged). Run them once on the live site before recording; cut any shot that does not behave.
+- Make it real took 296 s in the QA run and 240–245 s earlier. Record the bake once beforehand so the cut is clean.
+- The phone-booth, meeting-room, swimming-pool and undo sentences were run live on 4 Nov (QA report). The phone-booth and
+  swimming-pool sentences are also among the 20 measured in `apps/web/test/eval/editModel.eval.test.ts`.
+- The old opening edit, `the lounge feels cramped, give it noticeably more space`, was refused on 4 Nov because the
+  lounge was already twice its target. It is left out.
+- "Weighed the model's proposal" may read "0 of 3 ideas kept". The voice-over above stays true either way. Do not say
+  that Muse Spark added rooms unless the screen shows ideas kept.
