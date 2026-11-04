@@ -2,7 +2,7 @@
 
 Design a whole office from scratch, in words.
 
-Tell Icarus about an office. It plans the rooms and circulation, builds a walkable 3D model with furniture, lighting and materials, and accepts changes typed in plain words. You can also attach a vector floor-plan PDF to view it in 3D, or a photo to guide a new office's style. It is built for the Meta Global AI Developer Hackathon (Indie developer track).
+Tell Icarus about an office. It plans the rooms and circulation, builds a walkable 3D model with furniture, lighting and materials, and accepts changes typed in plain words. You can also attach a photo to guide a new office's style. It is built for the Meta Global AI Developer Hackathon (Indie developer track).
 
 Live: https://icarus.dream-studio.workers.dev
 
@@ -16,13 +16,13 @@ Live: https://icarus.dream-studio.workers.dev
 
 **Not in the product:** Muse Voice Transcribe (spoken edits), SAM 3.1 (reading floor plans from images) and Muse Spark vision critique of renders were planned and **were not built**.
 
-Output is **concept design only**. It is not a building-code check, a structural design or a construction document, and Icarus says so wherever it matters. See [docs/DESIGN.md](docs/DESIGN.md) for exactly what it does and how.
+Output is **concept design only**. It is not a building-code check, a structural design or a construction document, and the homepage says so. See [docs/DESIGN.md](docs/DESIGN.md) for exactly what it does and how.
 
 ## Provenance
 
 This repository was created on **26 October 2026, after the hackathon kickoff (12:00 PM EDT)**, and every line of code in it was written during the hackathon. The Git history is unedited, so `git log` shows exactly what was built and when.
 
-The idea is not new to this repository: the author explored a similar product in an earlier private prototype before the hackathon. That prototype is **not part of this repository**, no code or tests were copied from it, and nothing in it used a Meta model. What carried over is the problem framing, the lessons learned and the approved visual design (dark graphite and green, sidebar, one prompt, Home to Building to Built flow), not the code: every component here was written from scratch during the hackathon.
+The idea is not new to this repository: the author explored a similar product in an earlier private prototype before the hackathon. That prototype is **not part of this repository**, no code or tests were copied from it, and nothing in it used a Meta model. What carried over is the problem framing, the lessons learned and an early visual direction (since replaced by the current paper-and-navy design), not the code: every component here was written from scratch during the hackathon.
 
 On 30 Oct 2026 two ideas from that prototype were added here: auditing a model against measured drawing evidence, and recording corrections as enforced lessons (`docs/QUALITY_SYSTEM.md`). They were rewritten from the design with different data structures and tests, and none of the prototype's source was opened or copied. The same AI coding assistant wrote both versions, so this is a reimplementation from the written design, not a blind clean-room.
 
@@ -34,7 +34,7 @@ Working build, not a finished product. What it does today and what it does not:
 
 Current acceptance checklist: [docs/OPEN_GATES.md](docs/OPEN_GATES.md).
 
-- **Does:** designs a rectangular office from a typed brief, furnishes it, shows a floor plan, a 3D model and a third-person walk with a view in each workspace, reception, lounge, kitchen and meeting room, checks its own plan and repairs problems, and accepts edits typed in plain words (move, swap, resize, meeting rooms, phone booths, locks, undo), refusing what it cannot do. "Make it real" path-traces the light of the whole building with Blender Cycles on a Modal GPU (about 4 minutes on the 35-person studio), then you walk anywhere in first person under that light ([docs/REALISTIC_RENDERING.md](docs/REALISTIC_RENDERING.md)); furniture keeps live lighting. It saves office and drawing projects in this browser, exports GLB for Blender, and exports a DXF plan when asked in chat. A vector PDF can be read into a 3D building, and a straight partition between two named, enclosed rooms in a newly imported plan can be moved by a stated distance and undone.
+- **Does:** designs a rectangular office from a typed brief, furnishes it, shows a floor plan, a 3D model and a third-person walk with a view in each workspace, reception, lounge, kitchen and meeting room, checks its own plan and repairs problems, and accepts edits typed in plain words (move, swap, resize, meeting rooms, phone booths, locks, undo), refusing what it cannot do. "Make it real" path-traces the light of the whole building with Blender Cycles on a Modal GPU (about 4 minutes on the 35-person studio), then you walk anywhere in first person under that light ([docs/REALISTIC_RENDERING.md](docs/REALISTIC_RENDERING.md)); furniture keeps live lighting. It saves office and drawing projects in this browser, exports GLB for Blender, and exports a DXF plan when asked in chat. In a local run with the drawing worker, a vector PDF can be read into a 3D building (this is switched off on the live site), and a straight partition between two named, enclosed rooms in a newly imported plan can be moved by a stated distance and undone.
 - **Does not:** generally edit rooms read from a drawing (irregular partitions, ambiguous rooms and older saved drawings are refused), design L-shaped or multi-floor offices in the app, check building codes, reconstruct a real room from a photo, or take voice input. Projects saved in one browser do not sync to another device.
 - **Not validated:** layouts are measured against our own rules; no architect or other independent reviewer has reviewed them, and the founder is not independent of the work. Render lighting was set by eye, not compared with photographs.
 
@@ -53,4 +53,4 @@ Model keys go in a local, uncommitted `.env` (see `.env.example`); nothing in th
 
 ## Licences
 
-Code: MIT. Furniture models: CC0 from Poly Haven ([assets/LICENSES.md](assets/LICENSES.md)). Reference photos keep their own licences and credits ([apps/web/public/references/LICENSES.md](apps/web/public/references/LICENSES.md)).
+Code: MIT. Furniture models: CC0 from Poly Haven ([assets/LICENSES.md](assets/LICENSES.md)).

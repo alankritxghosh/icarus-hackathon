@@ -15,7 +15,7 @@ Do the steps in order. Each ends with a check that is measured, not looked at. R
 - The branch is 56 commits ahead of `main`; `main` is 1 commit ahead. 86 files differ.
 - Office designs offer only their entrance in Walk (`apps/web/src/App.tsx:687`), so "Go to a room" and the views
   strip are empty on the demo path.
-- The Meta key was pasted into chat on 2 Nov. Rotate it before it goes on the public site.
+- Rotate the Meta key before the repository goes public.
 
 ## 1. Muse Spark on the live site (about 1 hour)
 

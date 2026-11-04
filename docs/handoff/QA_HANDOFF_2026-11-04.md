@@ -5,7 +5,7 @@ Written by Claude Code at the founder's request, 4 Nov 2026, about 1:45 PM ET. R
 ## Where things stand
 
 - **Deadline:** submissions close **4 Nov 2026, 9:00 PM ET** (5 Nov, 7:30 AM IST). Leave at least one hour at the end for upload and the portal form.
-- **The submission is the product demo only.** It must be **at most 3 minutes**. The founder will record it straight after this QA. The Christmas film ("Jonah") was shelved today and moved to a later project of several weeks. Its files live outside this repo in `~/Jonah-Film` and are not part of the submission.
+- **The submission is the product demo only.** It must be **at most 3 minutes**. The founder will record it straight after this QA. A separate film project was shelved today and is not part of the submission.
 - **Live site:** https://icarus.dream-studio.workers.dev. `main` is at `ede104b`; `codex/editable-drawing-demo` is fully merged (0 commits ahead). Uncommitted: `.claude/launch.json` (modified) and `docs/decisions/level-10-and-submission-scope.md` (untracked). Ask before committing either.
 - **Demo script:** `docs/DEMO_SHOT_LIST.md` is a **90-second** list. It has to grow to a **3-minute** list (see the last section).
 - **Not authorized by this handoff:** push, deploy, making the repo public, submitting, or any paid resource. Each needs the founder's explicit yes.
@@ -97,7 +97,7 @@ Judging: **creativity, technical ambition, whether it works** (Indie track, them
 2. **Storage:** projects and learned preferences live in this browser only (localStorage or IndexedDB). Is there a way to clear them? Is anything stored server-side (KV holds the budget only)? Do the Worker or Modal logs keep request bodies?
 3. **Private material:** the founder's two-floor residential plans in `fixtures/private/two-floor-reference/` are ignored by Git. The plan owner agreed to showing the floors in submission media, but not to committing them (`docs/decisions/level-10-and-submission-scope.md`). Check that no derived image or route data from them is tracked, and that the demo does not use them unless the founder decides to.
 4. **No analytics or third-party trackers** on the live site. Check the network tab on load.
-5. **Credentials pasted in chat today:** in the Jonah-film session, a Meta Model API key and a Hugging Face token were pasted into chat. They are stored only in `~/Jonah-Film/.env` (mode 600, outside this repo). Recommend the founder **rotate both after submission**, and check the Meta key is not the same one the live Worker uses. If it is, rotating it will break the live demo, so do it after recording.
+5. **Key rotation:** recommend the founder rotates the Meta Model API key and other development tokens **after submission**. Rotating the key the live Worker uses stops the live demo until the secret is updated, so do it after recording.
 
 ## After QA: the 3-minute demo script
 
