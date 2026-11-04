@@ -985,12 +985,15 @@ button {
     grid-row: 3;
     flex-direction: row;
     padding: 0 0 18px;
-    overflow: visible;
+    /* A long change log scrolls in its card instead of pushing the conversation off the screen. */
+    max-height: 32vh;
+    overflow: hidden;
   }
   .side .card {
     flex: 1;
     min-width: 0;
     padding: 12px 14px;
+    overflow-y: auto;
   }
   .side .card h2 {
     font-size: 19px;
@@ -1029,6 +1032,7 @@ button {
     display: flex;
     order: 3;
     padding: 0 16px 24px;
+    max-height: none;
   }
   .seg button {
     padding: 6px 12px;
