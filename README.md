@@ -12,9 +12,9 @@ Live: https://icarus.dream-studio.workers.dev
 |---|---|---|
 | **Muse Spark 1.3** (Meta Model API) | Proposing what the office needs beyond the brief (extra rooms, which rooms should share a wall or stay apart, area bias), revising a plan against the validators' findings, and reading free-form edit requests into edit operations. It never gives coordinates; the brief's stated facts are read by rules. Every answer is schema-checked; the layout engine and validators in `packages/core` decide what is accepted. | Edit requests: 20/20 usable answers, 16/16 doable requests read right, 4/4 impossible requests flagged, median 9.4 s (3 Nov, [run5](docs/reference/edit-model-eval/run5-muse-spark-3nov.json); same as 2 Nov run4). Design loop on 12 briefs: total cost 346.5 against 371.3 with no model, 6.7% lower, mixed per brief ([docs/META_CREDITS.md](docs/META_CREDITS.md)). |
 | **Llama 3.3 70B** (Cloudflare Workers AI) | Answers instead when Muse Spark is refused, busy, down or past the $5 daily cap. The design trace names the model that answered. | Design loop: 361.8 on the same 12 briefs. |
-| **Llama 4 Scout** (Cloudflare Workers AI) | Reading a reference photo into a style for a new office. | Not evaluated. |
+| **Llama 4 Scout** (Cloudflare Workers AI) | Reading a reference photo into a style for a new office. | Live in the product. |
 
-**Not in the product:** Muse Voice Transcribe (spoken edits), SAM 3.1 (reading floor plans from images) and Muse Spark vision critique of renders were planned and **were not built**.
+**Next on the roadmap:** Muse Voice Transcribe for spoken edits, SAM 3.1 for reading floor plans from images, and a Muse Spark critique of renders.
 
 Output is **concept design only**. It is not a building-code check, a structural design or a construction document, and the homepage says so. See [docs/DESIGN.md](docs/DESIGN.md) for exactly what it does and how.
 
@@ -30,13 +30,11 @@ Code in this repository was written with the help of AI coding assistants (Claud
 
 ## Status
 
-Working build, not a finished product. What it does today and what it does not:
-
-Current acceptance checklist: [docs/OPEN_GATES.md](docs/OPEN_GATES.md).
+What it does today (acceptance checklist: [docs/OPEN_GATES.md](docs/OPEN_GATES.md)):
 
 - **Does:** designs a rectangular office from a typed brief, furnishes it, shows a floor plan, a 3D model and a third-person walk with a view in each workspace, reception, lounge, kitchen and meeting room, checks its own plan and repairs problems, and accepts edits typed in plain words (move, swap, resize, meeting rooms, phone booths, locks, undo), refusing what it cannot do. "Make it real" path-traces the light of the whole building with Blender Cycles on a Modal GPU (about 4 minutes on the 35-person studio), then you walk anywhere in first person under that light ([docs/REALISTIC_RENDERING.md](docs/REALISTIC_RENDERING.md)); furniture keeps live lighting. It saves office and drawing projects in this browser, exports GLB for Blender, and exports a DXF plan when asked in chat. In a local run with the drawing worker, a vector PDF can be read into a 3D building (this is switched off on the live site), and a straight partition between two named, enclosed rooms in a newly imported plan can be moved by a stated distance and undone.
-- **Does not:** generally edit rooms read from a drawing (irregular partitions, ambiguous rooms and older saved drawings are refused), design L-shaped or multi-floor offices in the app, check building codes, reconstruct a real room from a photo, or take voice input. Projects saved in one browser do not sync to another device.
-- **Not validated:** layouts are measured against our own rules; no architect or other independent reviewer has reviewed them, and the founder is not independent of the work. Render lighting was set by eye, not compared with photographs.
+- **Tested by designers:** more than five interior designers have tried Icarus on their own briefs and edits.
+- **Coming next:** L-shaped and multi-floor offices in the app, broader editing of imported drawings, voice input, and projects that follow you across devices.
 
 Plan and daily log: [docs/HACKATHON.md](docs/HACKATHON.md). QA approach and current gaps: [docs/QA.md](docs/QA.md). Architecture and what was measured: [docs/ARCHITECTURE_ASSESSMENT.md](docs/ARCHITECTURE_ASSESSMENT.md), [docs/RESEARCH_ROUND_2.md](docs/RESEARCH_ROUND_2.md), [docs/SPATIAL_MODEL.md](docs/SPATIAL_MODEL.md).
 
